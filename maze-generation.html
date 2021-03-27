@@ -73,9 +73,9 @@
             set_pixel(x, y, generate_color());
           } else {
             console.log(
-              'completed in ' +
-                (new Date().getTime() - start_time.getTime()) / 1000 +
-                's'
+              `completed in ${
+                (new Date().getTime() - start_time.getTime()) / 1000
+              }s`
             );
             return;
           }
