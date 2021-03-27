@@ -1,0 +1,143 @@
+<html>
+<head>
+<title>Markov Words</title>
+<style>
+body {
+  background-color: #000;
+  color: #AAA;
+  font-family: Sans-Serif;
+}
+a {
+  text-decoration: none;
+  font-size: 20px;
+}
+a:link {
+  color: #444;
+}
+a:visited {
+  color: #777;
+}
+a:hover {
+  color: #777;
+}
+a:active {
+  color: #222;
+}
+</style>
+</head>
+<body>
+<b>Load dictionary:</b>
+<input type="file" name="file" id="file" />
+<div id="markovjson"></div><br />
+<div id="genword" style="font-size: 50px;">Markov Words.</div><br />
+<button onclick="generateword()">Generate Word.</button>
+<br /><br />
+<div>Some sample dictionaries...<br />
+<a href="dicts/10kcommon.txt">10kcommon</a><br />
+<a href="dicts/linuxdict.txt">linuxdict</a><br />
+<a href="dicts/german.txt">german</a><br />
+<a href="dicts/french.txt">french</a><br />
+  Right click "Save as..." - Needs work... but works!</div>
+</body>
+<script>
+//split words up and put add to markov table
+function processword (word) {
+  var letters = word.split('');
+  if (letters.length > 0) {
+    markov_matrix[letters[0]]['isfirst']++;
+    for (var letter_num = 0; letter_num < letters.length - 1; letter_num++) {
+      markov_matrix[letters[letter_num]][letters[letter_num+1]]++;
+    }
+    markov_matrix[letters[letters.length - 1]]['islast']++;
+  }
+}
+
+//normalize table [a..z][a..z (divided by sum of a through z for this letter),isfirst and islast divided by sum across all letters]
+function normalize_markov () {
+  var firstsum = 0;
+  var lastsum = 0;
+  var lettersum;
+  for (var i = 65; i <= 90; i++) {
+    lettersum = 0;
+    for (var j = 65; j <= 90; j++) {
+      lettersum += markov_matrix[String.fromCharCode(i).toLowerCase()][String.fromCharCode(j).toLowerCase()];
+    }
+    for (var j = 65; j <= 90; j++) {
+      markov_matrix[String.fromCharCode(i).toLowerCase()][String.fromCharCode(j).toLowerCase()] /= lettersum;
+    }
+    firstsum += markov_matrix[String.fromCharCode(i).toLowerCase()]['isfirst'];
+    lastsum += markov_matrix[String.fromCharCode(i).toLowerCase()]['islast'];
+  }
+  for (var i = 65; i <= 90; i++) {
+    markov_matrix[String.fromCharCode(i).toLowerCase()]['isfirst'] /= firstsum;
+    markov_matrix[String.fromCharCode(i).toLowerCase()]['islast'] /= lastsum;
+  }
+}
+
+function generateletter () {
+  var lettercode = 0;
+  while (lettercode < 65 || lettercode > 90) {
+    lettercode = 65 + Math.floor(Math.random()*26);
+  }
+  return String.fromCharCode(lettercode).toLowerCase();
+}
+
+function generateword () {
+  if (loaded) {
+    var builtword = ''
+    while (builtword.length < 4 || builtword.length > 10) {
+      var builtword = '';
+      var lastletter = '';
+      var currentletter = generateletter();
+      while(markov_matrix[currentletter]['isfirst'] < Math.random() / 4) {
+        currentletter = generateletter();
+      }
+      builtword += currentletter;
+      while(markov_matrix[currentletter]['islast'] < Math.random() / 3) {
+        lastletter = currentletter;
+        currentletter = generateletter();
+        while(markov_matrix[lastletter][currentletter] < Math.random() / 4) {  
+          currentletter = generateletter();
+        }
+        builtword += currentletter;
+      }
+   }
+    document.getElementById("genword").innerHTML = builtword;
+  }
+}
+
+function zero_markov () {
+  for (var i = 65; i <= 90; i++) {
+    markov_matrix[String.fromCharCode(i).toLowerCase()] = {};
+    for (var j = 65; j <= 90; j++) {
+      markov_matrix[String.fromCharCode(i).toLowerCase()][String.fromCharCode(j).toLowerCase()] = 0;
+    }
+    //here we add rows to indicate if the letter is the first or last in the word
+    markov_matrix[String.fromCharCode(i).toLowerCase()]['isfirst'] = 0;
+    markov_matrix[String.fromCharCode(i).toLowerCase()]['islast'] = 0;
+  }
+}
+
+var markov_matrix = {};
+
+//read in file and run it through processword line-by-line, populating markov table
+var loaded = 0;
+document.getElementById('file').onchange = function(){
+  var file = this.files[0];
+  var reader = new FileReader();
+  reader.onload = function(progressEvent){
+    zero_markov();
+    var lines = this.result.split('\n');
+    for(var line_num = 0; line_num < lines.length; line_num++){
+      processword(lines[line_num]);
+    }
+    normalize_markov();
+    //document.getElementById("markovjson").innerHTML = "<br /><b>JSON of markov probability table:</b><br />" + JSON.stringify(markov_matrix) + "<br />";
+    //markov table is loaded, instantiated, and normalized
+    loaded = 1;
+    generateword();
+  };
+  reader.readAsText(file);
+};
+</script>
+</html>
