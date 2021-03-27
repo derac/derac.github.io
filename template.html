@@ -1,29 +1,91 @@
-<html><head><title>Template.</title><style>
-* { margin: 0; padding: 0;} canvas { width: 100%; height: 100%; } body { background-color: #000; }
-</style></head><body><canvas id="canvas"></canvas> </body><script>
-// general setup
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d"), scale = 1;
-ctx.canvas.width  = window.innerWidth / scale;
-ctx.canvas.height = window.innerHeight / scale;
-let img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
+<html>
+  <head>
+    <title>Template.</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        background-color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+  <script>
+    // general setup
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d'),
+      scale = 1;
+    ctx.canvas.width = window.innerWidth / scale;
+    ctx.canvas.height = window.innerHeight / scale;
+    let img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 
-// drawing algorithm setup
-let iteration = 0, iterations_per_frame = 10000;
+    // drawing algorithm setup
+    let iteration = 0,
+      iterations_per_frame = 10000;
 
-window.requestAnimationFrame(draw); // Start drawing
-function draw() { // the brains of the operation
-	for (let i = 0; i < iterations_per_frame; i++) {
-		set_pixel(ctx.canvas.width/2,ctx.canvas.height/2,[255,255,255,255]); }
-	getFPS().then(fps => { if (fps < 60) { iterations_per_frame -= 100; } else { iterations_per_frame += 500; } });
-	iteration++; ctx.putImageData(img,0,0); window.requestAnimationFrame(draw); }
+    window.requestAnimationFrame(draw); // Start drawing
+    function draw() {
+      // the brains of the operation
+      for (let i = 0; i < iterations_per_frame; i++) {
+        set_pixel(ctx.canvas.width / 2, ctx.canvas.height / 2, [
+          255,
+          255,
+          255,
+          255,
+        ]);
+      }
+      getFPS().then((fps) => {
+        if (fps < 60) {
+          iterations_per_frame -= 100;
+        } else {
+          iterations_per_frame += 500;
+        }
+      });
+      iteration++;
+      ctx.putImageData(img, 0, 0);
+      window.requestAnimationFrame(draw);
+    }
 
-// helper functions
-function *enumerate(array) { for (let i = 0; i < array.length; i += 1) { yield [i, array[i]]; } }
-function clamp(n,min,max) { return Math.min(Math.max(n, min), max); }
-function clamped_move(x,y,dx,dy) { return [clamp(x+dx,0,ctx.canvas.width-1),clamp(y+dy,0,ctx.canvas.height-1)]}
-function get_offset(x,y) { return y * ctx.canvas.width * 4 + x * 4; }
-function set_pixel(x,y,color) { let data_offset = get_offset(x, y); for (let c of enumerate(color)) { img.data[data_offset + c[0]] = c[1] } }
-function get_pixel(x,y) { return img.data[get_offset(x, y)]; }
-const getFPS = () => new Promise(resolve => requestAnimationFrame(t1 => requestAnimationFrame(t2 => resolve(1000 / (t2 - t1)))));
-</script></html>
+    // helper functions
+    function* enumerate(array) {
+      for (let i = 0; i < array.length; i += 1) {
+        yield [i, array[i]];
+      }
+    }
+    function clamp(n, min, max) {
+      return Math.min(Math.max(n, min), max);
+    }
+    function clamped_move(x, y, dx, dy) {
+      return [
+        clamp(x + dx, 0, ctx.canvas.width - 1),
+        clamp(y + dy, 0, ctx.canvas.height - 1),
+      ];
+    }
+    function get_offset(x, y) {
+      return y * ctx.canvas.width * 4 + x * 4;
+    }
+    function set_pixel(x, y, color) {
+      let data_offset = get_offset(x, y);
+      for (let c of enumerate(color)) {
+        img.data[data_offset + c[0]] = c[1];
+      }
+    }
+    function get_pixel(x, y) {
+      return img.data[get_offset(x, y)];
+    }
+    const getFPS = () =>
+      new Promise((resolve) =>
+        requestAnimationFrame((t1) =>
+          requestAnimationFrame((t2) => resolve(1000 / (t2 - t1)))
+        )
+      );
+  </script>
+</html>

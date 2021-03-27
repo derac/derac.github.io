@@ -1,106 +1,113 @@
-<html
-><head>
-<title>Random Growth</title>
-<style>
-* { margin: 0; padding: 0;}
+<html>
+  <head>
+    <title>Random Growth</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
 
-body, html {
-  background-color: #000;
-  overflow: hidden;
-}
-
-</style>
-</head>
-<body>
-<canvas id="my_canvas">
-</canvas> 
-</body>
-<script>
-var canvas = document.getElementById("my_canvas");
-var ctx = canvas.getContext("2d");
-var scale = 1;
-ctx.canvas.width  = window.innerWidth / scale;
-ctx.canvas.height = window.innerHeight / scale;
-var img_data = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
-dataWidth = ctx.canvas.width * 4;
-dataSize = img_data.data.length;
-function setneighbors (x) {
-  //above and wrap
-  if (x < dataWidth) {
-    img_data.data[x-dataWidth+dataSize+0] = img_data.data[x+0];
-    img_data.data[x-dataWidth+dataSize+1] = img_data.data[x+1];
-    img_data.data[x-dataWidth+dataSize+2] = img_data.data[x+2];
-  } else {
-    img_data.data[x-dataWidth+0] = img_data.data[x+0];
-    img_data.data[x-dataWidth+1] = img_data.data[x+1];
-    img_data.data[x-dataWidth+2] = img_data.data[x+2];
-  }
-  //below and wrap
-  if (x > dataSize - dataWidth) {
-    img_data.data[x+dataWidth-dataSize+0] = img_data.data[x+0];
-    img_data.data[x+dataWidth-dataSize+1] = img_data.data[x+1];
-    img_data.data[x+dataWidth-dataSize+2] = img_data.data[x+2];
-  } else {
-    img_data.data[x+dataWidth+0] = img_data.data[x+0];
-    img_data.data[x+dataWidth+1] = img_data.data[x+1];
-    img_data.data[x+dataWidth+2] = img_data.data[x+2];
-  }
-  //left
-  img_data.data[x-4+0] = img_data.data[x+0];
-  img_data.data[x-4+1] = img_data.data[x+1];
-  img_data.data[x-4+2] = img_data.data[x+2];
-  //right
-  img_data.data[x+4+0] = img_data.data[x+0];
-  img_data.data[x+4+1] = img_data.data[x+1];
-  img_data.data[x+4+2] = img_data.data[x+2];
-}
-function draw() {
-  for (var i = 0; i < img_data.data.length / 20; i += 4) {
-    setneighbors(Math.floor(Math.random()*ctx.canvas.width*ctx.canvas.height) * 4);
-  }
-  ctx.putImageData(img_data,0,0);
-  window.requestAnimationFrame(draw);
-}
-var coloringType = 0;
-for (var i = 0; i < img_data.data.length; i += 4) {
-switch (coloringType) {
-  case 0:  
-  // RANDOM COLORED PIXELS
-  img_data.data[i+0] = Math.floor(Math.random()*256);
-  img_data.data[i+1] = Math.floor(Math.random()*256);
-  img_data.data[i+2] = Math.floor(Math.random()*256);
-  img_data.data[i+3] = 255;
-  break;
-  case 1:
-  // CHECKERBOARD
-  if ((i % dataWidth < dataWidth/2 && i < dataSize /2) || (i % dataWidth > dataWidth/2 && i > dataSize /2)) {
-    img_data.data[i+0] = 255;
-    img_data.data[i+1] = 255;
-    img_data.data[i+2] = 255;
-    img_data.data[i+3] = 255;
-  } else {
-    img_data.data[i+0] = 0;
-    img_data.data[i+1] = 0;
-    img_data.data[i+2] = 0;
-    img_data.data[i+3] = 255;
-  }
-  break;
-  default:
-  // B&W STRIPES
-  if (i % dataWidth / 4 / 4 % 2) {
-    img_data.data[i+0] = 255;
-    img_data.data[i+1] = 255;
-    img_data.data[i+2] = 255;
-    img_data.data[i+3] = 255;
-  } else {
-    img_data.data[i+0] = 0;
-    img_data.data[i+1] = 0;
-    img_data.data[i+2] = 0;
-    img_data.data[i+3] = 255;
-  }
-}
-}
-ctx.putImageData(img_data,0,0);
-window.requestAnimationFrame(draw);
-</script>
+      body,
+      html {
+        background-color: #000;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="my_canvas"> </canvas>
+  </body>
+  <script>
+    var canvas = document.getElementById('my_canvas');
+    var ctx = canvas.getContext('2d');
+    var scale = 1;
+    ctx.canvas.width = window.innerWidth / scale;
+    ctx.canvas.height = window.innerHeight / scale;
+    var img_data = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
+    dataWidth = ctx.canvas.width * 4;
+    dataSize = img_data.data.length;
+    function setneighbors(x) {
+      //above and wrap
+      if (x < dataWidth) {
+        img_data.data[x - dataWidth + dataSize + 0] = img_data.data[x + 0];
+        img_data.data[x - dataWidth + dataSize + 1] = img_data.data[x + 1];
+        img_data.data[x - dataWidth + dataSize + 2] = img_data.data[x + 2];
+      } else {
+        img_data.data[x - dataWidth + 0] = img_data.data[x + 0];
+        img_data.data[x - dataWidth + 1] = img_data.data[x + 1];
+        img_data.data[x - dataWidth + 2] = img_data.data[x + 2];
+      }
+      //below and wrap
+      if (x > dataSize - dataWidth) {
+        img_data.data[x + dataWidth - dataSize + 0] = img_data.data[x + 0];
+        img_data.data[x + dataWidth - dataSize + 1] = img_data.data[x + 1];
+        img_data.data[x + dataWidth - dataSize + 2] = img_data.data[x + 2];
+      } else {
+        img_data.data[x + dataWidth + 0] = img_data.data[x + 0];
+        img_data.data[x + dataWidth + 1] = img_data.data[x + 1];
+        img_data.data[x + dataWidth + 2] = img_data.data[x + 2];
+      }
+      //left
+      img_data.data[x - 4 + 0] = img_data.data[x + 0];
+      img_data.data[x - 4 + 1] = img_data.data[x + 1];
+      img_data.data[x - 4 + 2] = img_data.data[x + 2];
+      //right
+      img_data.data[x + 4 + 0] = img_data.data[x + 0];
+      img_data.data[x + 4 + 1] = img_data.data[x + 1];
+      img_data.data[x + 4 + 2] = img_data.data[x + 2];
+    }
+    function draw() {
+      for (var i = 0; i < img_data.data.length / 20; i += 4) {
+        setneighbors(
+          Math.floor(Math.random() * ctx.canvas.width * ctx.canvas.height) * 4
+        );
+      }
+      ctx.putImageData(img_data, 0, 0);
+      window.requestAnimationFrame(draw);
+    }
+    var coloringType = 0;
+    for (var i = 0; i < img_data.data.length; i += 4) {
+      switch (coloringType) {
+        case 0:
+          // RANDOM COLORED PIXELS
+          img_data.data[i + 0] = Math.floor(Math.random() * 256);
+          img_data.data[i + 1] = Math.floor(Math.random() * 256);
+          img_data.data[i + 2] = Math.floor(Math.random() * 256);
+          img_data.data[i + 3] = 255;
+          break;
+        case 1:
+          // CHECKERBOARD
+          if (
+            (i % dataWidth < dataWidth / 2 && i < dataSize / 2) ||
+            (i % dataWidth > dataWidth / 2 && i > dataSize / 2)
+          ) {
+            img_data.data[i + 0] = 255;
+            img_data.data[i + 1] = 255;
+            img_data.data[i + 2] = 255;
+            img_data.data[i + 3] = 255;
+          } else {
+            img_data.data[i + 0] = 0;
+            img_data.data[i + 1] = 0;
+            img_data.data[i + 2] = 0;
+            img_data.data[i + 3] = 255;
+          }
+          break;
+        default:
+          // B&W STRIPES
+          if (((i % dataWidth) / 4 / 4) % 2) {
+            img_data.data[i + 0] = 255;
+            img_data.data[i + 1] = 255;
+            img_data.data[i + 2] = 255;
+            img_data.data[i + 3] = 255;
+          } else {
+            img_data.data[i + 0] = 0;
+            img_data.data[i + 1] = 0;
+            img_data.data[i + 2] = 0;
+            img_data.data[i + 3] = 255;
+          }
+      }
+    }
+    ctx.putImageData(img_data, 0, 0);
+    window.requestAnimationFrame(draw);
+  </script>
 </html>

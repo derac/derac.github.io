@@ -1,70 +1,117 @@
 <html>
-<head>
-<title>der.ac</title>
-<style>
-* { margin: 0; padding: 0;}
-canvas { width: 100%; height: 100%; }
-</style></head>
-<body><canvas id="canvas"></canvas></body>
-<script>
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
-let scale = 1;
-ctx.canvas.width  = window.innerWidth / scale;
-ctx.canvas.height = window.innerHeight / scale;
-let img_data = ctx.createImageData(ctx.canvas.width,ctx.canvas.height);
+  <head>
+    <title>der.ac</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+  <script>
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let scale = 1;
+    ctx.canvas.width = window.innerWidth / scale;
+    ctx.canvas.height = window.innerHeight / scale;
+    let img_data = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 
+    // play around with these :)
+    let x_squares = 6;
+    let y_squares = 60;
+    let iterations = img_data.data.length / 100;
+    let diffusal_ratio = 2;
 
-// play around with these :)
-let x_squares = 6;
-let y_squares = 60;
-let iterations = img_data.data.length / 100;
-let diffusal_ratio  = 2;
+    // Drawing initial colors to the screen
+    let data_width = ctx.canvas.width * 4;
+    let data_size = img_data.data.length;
+    let line_width_x = Math.floor(data_width / x_squares);
+    let line_width_y = Math.floor(ctx.canvas.height / y_squares);
+    for (let square_x = 0; square_x < data_width; square_x += line_width_x) {
+      for (
+        let square_y = 0;
+        square_y < ctx.canvas.height;
+        square_y += line_width_y
+      ) {
+        let color = [
+          Math.floor(Math.random() * 256),
+          Math.floor(Math.random() * 256),
+          Math.floor(Math.random() * 256),
+        ];
+        for (x = square_x; x < square_x + line_width_x; x += 4) {
+          for (y = square_y; y < square_y + line_width_y; y += 1) {
+            let pixel_loc = y * data_width + x;
+            img_data.data[pixel_loc + 0] = color[0];
+            img_data.data[pixel_loc + 1] = color[1];
+            img_data.data[pixel_loc + 2] = color[2];
+            img_data.data[pixel_loc + 3] = 255;
+          }
+        }
+      }
+    }
 
-// Drawing initial colors to the screen
-let data_width = ctx.canvas.width * 4;
-let data_size = img_data.data.length;
-let line_width_x = Math.floor(data_width / x_squares);
-let line_width_y = Math.floor(ctx.canvas.height / y_squares);
-for (let square_x = 0; square_x < data_width; square_x += line_width_x) {
-    for (let square_y = 0; square_y < ctx.canvas.height; square_y += line_width_y) {
-    let color = [Math.floor(Math.random()*256), Math.floor(Math.random()*256), Math.floor(Math.random()*256)]
-    for (x = square_x; x < square_x + line_width_x; x += 4) {
-        for (y = square_y; y < square_y + line_width_y; y += 1) {
-        let pixel_loc = (y * data_width) + x
-        img_data.data[pixel_loc+0] = color[0];
-        img_data.data[pixel_loc+1] = color[1];
-        img_data.data[pixel_loc+2] = color[2];
-        img_data.data[pixel_loc+3] = 255; }	} } }
+    // Start drawing
+    window.requestAnimationFrame(draw);
 
-// Start drawing
-window.requestAnimationFrame(draw);
+    const getFPS = () =>
+      new Promise((resolve) =>
+        requestAnimationFrame((t1) =>
+          requestAnimationFrame((t2) => resolve(1000 / (t2 - t1)))
+        )
+      );
 
-const getFPS = () => new Promise(resolve => requestAnimationFrame(t1 => requestAnimationFrame(t2 => resolve(1000 / (t2 - t1)))));
+    function draw() {
+      ctx.putImageData(img_data, 0, 0);
+      for (let i = 0; i < iterations; i += 4) {
+        diffuse(
+          Math.floor(Math.random() * ctx.canvas.width * ctx.canvas.height) * 4,
+          Math.floor(Math.random() * diffusal_ratio)
+        );
+      }
 
-function draw() {
-    ctx.putImageData(img_data,0,0);
-    for (let i = 0; i < iterations; i += 4) {
-        diffuse(Math.floor(Math.random()*ctx.canvas.width*ctx.canvas.height) * 4, Math.floor(Math.random() * diffusal_ratio)); }
+      getFPS().then((fps) => {
+        // maintain 60 fps
+        if (fps < 59) {
+          iterations *= 0.95;
+        } else {
+          iterations /= 0.995;
+        }
+      });
+      window.requestAnimationFrame(draw);
+    }
 
-    getFPS().then(fps => { // maintain 60 fps
-        if (fps < 59) { iterations *= .95; }
-        else { iterations /= .995; } });
-    window.requestAnimationFrame(draw); }
+    function diffuse(x, ratio) {
+      //above and wrap
+      if (x < data_width) {
+        set_pixel(x, x - data_width + data_size, ratio);
+      } else {
+        set_pixel(x, x - data_width, ratio);
+      }
+      //below and wrap
+      if (x > data_size - data_width) {
+        set_pixel(x, x + data_width - data_size, ratio);
+      } else {
+        set_pixel(x, x + data_width, ratio);
+      }
+      //left and right
+      set_pixel(x, x - 4, ratio);
+      set_pixel(x, x + 4, ratio);
+    }
 
-function diffuse(x, ratio) {
-    //above and wrap
-    if (x < data_width) { set_pixel(x, x - data_width + data_size, ratio); }
-    else { set_pixel(x, x - data_width, ratio); }
-    //below and wrap
-    if (x > data_size - data_width) { set_pixel(x, x + data_width - data_size, ratio); }
-    else { set_pixel(x, x + data_width, ratio); }
-    //left and right
-    set_pixel(x, x - 4, ratio);
-    set_pixel(x, x + 4, ratio); }
-
-function set_pixel(data_from, data_to, ratio) {
-    for (i = 0; i < 3; i++) {
-        img_data.data[data_to+i] = Math.floor((img_data.data[data_from+i] + img_data.data[data_to+i] * ratio) / (ratio + 1)); } }
-</script>
+    function set_pixel(data_from, data_to, ratio) {
+      for (i = 0; i < 3; i++) {
+        img_data.data[data_to + i] = Math.floor(
+          (img_data.data[data_from + i] + img_data.data[data_to + i] * ratio) /
+            (ratio + 1)
+        );
+      }
+    }
+  </script>
 </html>
