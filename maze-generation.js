@@ -17,10 +17,10 @@ const SCALE = 1.7;
 const COLOR_CHANGE_RATE = 300 / SCALE;
 const WIDTH = window.innerWidth / SCALE;
 const HEIGHT = window.innerHeight / SCALE;
+let x = Math.floor(WIDTH / 2);
+let y = Math.floor(HEIGHT / 2);
 let iterations_per_frame = 20000;
 let iteration = 0;
-let x = Math.floor(ctx.canvas.width / 2);
-let y = Math.floor(ctx.canvas.height / 2);
 let canvas, ctx, img;
 
 const initialize_canvas_and_draw = () => {
