@@ -42,7 +42,7 @@ function draw() {
     let [dx, dy] = direction[Math.floor(Math.random() * direction.length)];
     [x, y] = clamped_move(x, y, dx, dy);
     if (candidates.length) {
-      let color = generate_color();
+      let color = color_function(iteration);
       set_pixel(x, y, color);
       set_pixel(...clamped_move(x, y, -dx, -dy), color);
       iterations_since_last_candidate = 0;
@@ -54,7 +54,7 @@ function draw() {
       let black_pixel = black_pixel_generator.next();
       if (!black_pixel.done) {
         [x, y] = black_pixel.value;
-        set_pixel(x, y, generate_color());
+        set_pixel(x, y, color_function(iteration));
       } else {
         console.log(
           "completed in " +
@@ -64,9 +64,10 @@ function draw() {
         return;
       }
     }
+    iteration++;
   }
-  tune_FPS_TARGET();
   ctx.putImageData(img, 0, 0);
+  tune_iterations_per_frame();
   window.requestAnimationFrame(draw);
 }
 function get_next_move_candidates(x, y) {
@@ -82,21 +83,6 @@ function get_next_move_candidates(x, y) {
       })
     );
   });
-}
-function generate_color() {
-  iteration++;
-  return [
-    120 + Math.floor(Math.sin(iteration / COLOR_CHANGE_RATE) * 80),
-    120 +
-      Math.floor(
-        Math.sin((iteration / COLOR_CHANGE_RATE) * ((Math.PI * 2) / 3)) * 80
-      ),
-    120 +
-      Math.floor(
-        Math.sin((iteration / COLOR_CHANGE_RATE) * ((Math.PI * 4) / 3)) * 80
-      ),
-    255,
-  ];
 }
 function* get_next_black_pixel() {
   let pixel_found = true;
@@ -132,26 +118,33 @@ function get_offset(x, y) {
   return y * ctx.canvas.width * 4 + x * 4;
 }
 function set_pixel(x, y, color) {
-  let data_offset = get_offset(x, y);
   for (let c of enumerate(color)) {
-    img.data[data_offset + c[0]] = c[1];
+    img.data[get_offset(x, y) + c[0]] = c[1];
   }
 }
 function get_pixel(x, y) {
   return img.data[get_offset(x, y)];
 }
-const get_fps = () =>
+function tune_iterations_per_frame() {
   new Promise((resolve) =>
     requestAnimationFrame((t1) =>
       requestAnimationFrame((t2) => resolve(1000 / (t2 - t1)))
     )
-  );
-function tune_FPS_TARGET() {
-  get_fps().then((fps) => {
+  ).then((fps) => {
     if (fps < FPS_TARGET) {
       iterations_per_frame *= 0.995;
     } else {
       iterations_per_frame *= 1.005;
     }
   });
+}
+function color_function(n) {
+  return [
+    120 + Math.floor(Math.sin(n / COLOR_CHANGE_RATE) * 80),
+    120 +
+      Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * ((Math.PI * 2) / 3)) * 80),
+    120 +
+      Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * ((Math.PI * 4) / 3)) * 80),
+    255,
+  ];
 }
