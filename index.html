@@ -1,246 +1,177 @@
-<!DOCTYPE html>
-<html xmlns='http://www.w3.org/1999/xhtml' lang='' xml:lang=''>
-<head>
-	<meta charset='utf-8' />
-	<meta name='viewport' content='width=device-width, user-scalable=no' />
-	<link id='-gd-engine-icon' rel='icon' type='image/png' href='favicon.png' />
-	<title>FishTank</title>
-	<style type='text/css'>
+<html>
+  <head>
+    <title>Random-walk maze generation.</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+      body {
+        background-color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+  </body>
+  <script>
+    // general setup
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d'),
+      scale = 1;
+    (ctx.canvas.width = window.innerWidth / scale),
+      (ctx.canvas.height = window.innerHeight / scale);
+    let img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 
-		body {
-			touch-action: none;
-			margin: 0;
-			border: 0 none;
-			padding: 0;
-			text-align: center;
-			background-color: black;
-		}
+    // drawing algorithm setup
+    let x = Math.floor(ctx.canvas.width / 2),
+      y = Math.floor(ctx.canvas.height / 2);
+    let four_way = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+    let eight_way = four_way.concat([
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ]);
+    let iteration = 0,
+      iterations_per_frame = 20000,
+      fps_target = 60;
+    const black_pixel_generator = get_next_black_pixel();
+    let start_time = new Date();
+    let iteration_color_factor = 30000 / scale;
 
-		#canvas {
-			display: block;
-			margin: 0;
-			color: white;
-		}
+    window.requestAnimationFrame(draw); // Start drawing
+    function draw() {
+      // the brains of the operation
+      for (let i = 0; i < iterations_per_frame; i++) {
+        let candidates = get_next_move_candidates(x, y);
+        let direction = candidates.length ? candidates : [...eight_way];
+        let [dx, dy] = direction[Math.floor(Math.random() * direction.length)];
+        [x, y] = clamped_move(x, y, dx, dy);
+        if (candidates.length) {
+          let color = generate_color();
+          set_pixel(x, y, color);
+          set_pixel(...clamped_move(x, y, -dx, -dy), color);
+          iterations_since_last_candidate = 0;
+        } else {
+          iterations_since_last_candidate += 1;
+        }
+        if (iterations_since_last_candidate > iterations_per_frame) {
+          iterations_since_last_candidate = 0;
+          let black_pixel = black_pixel_generator.next();
+          if (!black_pixel.done) {
+            [x, y] = black_pixel.value;
+            set_pixel(x, y, generate_color());
+          } else {
+            console.log(
+              'completed in ' +
+                (new Date().getTime() - start_time.getTime()) / 1000 +
+                's'
+            );
+            return;
+          }
+        }
+      }
+      tune_fps_target();
+      ctx.putImageData(img, 0, 0);
+      window.requestAnimationFrame(draw);
+    }
+    function get_next_move_candidates(x, y) {
+      return four_way.filter((d1) => {
+        let [x2, y2] = clamped_move(x, y, d1[0], d1[1]);
+        return (
+          !get_pixel(x2, y2) &&
+          eight_way.every((d2) => {
+            if (d1[0] ? d2[0] == -d1[0] : d2[1] == -d1[1]) {
+              return true;
+            }
+            return !get_pixel(x2 + d2[0], y2 + d2[1]);
+          })
+        );
+      });
+    }
+    function generate_color() {
+      iteration++;
+      return [
+        170 + Math.floor(Math.sin(iteration / iteration_color_factor) * 30),
+        190 +
+          Math.floor(
+            Math.sin(iteration / iteration_color_factor + (3.14 / 2) * 3) * 30
+          ),
+        190 +
+          Math.floor(
+            Math.sin(iteration / iteration_color_factor + 3.14 / 2) * 30
+          ),
+        255,
+      ];
+    }
+    function* get_next_black_pixel() {
+      let pixel_found = true;
+      while (pixel_found) {
+        pixel_found = false;
+        for (let y = 0; y < ctx.canvas.height; y += 1) {
+          for (let x = 0; x < ctx.canvas.width; x += 1) {
+            if (!get_pixel(x, y) && get_next_move_candidates(x, y).length) {
+              pixel_found = true;
+              yield [x, y];
+            }
+          }
+        }
+      }
+    }
 
-		#canvas:focus {
-			outline: none;
-		}
-
-		.godot {
-			font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
-			color: #e0e0e0;
-			background-color: #3b3943;
-			background-image: linear-gradient(to bottom, #403e48, #35333c);
-			border: 1px solid #45434e;
-			box-shadow: 0 0 1px 1px #2f2d35;
-		}
-
-
-		/* Status display
-		 * ============== */
-
-		#status {
-			position: absolute;
-			left: 0;
-			top: 0;
-			right: 0;
-			bottom: 0;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			/* don't consume click events - make children visible explicitly */
-			visibility: hidden;
-		}
-
-		#status-progress {
-			width: 366px;
-			height: 7px;
-			background-color: #38363A;
-			border: 1px solid #444246;
-			padding: 1px;
-			box-shadow: 0 0 2px 1px #1B1C22;
-			border-radius: 2px;
-			visibility: visible;
-		}
-
-		@media only screen and (orientation:portrait) {
-			#status-progress {
-				width: 61.8%;
-			}
-		}
-
-		#status-progress-inner {
-			height: 100%;
-			width: 0;
-			box-sizing: border-box;
-			transition: width 0.5s linear;
-			background-color: #202020;
-			border: 1px solid #222223;
-			box-shadow: 0 0 1px 1px #27282E;
-			border-radius: 3px;
-		}
-
-		#status-indeterminate {
-			visibility: visible;
-			position: relative;
-		}
-
-		#status-indeterminate > div {
-			width: 4.5px;
-			height: 0;
-			border-style: solid;
-			border-width: 9px 3px 0 3px;
-			border-color: #2b2b2b transparent transparent transparent;
-			transform-origin: center 21px;
-			position: absolute;
-		}
-
-		#status-indeterminate > div:nth-child(1) { transform: rotate( 22.5deg); }
-		#status-indeterminate > div:nth-child(2) { transform: rotate( 67.5deg); }
-		#status-indeterminate > div:nth-child(3) { transform: rotate(112.5deg); }
-		#status-indeterminate > div:nth-child(4) { transform: rotate(157.5deg); }
-		#status-indeterminate > div:nth-child(5) { transform: rotate(202.5deg); }
-		#status-indeterminate > div:nth-child(6) { transform: rotate(247.5deg); }
-		#status-indeterminate > div:nth-child(7) { transform: rotate(292.5deg); }
-		#status-indeterminate > div:nth-child(8) { transform: rotate(337.5deg); }
-
-		#status-notice {
-			margin: 0 100px;
-			line-height: 1.3;
-			visibility: visible;
-			padding: 4px 6px;
-			visibility: visible;
-		}
-	</style>
-
-</head>
-<body>
-	<canvas id='canvas'>
-		HTML5 canvas appears to be unsupported in the current browser.<br />
-		Please try updating or use a different browser.
-	</canvas>
-	<div id='status'>
-		<div id='status-progress' style='display: none;' oncontextmenu='event.preventDefault();'><div id ='status-progress-inner'></div></div>
-		<div id='status-indeterminate' style='display: none;' oncontextmenu='event.preventDefault();'>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-			<div></div>
-		</div>
-		<div id='status-notice' class='godot' style='display: none;'></div>
-	</div>
-
-	<script type='text/javascript' src='FishTank.js'></script>
-	<script type='text/javascript'>//<![CDATA[
-
-		const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"executable":"FishTank","experimentalVK":false,"fileSizes":{"FishTank.pck":713696,"FishTank.wasm":12660493},"gdnativeLibs":[]};
-		var engine = new Engine(GODOT_CONFIG);
-
-		(function() {
-			const INDETERMINATE_STATUS_STEP_MS = 100;
-			var statusProgress = document.getElementById('status-progress');
-			var statusProgressInner = document.getElementById('status-progress-inner');
-			var statusIndeterminate = document.getElementById('status-indeterminate');
-			var statusNotice = document.getElementById('status-notice');
-
-			var initializing = true;
-			var statusMode = 'hidden';
-
-			var animationCallbacks = [];
-			function animate(time) {
-				animationCallbacks.forEach(callback => callback(time));
-				requestAnimationFrame(animate);
-			}
-			requestAnimationFrame(animate);
-
-			function setStatusMode(mode) {
-
-				if (statusMode === mode || !initializing)
-					return;
-				[statusProgress, statusIndeterminate, statusNotice].forEach(elem => {
-					elem.style.display = 'none';
-				});
-				animationCallbacks = animationCallbacks.filter(function(value) {
-					return (value != animateStatusIndeterminate);
-				});
-				switch (mode) {
-					case 'progress':
-						statusProgress.style.display = 'block';
-						break;
-					case 'indeterminate':
-						statusIndeterminate.style.display = 'block';
-						animationCallbacks.push(animateStatusIndeterminate);
-						break;
-					case 'notice':
-						statusNotice.style.display = 'block';
-						break;
-					case 'hidden':
-						break;
-					default:
-						throw new Error('Invalid status mode');
-				}
-				statusMode = mode;
-			}
-
-			function animateStatusIndeterminate(ms) {
-				var i = Math.floor(ms / INDETERMINATE_STATUS_STEP_MS % 8);
-				if (statusIndeterminate.children[i].style.borderTopColor == '') {
-					Array.prototype.slice.call(statusIndeterminate.children).forEach(child => {
-						child.style.borderTopColor = '';
-					});
-					statusIndeterminate.children[i].style.borderTopColor = '#dfdfdf';
-				}
-			}
-
-			function setStatusNotice(text) {
-				while (statusNotice.lastChild) {
-					statusNotice.removeChild(statusNotice.lastChild);
-				}
-				var lines = text.split('\n');
-				lines.forEach((line) => {
-					statusNotice.appendChild(document.createTextNode(line));
-					statusNotice.appendChild(document.createElement('br'));
-				});
-			};
-
-			function displayFailureNotice(err) {
-				var msg = err.message || err;
-				console.error(msg);
-				setStatusNotice(msg);
-				setStatusMode('notice');
-				initializing = false;
-			};
-
-			if (!Engine.isWebGLAvailable()) {
-				displayFailureNotice('WebGL not available');
-			} else {
-				setStatusMode('indeterminate');
-				engine.startGame({
-					'onProgress': function (current, total) {
-						if (total > 0) {
-							statusProgressInner.style.width = current/total * 100 + '%';
-							setStatusMode('progress');
-							if (current === total) {
-								// wait for progress bar animation
-								setTimeout(() => {
-									setStatusMode('indeterminate');
-								}, 500);
-							}
-						} else {
-							setStatusMode('indeterminate');
-						}
-					},
-				}).then(() => {
-					setStatusMode('hidden');
-					initializing = false;
-				}, displayFailureNotice);
-			}
-		})();
-	//]]></script>
-</body>
+    // helper functions
+    function* enumerate(array) {
+      for (let i = 0; i < array.length; i += 1) {
+        yield [i, array[i]];
+      }
+    }
+    function clamp(n, min, max) {
+      return Math.min(Math.max(n, min), max);
+    }
+    function clamped_move(x, y, dx, dy) {
+      return [
+        clamp(x + dx, 0, ctx.canvas.width - 1),
+        clamp(y + dy, 0, ctx.canvas.height - 1),
+      ];
+    }
+    function get_offset(x, y) {
+      return y * ctx.canvas.width * 4 + x * 4;
+    }
+    function set_pixel(x, y, color) {
+      let data_offset = get_offset(x, y);
+      for (let c of enumerate(color)) {
+        img.data[data_offset + c[0]] = c[1];
+      }
+    }
+    function get_pixel(x, y) {
+      return img.data[get_offset(x, y)];
+    }
+    const get_fps = () =>
+      new Promise((resolve) =>
+        requestAnimationFrame((t1) =>
+          requestAnimationFrame((t2) => resolve(1000 / (t2 - t1)))
+        )
+      );
+    function tune_fps_target() {
+      get_fps().then((fps) => {
+        if (fps < fps_target) {
+          iterations_per_frame *= 0.995;
+          fps_target -= 1;
+        } else {
+          iterations_per_frame *= 1.005;
+          fps_target = Math.min(fps_target + 1, Math.floor(fps) - 1);
+        }
+      });
+    }
+  </script>
 </html>
-
