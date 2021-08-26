@@ -14,7 +14,7 @@ const black_pixel_generator = get_next_black_pixel();
 let start_time = new Date();
 const FPS_TARGET = 60;
 const SCALE = 1.7;
-const COLOR_CHANGE_RATE = 300 / SCALE;
+const COLOR_CHANGE_RATE = 10000 / SCALE;
 const WIDTH = window.innerWidth / SCALE;
 const HEIGHT = window.innerHeight / SCALE;
 let x = Math.floor(WIDTH / 2);
@@ -86,10 +86,15 @@ function get_next_move_candidates(x, y) {
 function generate_color() {
   iteration++;
   return [
-    170 + Math.floor(Math.sin(iteration / COLOR_CHANGE_RATE) * 30),
-    190 +
-      Math.floor(Math.sin(iteration / COLOR_CHANGE_RATE + (3.14 / 2) * 3) * 30),
-    190 + Math.floor(Math.sin(iteration / COLOR_CHANGE_RATE + 3.14 / 2) * 30),
+    120 + Math.floor(Math.sin(iteration / COLOR_CHANGE_RATE) * 80),
+    120 +
+      Math.floor(
+        Math.sin((iteration / COLOR_CHANGE_RATE) * ((Math.PI * 2) / 3)) * 80
+      ),
+    120 +
+      Math.floor(
+        Math.sin((iteration / COLOR_CHANGE_RATE) * ((Math.PI * 4) / 3)) * 80
+      ),
     255,
   ];
 }
