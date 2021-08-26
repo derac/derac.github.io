@@ -14,13 +14,14 @@ const black_pixel_generator = get_next_black_pixel();
 let start_time = new Date();
 const FPS_TARGET = 60;
 const SCALE = 1.7;
-const COLOR_CHANGE_RATE = 10000 / SCALE;
+const COLOR_CHANGE_RATE = 200000;
 const WIDTH = window.innerWidth / SCALE;
 const HEIGHT = window.innerHeight / SCALE;
 let x = Math.floor(WIDTH / 2);
 let y = Math.floor(HEIGHT / 2);
-let iterations_per_frame = 20000;
-let iteration = 0;
+let iterations_per_frame = 10000;
+let iteration = Math.round(Math.random() * COLOR_CHANGE_RATE);
+let RGB_RATES = [Math.random() * 5, Math.random() * 5, Math.random() * 5];
 let canvas, ctx, img;
 
 const initialize_canvas_and_draw = () => {
@@ -70,6 +71,8 @@ function draw() {
   tune_iterations_per_frame();
   window.requestAnimationFrame(draw);
 }
+
+// helper functions
 function get_next_move_candidates(x, y) {
   return FOUR_WAY.filter((d1) => {
     let [x2, y2] = clamped_move(x, y, d1[0], d1[1]);
@@ -98,8 +101,6 @@ function* get_next_black_pixel() {
     }
   }
 }
-
-// helper functions
 function* enumerate(array) {
   for (let i = 0; i < array.length; i += 1) {
     yield [i, array[i]];
@@ -140,11 +141,9 @@ function tune_iterations_per_frame() {
 }
 function color_function(n) {
   return [
-    120 + Math.floor(Math.sin(n / COLOR_CHANGE_RATE) * 80),
-    120 +
-      Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * ((Math.PI * 2) / 3)) * 80),
-    120 +
-      Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * ((Math.PI * 4) / 3)) * 80),
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[0]) * 80),
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[1]) * 80),
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[2]) * 80),
     255,
   ];
 }
