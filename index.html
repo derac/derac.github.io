@@ -22,22 +22,22 @@
   <script>
     // general setup
     let canvas = document.getElementById('canvas');
-    let ctx = canvas.getContext('2d'),
-      scale = 1;
-    (ctx.canvas.width = window.innerWidth / scale),
-      (ctx.canvas.height = window.innerHeight / scale);
+    let ctx = canvas.getContext('2d');
+    const SCALE = 1.7;
+    ctx.canvas.width = window.innerWidth / SCALE;
+    ctx.canvas.height = window.innerHeight / SCALE;
     let img = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 
     // drawing algorithm setup
     let x = Math.floor(ctx.canvas.width / 2),
       y = Math.floor(ctx.canvas.height / 2);
-    let four_way = [
+    const FOUR_WAY = [
       [1, 0],
       [-1, 0],
       [0, 1],
       [0, -1],
     ];
-    let eight_way = four_way.concat([
+    const EIGHT_WAY = FOUR_WAY.concat([
       [-1, -1],
       [-1, 1],
       [1, -1],
@@ -48,14 +48,14 @@
       fps_target = 60;
     const black_pixel_generator = get_next_black_pixel();
     let start_time = new Date();
-    let iteration_color_factor = 30000 / scale;
+    let iteration_color_factor = 30000 / SCALE;
 
     window.requestAnimationFrame(draw); // Start drawing
     function draw() {
       // the brains of the operation
       for (let i = 0; i < iterations_per_frame; i++) {
         let candidates = get_next_move_candidates(x, y);
-        let direction = candidates.length ? candidates : [...eight_way];
+        let direction = candidates.length ? candidates : [...EIGHT_WAY];
         let [dx, dy] = direction[Math.floor(Math.random() * direction.length)];
         [x, y] = clamped_move(x, y, dx, dy);
         if (candidates.length) {
@@ -87,11 +87,11 @@
       window.requestAnimationFrame(draw);
     }
     function get_next_move_candidates(x, y) {
-      return four_way.filter((d1) => {
+      return FOUR_WAY.filter((d1) => {
         let [x2, y2] = clamped_move(x, y, d1[0], d1[1]);
         return (
           !get_pixel(x2, y2) &&
-          eight_way.every((d2) => {
+          EIGHT_WAY.every((d2) => {
             if (d1[0] ? d2[0] == -d1[0] : d2[1] == -d1[1]) {
               return true;
             }
