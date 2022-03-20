@@ -43,7 +43,7 @@ function draw() {
     let [dx, dy] = direction[Math.floor(Math.random() * direction.length)];
     [x, y] = clamped_move(x, y, dx, dy);
     if (candidates.length) {
-      let color = color_function(iteration);
+      let color = get_color(iteration);
       set_pixel(x, y, color);
       set_pixel(...clamped_move(x, y, -dx, -dy), color);
       iterations_since_last_candidate = 0;
@@ -55,7 +55,7 @@ function draw() {
       let black_pixel = black_pixel_generator.next();
       if (!black_pixel.done) {
         [x, y] = black_pixel.value;
-        set_pixel(x, y, color_function(iteration));
+        set_pixel(x, y, get_color(iteration));
       } else {
         console.log(
           "completed in " +
@@ -87,6 +87,7 @@ function get_next_move_candidates(x, y) {
     );
   });
 }
+
 function* get_next_black_pixel() {
   let pixel_found = true;
   while (pixel_found) {
@@ -101,31 +102,47 @@ function* get_next_black_pixel() {
     }
   }
 }
+
 function* enumerate(array) {
   for (let i = 0; i < array.length; i += 1) {
     yield [i, array[i]];
   }
 }
+
 function clamp(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
+
 function clamped_move(x, y, dx, dy) {
   return [
     clamp(x + dx, 0, ctx.canvas.width - 1),
     clamp(y + dy, 0, ctx.canvas.height - 1),
   ];
 }
+
 function get_offset(x, y) {
   return y * ctx.canvas.width * 4 + x * 4;
 }
+
 function set_pixel(x, y, color) {
   for (let c of enumerate(color)) {
     img.data[get_offset(x, y) + c[0]] = c[1];
   }
 }
+
 function get_pixel(x, y) {
   return img.data[get_offset(x, y)];
 }
+
+function get_color(n) {
+  return [
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[0]) * 80),
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[1]) * 80),
+    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[2]) * 80),
+    255,
+  ];
+}
+
 function tune_iterations_per_frame() {
   new Promise((resolve) =>
     requestAnimationFrame((t1) =>
@@ -138,12 +155,4 @@ function tune_iterations_per_frame() {
       iterations_per_frame *= 1.005;
     }
   });
-}
-function color_function(n) {
-  return [
-    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[0]) * 80),
-    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[1]) * 80),
-    127 + Math.floor(Math.sin((n / COLOR_CHANGE_RATE) * RGB_RATES[2]) * 80),
-    255,
-  ];
 }
