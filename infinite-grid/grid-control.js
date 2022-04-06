@@ -10,7 +10,7 @@ let center_point = new po.Pixel(
 );
 
 function draw() {
-  for (let _ of [...Array(10).keys()]) {
+  for (let _ of [...Array(5).keys()]) {
     Grid.set_pixel(
       Math.floor(Math.random() * Grid.img_width),
       Math.floor(Math.random() * Grid.img_height),
