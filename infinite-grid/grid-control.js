@@ -1,8 +1,10 @@
 import * as po from "./pixel-operations.js";
 
 const canvas = document.getElementById("canvas");
-let WIDTH = window.innerWidth / 2;
-let HEIGHT = window.innerHeight / 2;
+const SCALE = 1;
+const MOVESPEED = 3 / SCALE;
+let WIDTH = window.innerWidth / SCALE;
+let HEIGHT = window.innerHeight / SCALE;
 let Grid = new po.InfiniteGrid(canvas, WIDTH, HEIGHT);
 let center_offset = new po.Pixel(
   -Grid.img_width / 2 + WIDTH / 2,
@@ -23,7 +25,7 @@ function draw() {
 
 // events
 window.addEventListener("DOMContentLoaded", () => {
-  window.requestAnimationFrame(draw); // Start drawing
+  window.requestAnimationFrame(draw);
 });
 // dragging controls
 (() => {
@@ -37,21 +39,22 @@ window.addEventListener("DOMContentLoaded", () => {
     drag_offset = new po.Pixel(x, y);
   });
   window.addEventListener("mousemove", ({ buttons, x, y }) => {
-    if (!buttons & 1 || !drag_offset) {
-      // primary mouse not pressed
+    if (!buttons & 1) {
       return;
     }
-    center_offset.add(x - drag_offset.x, y - drag_offset.y);
+    center_offset.add(
+      (x - drag_offset.x) * MOVESPEED,
+      (y - drag_offset.y) * MOVESPEED
+    );
     drag_offset = new po.Pixel(x, y);
   });
   window.addEventListener("touchmove", ({ changedTouches }) => {
     let x = changedTouches[0].screenX;
     let y = changedTouches[0].screenY;
-    if (!drag_offset) {
-      // primary mouse not pressed
-      return;
-    }
-    center_offset.add(x - drag_offset.x, y - drag_offset.y);
+    center_offset.add(
+      (x - drag_offset.x) * MOVESPEED,
+      (y - drag_offset.y) * MOVESPEED
+    );
     drag_offset = new po.Pixel(x, y);
   });
 })();
