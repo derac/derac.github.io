@@ -1,6 +1,6 @@
 import * as po from "./pixel-operations.js";
 
-canvas = document.getElementById("canvas");
+const canvas = document.getElementById("canvas");
 let WIDTH = window.innerWidth;
 let HEIGHT = window.innerHeight;
 let Grid = new po.InfiniteGrid(canvas, WIDTH, HEIGHT);
