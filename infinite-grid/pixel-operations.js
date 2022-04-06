@@ -38,10 +38,10 @@ export class InfiniteGrid {
     return this.img.data[y * this.img_width * 4 + x * 4];
   }
 
-  update(center_point) {
+  update(center_offset) {
     this.ctx.clearRect(0, 0, this.width, this.height);
-    let x_offset = center_point.x % this.img_width;
-    let y_offset = center_point.y % this.img_height;
+    let x_offset = center_offset.x % this.img_width;
+    let y_offset = center_offset.y % this.img_height;
     this.ctx.putImageData(this.img, x_offset, y_offset);
     this.ctx.putImageData(
       this.img,
