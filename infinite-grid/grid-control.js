@@ -10,11 +10,11 @@ let center_point = new po.Pixel(
 );
 
 function draw() {
-  for (let _ of [...Array(100).keys()]) {
+  for (let _ of [...Array(10).keys()]) {
     Grid.set_pixel(
       Math.floor(Math.random() * Grid.img_width),
       Math.floor(Math.random() * Grid.img_height),
-      [255, 255, 255, 255]
+      [255, 255, 255, Math.floor(Math.random() * 255)]
     );
   }
   Grid.update(center_point);
@@ -37,7 +37,6 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
     center_point.add(x - drag_offset.x, y - drag_offset.y);
-    console.log(center_point);
     drag_offset = new po.Pixel(x, y);
   });
 })();

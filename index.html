@@ -1,20 +1,26 @@
 <!DOCTYPE html>
+
 <head>
   <title>derek@derac.org</title>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <style>
     * {
       margin: 0;
-      padding: 0;
     }
 
+    html,
+    body,
     canvas {
       width: 100%;
       height: 100%;
     }
 
+    canvas {
+      display: block;
+    }
+
     body {
-      background-color: #000;
+      background-color: black;
     }
   </style>
 </head>
@@ -22,5 +28,6 @@
 <body>
   <canvas id="canvas"></canvas>
 </body>
-<script src="./infinite-grid/grid-control.js" type="module"></script>
+<script src="src/grid-control.js" type="module"></script>
+
 </html>
