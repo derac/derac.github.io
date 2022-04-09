@@ -2,7 +2,7 @@ import * as grid from "./InfiniteGrid.js";
 
 const canvas = document.getElementById("canvas");
 const SCALE = 1;
-const DECEL = 0.95;
+const ACCELERATION = 1.02;
 let WIDTH = window.innerWidth / SCALE;
 let HEIGHT = window.innerHeight / SCALE;
 let Grid = new grid.InfiniteGrid(canvas, WIDTH, HEIGHT);
@@ -11,7 +11,7 @@ let center_offset = new grid.Pixel(
   -Grid.img_height / 2 + HEIGHT / 2
 );
 let current_xy = null;
-let offset_xy = new grid.Pixel(0, 0);
+let offset_xy = null;
 let movespeed = 1;
 let is_mousedown = false;
 
@@ -24,7 +24,7 @@ function draw() {
     );
   }
   if (!is_mousedown) {
-    movespeed *= DECEL;
+    movespeed /= ACCELERATION;
   }
   if (offset_xy) {
     center_offset.add(offset_xy.x * movespeed, offset_xy.y * movespeed);
@@ -53,7 +53,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
     offset_xy = new grid.Pixel(x - current_xy.x, y - current_xy.y);
     movespeed *=
-      1 + Math.floor(Math.sqrt(offset_xy.x ** 2, offset_xy.y ** 2) / 50); // increasing accelleration using the distance dragged not just by frame
+      ACCELERATION **
+      (1 + Math.floor(Math.sqrt(offset_xy.x ** 2, offset_xy.y ** 2) / 10)); // increasing accelleration using the distance dragged not just by frame
     current_xy = new grid.Pixel(x, y);
   });
   window.addEventListener("touchstart", ({ changedTouches }) => {
@@ -65,9 +66,8 @@ window.addEventListener("DOMContentLoaded", () => {
     let x = changedTouches[0].screenX;
     let y = changedTouches[0].screenY;
     offset_xy = new grid.Pixel(x - current_xy.x, y - current_xy.y);
-    movespeed *=
-      1 + Math.floor(Math.sqrt(offset_xy.x ** 2, offset_xy.y ** 2) / 50); // increasing accelleration using the distance dragged not just by frame
     current_xy = new grid.Pixel(x, y);
+    center_offset.add(offset_xy.x, offset_xy.y);
   });
 })();
 // zooming
