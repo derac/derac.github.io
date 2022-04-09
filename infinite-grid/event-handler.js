@@ -68,7 +68,7 @@ window.addEventListener("DOMContentLoaded", () => {
     movespeed *=
       1 + Math.floor(Math.sqrt(offset_xy.x ** 2, offset_xy.y ** 2) / 50); // increasing accelleration using the distance dragged not just by frame
     current_xy = new grid.Pixel(x, y);
-  };);
+  });
 })();
 // zooming
 (() => {
