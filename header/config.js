@@ -4,9 +4,9 @@ export const config = {
     ropeStiffness: 0.2,
     ropeSegments: 20,
     ropeDistance: 37.5,
-    ropeCount: 10,
+    ropeCount: 3,
     spiderSize: 37.5,
-    webComplexity: 12,
+    webComplexity: 10,
     webRadius: 700,
     torchSize: 100,
     lightReach: 1500
