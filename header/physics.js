@@ -25,9 +25,14 @@ export class Point {
         const dy = this.y - mouse.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 50 && mouse.down) {
-            this.x += (mouse.x - this.x) * 0.1;
-            this.y += (mouse.y - this.y) * 0.1;
+        if (dist < 60 && mouse.down) {
+            // Stronger pull when mouse is down
+            this.x += (mouse.x - this.x) * 0.25;
+            this.y += (mouse.y - this.y) * 0.25;
+        } else if (dist < 30) {
+            // Slight nudge when mouse just passes by (not down)
+            this.x += mouse.vx * 0.1;
+            this.y += mouse.vy * 0.1;
         }
     }
 }

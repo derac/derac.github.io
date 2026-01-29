@@ -12,4 +12,4 @@ export const config = {
     lightReach: 600
 };
 
-export const mouse = { x: -100, y: -100, down: false };
+export const mouse = { x: -100, y: -100, vx: 0, vy: 0, down: false };

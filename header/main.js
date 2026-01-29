@@ -1,5 +1,5 @@
 import { config, mouse } from './config.js';
-import { Rope, Web, Torch, Fly } from './entities.js';
+import { Rope, Web, Torch, Fly, RockText } from './entities.js';
 import { Spider } from './spider.js';
 
 const canvas = document.getElementById('canvas');
@@ -11,6 +11,7 @@ let web;
 let spider;
 let torch;
 let fly;
+let rockText;
 const cocoons = [];
 
 function init() {
@@ -24,6 +25,7 @@ function init() {
     web = new Web(width, 0, config.webRadius, config.webComplexity);
     spider = new Spider(width);
     torch = new Torch(40, 40);
+    rockText = new RockText(width, height);
 
     if (!fly) {
         fly = new Fly(width, height, web);
@@ -59,8 +61,12 @@ function resize() {
 window.addEventListener('resize', resize);
 window.addEventListener('mousemove', e => {
     const rect = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - rect.left;
-    mouse.y = e.clientY - rect.top;
+    const newX = e.clientX - rect.left;
+    const newY = e.clientY - rect.top;
+    mouse.vx = newX - mouse.x;
+    mouse.vy = newY - mouse.y;
+    mouse.x = newX;
+    mouse.y = newY;
 });
 window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
@@ -77,6 +83,7 @@ function animate() {
         rope.draw(ctx, torch);
     });
     web.draw(ctx, torch);
+    rockText.draw(ctx, torch);
 
     fly.update();
     fly.draw(ctx);

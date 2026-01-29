@@ -74,65 +74,54 @@ export class Web {
         this.center = new Point(x, y, true);
         this.points = [this.center];
         this.constraints = [];
-        this.strands = strands;
 
-        // Create anchor strands first (longer, fixed at the ends)
-        for (let s = 0; s < strands; s++) {
-            const angle = (s / (strands - 1)) * Math.PI * 0.7 + (Math.random() - 0.5) * 0.2;
-            const length = radius * (0.8 + Math.random() * 0.4);
+        const rings = 6;
+        this.rings = rings;
+        this.strandsCount = strands;
 
-            let prev = this.center;
-            const segments = 3;
-            for (let i = 1; i <= segments; i++) {
-                const segLen = length / segments;
-                const dist = segLen * i;
-                const isFixed = (i === segments && (s === 0 || s === strands - 1 || Math.random() > 0.7));
+        for (let r = 1; r <= rings; r++) {
+            const ringRadius = (radius / rings) * r;
+            for (let s = 0; s < strands; s++) {
+                const angle = (s / (strands - 1)) * Math.PI * 0.6;
 
-                const px = x - Math.cos(angle) * dist;
-                const py = y + Math.sin(angle) * dist;
+                // Improved skew: Top (smaller s) is longer/more stretched
+                // Left side (larger s) is shorter/more compressed
+                const t = s / (strands - 1);
+                const skewFactor = 1.3 - t * 0.7; // 1.3 at top, 0.6 at side
+                const rRadius = ringRadius * skewFactor;
 
+                const px = x - Math.cos(angle) * rRadius;
+                const py = y + Math.sin(angle) * rRadius;
+
+                // Anchor points at the outer ring or near boundaries
+                const isOuter = r === rings;
+                const isFixed = isOuter && (s === 0 || s === strands - 1 || py < 5 || px > x - 5);
                 const p = new Point(px, py, isFixed);
                 this.points.push(p);
-                this.constraints.push(new Constraint(prev, p, segLen));
-                prev = p;
-            }
-        }
 
-        // Add rings (inner spiral-ish structures)
-        const rings = 5;
-        for (let r = 1; r < rings; r++) {
-            const ringPos = r / rings;
-            for (let s = 0; s < strands - 1; s++) {
-                // Find points on adjacent strands at similar "depth"
-                const idx1 = 1 + s * 3 + Math.floor(ringPos * 3);
-                const idx2 = 1 + (s + 1) * 3 + Math.floor(ringPos * 3);
+                // Radial constraints (center to ring 1, or ring n to ring n+1)
+                if (r === 1) {
+                    this.constraints.push(new Constraint(this.center, p, rRadius));
+                } else {
+                    const prevRingStart = 1 + (r - 2) * strands;
+                    const prevP = this.points[prevRingStart + s];
+                    const dist = Math.hypot(p.x - prevP.x, p.y - prevP.y);
+                    this.constraints.push(new Constraint(prevP, p, dist));
+                }
 
-                if (this.points[idx1] && this.points[idx2]) {
-                    const p1 = this.points[idx1];
-                    const p2 = this.points[idx2];
-                    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y) * (1.1 + Math.random() * 0.2);
-                    this.constraints.push(new Constraint(p1, p2, dist));
+                // Ring constraints (connecting points within the same ring)
+                if (s > 0) {
+                    const prevInRing = this.points[this.points.length - 2];
+                    const dist = Math.hypot(p.x - prevInRing.x, p.y - prevInRing.y);
+                    this.constraints.push(new Constraint(prevInRing, p, dist));
                 }
             }
         }
     }
 
     update() {
-        // Mouse interaction: Pull on web points
-        if (mouse.down) {
-            this.points.forEach(p => {
-                if (!p.fixed) {
-                    const d = Math.hypot(p.x - mouse.x, p.y - mouse.y);
-                    if (d < 50) {
-                        p.x += (mouse.x - p.x) * 0.2;
-                        p.y += (mouse.y - p.y) * 0.2;
-                    }
-                }
-            });
-        }
-
         this.points.forEach(p => p.update());
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 6; i++) { // Slightly more iterations for stability
             this.constraints.forEach(c => c.resolve());
         }
     }
@@ -144,45 +133,45 @@ export class Web {
         const light = Math.max(0.1, 1 - dist / config.lightReach) * torch.flicker;
 
         ctx.save();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + light * 0.4})`;
+
+        // 1. Draw Radiating Lines (Strands) first
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 + light * 0.15})`;
         ctx.lineWidth = 0.5;
-
-        // Draw radial strands
         ctx.beginPath();
-        this.constraints.forEach(c => {
-            // Only draw constraints that are part of the radial strands (not rings)
-            // for a cleaner look, or just draw all constraints
-            ctx.moveTo(c.p1.x, c.p1.y);
-            ctx.lineTo(c.p2.x, c.p2.y);
-        });
-        ctx.stroke();
-
-        // Draw more organic curves for the rings
-        ctx.shadowColor = `rgba(255, 230, 150, ${light * 0.3})`;
-        ctx.shadowBlur = 4 * light;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + light * 0.2})`;
-
-        // Redraw rings specifically with curves
-        const segments = 3;
-        const strands = this.strands;
-        const rings = 5;
-        for (let r = 1; r < rings; r++) {
-            const ringPos = r / rings;
-            for (let s = 0; s < strands - 1; s++) {
-                const idx1 = 1 + s * segments + Math.floor(ringPos * segments);
-                const idx2 = 1 + (s + 1) * segments + Math.floor(ringPos * segments);
-                if (this.points[idx1] && this.points[idx2]) {
-                    const p1 = this.points[idx1];
-                    const p2 = this.points[idx2];
-                    const midX = (p1.x + p2.x) / 2;
-                    const midY = (p1.y + p2.y) / 2 + (r * 2);
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
-                }
-            }
+        for (let s = 0; s < this.strandsCount; s++) {
+            const p = this.points[1 + (this.rings - 1) * this.strandsCount + s];
+            ctx.moveTo(this.center.x, this.center.y);
+            ctx.lineTo(p.x, p.y);
         }
         ctx.stroke();
+
+        // 2. Draw Ribs/Rings with smooth arcs and light glow
+        ctx.shadowColor = `rgba(255, 230, 150, ${light * 0.2})`;
+        ctx.shadowBlur = 2 * light;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + light * 0.3})`;
+        ctx.lineWidth = 0.8;
+
+        for (let r = 1; r <= this.rings; r++) {
+            ctx.beginPath();
+            const startIdx = 1 + (r - 1) * this.strandsCount;
+            const startP = this.points[startIdx];
+            ctx.moveTo(startP.x, startP.y);
+
+            for (let s = 0; s < this.strandsCount - 1; s++) {
+                const p1 = this.points[startIdx + s];
+                const p2 = this.points[startIdx + s + 1];
+
+                const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                const midX = (p1.x + p2.x) / 2;
+                // Subtle sag: proportional to distance but less extreme
+                const sag = d * 0.12;
+                const midY = (p1.y + p2.y) / 2 + sag;
+
+                ctx.quadraticCurveTo(midX, midY, p2.x, p2.y);
+            }
+            ctx.stroke();
+        }
+
         ctx.restore();
     }
 }
@@ -287,10 +276,51 @@ export class Fly {
         if (this.isCarried) return;
 
         if (this.isCaught) {
+            // Find the closest point in the web to stay attached to
+            if (!this.caughtPoint) {
+                let minDist = Infinity;
+                this.web.points.forEach(p => {
+                    const d = Math.hypot(p.x - this.x, p.y - this.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        this.caughtPoint = p;
+                    }
+                });
+            }
+
+            if (this.caughtPoint) {
+                this.x = this.caughtPoint.x;
+                this.y = this.caughtPoint.y;
+            }
+
             this.angle += 0.25;
             this.x += Math.sin(this.angle) * 1;
             this.y += Math.cos(this.angle) * 1;
+
+            // If the mouse hits the caught fly with enough speed, bat it away!
+            const dx = this.x - mouse.x;
+            const dy = this.y - mouse.y;
+            const dist = Math.hypot(dx, dy);
+            const mouseSpeed = Math.hypot(mouse.vx, mouse.vy);
+
+            if (dist < 40 && mouseSpeed > 10) {
+                this.isCaught = false;
+                this.caughtPoint = null;
+                this.vx = mouse.vx * 0.8;
+                this.vy = mouse.vy * 0.8;
+            }
             return;
+        }
+
+        // Bat away even if not caught
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.hypot(dx, dy);
+        const mouseSpeed = Math.hypot(mouse.vx, mouse.vy);
+
+        if (dist < 30 && mouseSpeed > 15) {
+            this.vx = mouse.vx * 0.5;
+            this.vy = mouse.vy * 0.5;
         }
 
         this.x += this.vx;
@@ -301,11 +331,16 @@ export class Fly {
         const speed = Math.abs(this.vx);
         const sign = Math.sign(this.vx) || 1;
         if (speed < 0.5) this.vx = 0.5 * sign;
-        if (speed > 2.5) this.vx = 2.5 * sign;
+        if (speed > 2.5 && !this.isCaught) this.vx = 2.5 * sign;
+
+        // Air resistance for batted flies
+        this.vx *= 0.99;
+        this.vy *= 0.99;
 
         this.web.points.forEach(p => {
             if (Math.hypot(p.x - this.x, p.y - this.y) < 20) {
                 this.isCaught = true;
+                this.caughtPoint = p;
                 this.vx = 0;
                 this.vy = 0;
             }
@@ -346,5 +381,167 @@ export class Fly {
         ctx.fill();
 
         ctx.restore();
+    }
+}
+
+export class RockText {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.title = "My Blog";
+        this.subtitle = "Derac's thoughts and projects";
+        this.baseX = width / 2;
+        this.baseY = height / 2;
+
+        // Pre-generate stable seeds for "cracks" and "jitter"
+        this.cracks = [];
+        for (let i = 0; i < 40; i++) {
+            this.cracks.push({
+                x: (Math.random() - 0.5) * 450,
+                y: (Math.random() - 0.5) * 120,
+                size: 5 + Math.random() * 15,
+                angle: Math.random() * Math.PI * 2
+            });
+        }
+
+        // Pre-generate stable jitter for title and rock strip
+        this.titleJitter = [];
+        for (let i = 0; i < 15; i++) {
+            this.titleJitter.push({
+                x: (Math.random() - 0.5) * 4,
+                y: (Math.random() - 0.5) * 4
+            });
+        }
+
+        this.stripPoints = [];
+        const pts = 16;
+        for (let i = 0; i < pts; i++) {
+            this.stripPoints.push({
+                angle: (i / pts) * Math.PI * 2,
+                rxOffset: (Math.random() - 0.5) * 12,
+                ryOffset: (Math.random() - 0.5) * 10
+            });
+        }
+    }
+
+    draw(ctx, torch) {
+        const x = this.baseX;
+        const y = this.baseY;
+
+        const dx = torch.x - x;
+        const dy = torch.y - y;
+        const dist = Math.hypot(dx, dy);
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const light = Math.max(0.1, 1 - dist / config.lightReach) * torch.flicker;
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const titleFont = '6rem "Piedra", serif'; // Used Piedra for rocky look
+        ctx.font = titleFont;
+
+        // 1. Draw 3D Extrusion (Stone Block)
+        const depth = 14;
+        for (let i = depth; i > 0; i--) {
+            const ox = -nx * i * 1.3;
+            const oy = -ny * i * 1.3;
+
+            // Use stable jitter to roughen the extrusion sides
+            const jitterIdx = i % this.titleJitter.length;
+            const j = this.titleJitter[jitterIdx];
+
+            const sideVal = 35 + light * 25 - (i / depth) * 12;
+            ctx.fillStyle = `rgb(${sideVal}, ${sideVal}, ${sideVal + 8})`;
+            ctx.fillText(this.title, x + ox + j.x, y + oy + j.y - 30);
+        }
+
+        // 2. Main Surface (Top)
+        const topVal = 130 + light * 110;
+        ctx.fillStyle = `rgb(${topVal}, ${topVal - 3}, ${topVal - 8})`;
+
+        // Roughen the top edges predictably
+        for (let k = 0; k < 3; k++) {
+            const j = this.titleJitter[k];
+            ctx.fillText(this.title, x + j.x * 0.5, y + j.y * 0.5 - 30);
+        }
+
+        // 3. Procedural Cracks & Nicks
+        ctx.lineJoin = 'round';
+        this.cracks.forEach((c) => {
+            // Simple check to see if crack is near the title or strip
+            const cy_title = y + c.y - 30;
+            const cy_strip = y + 60 + c.y * 0.3; // Scaled for strip height
+
+            // Cracks on title
+            if (Math.abs(c.x) < 280 && Math.abs(c.y) < 60) {
+                this.drawCrack(ctx, x + c.x, cy_title, c, nx, ny, light);
+            }
+        });
+
+        // 4. Subtitle on Chiseled Rock Strip
+        const subFont = '700 1.4rem "MedievalSharp", cursive'; // Used MedievalSharp for etched look
+        ctx.font = subFont;
+        const subWidth = ctx.measureText(this.subtitle).width + 80;
+        const subHeight = 50;
+        const subY = y + 60;
+
+        // Draw stable irregular strip
+        ctx.fillStyle = `rgb(${25 + light * 35}, ${27 + light * 35}, ${30 + light * 35})`;
+        ctx.beginPath();
+        this.stripPoints.forEach((p, i) => {
+            const px = x + Math.cos(p.angle) * (subWidth / 2 + p.rxOffset);
+            const py = subY + Math.sin(p.angle) * (subHeight / 2 + p.ryOffset);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        ctx.fill();
+
+        // High-contrast chiseled edges
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + light * 0.4})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // --- Advanced Etching Effect ---
+        // 1. Inner Shadow (Top-Left bevel)
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillText(this.subtitle, x - 1.5, subY - 1.5);
+
+        // 2. Lower Highlight (Bottom-Right glow from "inside" the cut)
+        if (light > 0.2) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${light * 0.25})`;
+            ctx.fillText(this.subtitle, x + 1, subY + 1);
+        }
+
+        // 3. Main Etched Content (Deep color)
+        const etchingColor = `rgb(${80 + light * 60}, ${82 + light * 60}, ${85 + light * 60})`;
+        ctx.fillStyle = etchingColor;
+        ctx.fillText(this.subtitle, x, subY);
+        ctx.restore();
+
+        ctx.restore();
+    }
+
+    drawCrack(ctx, cx, cy, c, nx, ny, light) {
+        // Shadow part of crack
+        ctx.strokeStyle = `rgba(0, 0, 0, ${0.4 + light * 0.4})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(c.angle) * c.size, cy + Math.sin(c.angle) * c.size);
+        ctx.stroke();
+
+        // Highlight edge of crack
+        if (light > 0.3) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${light * 0.4})`;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(cx - nx * 1.5, cy - ny * 1.5);
+            ctx.lineTo(cx - nx * 1.5 + Math.cos(c.angle) * c.size, cy - ny * 1.5 + Math.sin(c.angle) * c.size);
+            ctx.stroke();
+        }
     }
 }
