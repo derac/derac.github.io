@@ -30,10 +30,20 @@ export class Rope {
         }
     }
 
-    update() {
+    update(height) {
         this.points.forEach(p => p.update());
         for (let i = 0; i < 5; i++) {
             this.constraints.forEach(c => c.resolve());
+        }
+
+        // Floor collision
+        if (height) {
+            this.points.forEach(p => {
+                if (p.y > height) {
+                    p.y = height;
+                    p.oldY = p.y; // Stop vertical momentum
+                }
+            });
         }
     }
 
@@ -95,7 +105,9 @@ export class Web {
 
                 // Anchor points at the outer ring or near boundaries
                 const isOuter = r === rings;
-                const isFixed = isOuter && (s === 0 || s === strands - 1 || py < 5 || px > x - 5);
+                const isBoundary = py < 10 || px > x - 10;
+                // Explicitly fix the first and last strands (edges)
+                const isFixed = isBoundary || s === 0 || s === strands - 1;
                 const p = new Point(px, py, isFixed);
                 this.points.push(p);
 

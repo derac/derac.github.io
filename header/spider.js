@@ -173,7 +173,7 @@ export class Spider {
             }
         }
 
-        this.legPhase += (this.returningHome || this.targetFly) ? 0.06 : 0.025;
+        this.legPhase += (this.returningHome || this.targetFly || this.grounded) ? 0.1 : 0.025;
         this.feet.forEach((foot, i) => {
             const angle = (i / 8) * Math.PI * 2;
             const reach = config.spiderSize * 3 * this.scale;
@@ -237,21 +237,31 @@ export class Spider {
             }
         }
 
-        if ((this.point.y > height - 15 || this.point.x > width - 15 || this.point.x < 15 || this.point.y < 15) && !this.attachedToWeb && !this.targetRope && !this.isGrabbed) {
+        // Dynamic boundary offset (half body size / radius)
+        const bodyRadius = config.spiderSize * this.scale;
+        const snapOffset = bodyRadius;
+        const threshold = bodyRadius + 5;
+
+        if ((this.point.y > height - threshold || this.point.x > width - threshold || this.point.x < threshold || this.point.y < threshold) && !this.attachedToWeb && !this.targetRope && !this.isGrabbed) {
             this.grounded = true;
 
-            if (this.point.y < 15) {
-                this.point.y = 10;
-                this.point.x += 5; // Fast crawl right toward web
-            } else if (this.point.y > height - 15) {
-                this.point.y = height - 10;
-                this.point.x += 2;
-            } else if (this.point.x > width - 15) {
-                this.point.x = width - 10;
-                this.point.y -= 2;
-            } else if (this.point.x < 15) {
-                this.point.x = 10;
-                this.point.y -= 2;
+            const walkSpeed = 0.5;
+            // Add bobbing motion (sine wave based on legPhase)
+            const bob = Math.sin(this.legPhase) * 2;
+            const bobOffset = Math.abs(bob);
+
+            if (this.point.y < threshold) {
+                this.point.y = snapOffset + bobOffset;
+                this.point.x += walkSpeed;
+            } else if (this.point.y > height - threshold) {
+                this.point.y = height - snapOffset - bobOffset;
+                this.point.x += walkSpeed;
+            } else if (this.point.x > width - threshold) {
+                this.point.x = width - snapOffset - bobOffset;
+                this.point.y -= walkSpeed;
+            } else if (this.point.x < threshold) {
+                this.point.x = snapOffset + bobOffset;
+                this.point.y -= walkSpeed;
             }
 
             this.point.oldX = this.point.x;

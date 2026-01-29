@@ -45,13 +45,20 @@ function init() {
         const p1 = { x: x1, y: 0 };
         const p2 = { x: x2, y: 0 };
 
-        if (Math.random() > 0.6) {
-            p2.x = Math.random() > 0.5 ? 0 : width;
-            p2.y = Math.random() * 100;
-        }
+
 
         const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        const totalLength = dist * (1.1 + Math.random() * 0.2);
+        let totalLength = dist * (1.1 + Math.random() * 0.2);
+
+        // Limit maximum length to half screen width
+        const maxLen = width / 2;
+        if (totalLength > maxLen) {
+            const scale = maxLen / totalLength;
+            totalLength = maxLen;
+            // Move p2 closer to p1 to respect the new length
+            p2.x = p1.x + (p2.x - p1.x) * scale;
+            p2.y = p1.y + (p2.y - p1.y) * scale;
+        }
 
         ropes.push(new Rope(p1, p2, config.ropeSegments, totalLength));
     }
@@ -124,7 +131,7 @@ function animate() {
     // 3. Midground (Webs & Ropes)
     web.update();
     ropes.forEach(rope => {
-        rope.update();
+        rope.update(height);
         rope.draw(ctx, torch);
     });
     web.draw(ctx, torch);
