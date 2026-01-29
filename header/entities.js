@@ -471,8 +471,9 @@ export class RockText {
 
         // Dynamic font size logic: Scale with width but enforce minimum
         // Base scale: roughly 15rem at 1000px width (scaled 2.5x)
-        const scaleFactor = Math.min(1, Math.max(0.5, this.width / 1000));
-        const fontSizeVal = Math.max(8.75, 15 * scaleFactor); // Min 8.75rem
+        // Relaxed constraints for mobile to allow seeing sconce/web
+        const scaleFactor = Math.min(1, Math.max(0.3, this.width / 1200));
+        const fontSizeVal = Math.max(4, 15 * scaleFactor); // Min 4rem
 
         const dx = torch.x - x;
         const dy = torch.y - y;
