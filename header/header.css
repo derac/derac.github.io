@@ -3,6 +3,13 @@
     --header-height: 250px;
 }
 
+@media (max-width: 600px) {
+    :root {
+        --header-height: 180px;
+        /* Smaller height for mobile */
+    }
+}
+
 #header-container {
     position: relative;
     width: 100%;
@@ -22,4 +29,6 @@
     width: 100%;
     height: 100%;
     z-index: 1;
+    touch-action: none;
+    /* Prevent scrolling while touching canvas */
 }

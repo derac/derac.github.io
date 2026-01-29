@@ -177,9 +177,10 @@ export class Web {
 }
 
 export class Torch {
-    constructor(x, y) {
+    constructor(x, y, scale = 1) {
         this.x = x;
         this.y = y;
+        this.scale = scale;
         this.flicker = 1;
         this.time = 0;
     }
@@ -192,6 +193,7 @@ export class Torch {
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
+        ctx.scale(this.scale, this.scale); // Scale the entire torch drawing
 
         // Backplate on the wall (right side)
         const wallX = 45;
@@ -370,19 +372,39 @@ export class Fly {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, torch) {
         if (this.isCarried) return;
+
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.4)';
+        // Calculate lighting
+        const dx = this.x - torch.x;
+        const dy = this.y - torch.y;
+        const dist = Math.hypot(dx, dy);
+        const light = Math.max(0.1, 1 - dist / config.lightReach) * torch.flicker;
+
+        // Dynamic shadow based on light
+        ctx.shadowColor = `rgba(0, 0, 0, ${0.5 * light})`;
+        ctx.shadowBlur = 5 * light;
+
+        // Wings with light influence
+        ctx.fillStyle = `rgba(${200 + light * 55}, ${200 + light * 55}, 255, ${0.3 + light * 0.3})`;
         const wingSize = 5 + Math.sin(Date.now() * 0.05) * 2;
         ctx.beginPath();
         ctx.ellipse(-3, -2, wingSize, 3, 0.5, 0, Math.PI * 2);
         ctx.ellipse(3, -2, wingSize, 3, -0.5, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = '#111';
+        // Body with light influence
+        const bodyColor = Math.floor(17 * light + 20); // getting slightly brighter
+        ctx.fillStyle = `rgb(${bodyColor}, ${bodyColor}, ${bodyColor})`;
+
+        // Add a specular highlight if very close to light
+        if (light > 0.5) {
+            ctx.fillStyle = `rgb(${bodyColor + 40}, ${bodyColor + 40}, ${bodyColor + 40})`;
+        }
+
         ctx.beginPath();
         ctx.arc(0, 0, 3, 0, Math.PI * 2);
         ctx.fill();
@@ -400,16 +422,7 @@ export class RockText {
         this.baseX = width / 2;
         this.baseY = height / 2;
 
-        // Pre-generate stable seeds for "cracks" and "jitter"
-        this.cracks = [];
-        for (let i = 0; i < 40; i++) {
-            this.cracks.push({
-                x: (Math.random() - 0.5) * 450,
-                y: (Math.random() - 0.5) * 120,
-                size: 5 + Math.random() * 15,
-                angle: Math.random() * Math.PI * 2
-            });
-        }
+
 
         // Pre-generate stable jitter for title and rock strip
         this.titleJitter = [];
@@ -479,33 +492,25 @@ export class RockText {
             ctx.fillText(this.title, x + j.x * 0.5, y + j.y * 0.5 - 30);
         }
 
-        // 3. Procedural Cracks & Nicks
-        ctx.lineJoin = 'round';
-        this.cracks.forEach((c) => {
-            // Simple check to see if crack is near the title or strip
-            const cy_title = y + c.y - 30;
-            const cy_strip = y + 60 + c.y * 0.3; // Scaled for strip height
 
-            // Cracks on title
-            if (Math.abs(c.x) < 280 && Math.abs(c.y) < 60) {
-                this.drawCrack(ctx, x + c.x, cy_title, c, nx, ny, light);
-            }
-        });
 
         // 4. Subtitle on Chiseled Rock Strip
-        const subFont = '700 1.4rem "MedievalSharp", cursive'; // Used MedievalSharp for etched look
+        const subScale = Math.min(1, Math.max(0.6, this.width / 1000));
+        const subFontSize = 1.4 * subScale;
+        const subFont = `700 ${subFontSize}rem "MedievalSharp", cursive`;
         ctx.font = subFont;
-        const subWidth = ctx.measureText(this.subtitle).width + 80;
-        const subHeight = 50;
-        const subY = y + 60;
+
+        const subWidth = ctx.measureText(this.subtitle).width + 80 * subScale;
+        const subHeight = 50 * subScale;
+        const subY = y + 60 * subScale;
 
         // Draw stable irregular strip
         // Lightened the rock strip color significantly
         ctx.fillStyle = `rgb(${75 + light * 45}, ${77 + light * 45}, ${80 + light * 45})`;
         ctx.beginPath();
         this.stripPoints.forEach((p, i) => {
-            const px = x + Math.cos(p.angle) * (subWidth / 2 + p.rxOffset);
-            const py = subY + Math.sin(p.angle) * (subHeight / 2 + p.ryOffset);
+            const px = x + Math.cos(p.angle) * (subWidth / 2 + p.rxOffset * subScale);
+            const py = subY + Math.sin(p.angle) * (subHeight / 2 + p.ryOffset * subScale);
             if (i === 0) ctx.moveTo(px, py);
             else ctx.lineTo(px, py);
         });
@@ -535,19 +540,19 @@ export class RockText {
 
         // High-contrast chiseled edges
         ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + light * 0.5})`; // Slightly lighter edge
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * subScale;
         ctx.stroke();
 
         // --- Advanced Etching Effect ---
         // 1. Inner Shadow (Top-Left bevel)
         ctx.save();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Reduced opacity
-        ctx.fillText(this.subtitle, x - 1.5, subY - 1.5);
+        ctx.fillText(this.subtitle, x - 1.5 * subScale, subY - 1.5 * subScale);
 
         // 2. Lower Highlight (Bottom-Right glow from "inside" the cut)
         if (light > 0.2) {
             ctx.fillStyle = `rgba(255, 255, 255, ${light * 0.4})`; // Stronger highlight
-            ctx.fillText(this.subtitle, x + 1, subY + 1);
+            ctx.fillText(this.subtitle, x + 1 * subScale, subY + 1 * subScale);
         }
 
         // 3. Main Etched Content (Deep color)
@@ -561,23 +566,5 @@ export class RockText {
 
     }
 
-    drawCrack(ctx, cx, cy, c, nx, ny, light) {
-        // Shadow part of crack
-        ctx.strokeStyle = `rgba(0, 0, 0, ${0.4 + light * 0.4})`;
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(c.angle) * c.size, cy + Math.sin(c.angle) * c.size);
-        ctx.stroke();
 
-        // Highlight edge of crack
-        if (light > 0.3) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${light * 0.4})`;
-            ctx.lineWidth = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(cx - nx * 1.5, cy - ny * 1.5);
-            ctx.lineTo(cx - nx * 1.5 + Math.cos(c.angle) * c.size, cy - ny * 1.5 + Math.sin(c.angle) * c.size);
-            ctx.stroke();
-        }
-    }
 }

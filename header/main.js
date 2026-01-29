@@ -22,9 +22,12 @@ function init() {
     ropes.length = 0;
     cocoons.length = 0;
 
-    web = new Web(width, 0, config.webRadius, config.webComplexity);
-    spider = new Spider(width);
-    torch = new Torch(40, 40);
+    // Mobile scaling factor
+    const scale = Math.min(1, width / 800);
+
+    web = new Web(width, 0, config.webRadius * scale, config.webComplexity);
+    spider = new Spider(width, scale);
+    torch = new Torch(40 * scale, 40 * scale, scale);
     rockText = new RockText(width, height);
 
     if (!fly) {
@@ -112,6 +115,9 @@ function animate() {
     // 1. Logic Updates
     torch.update();
 
+    // Draw Torch FIRST (Behind everything)
+    torch.draw(ctx);
+
     // 2. Background Layer (Text) - Drawn FIRST so it is BEHIND everything
     rockText.draw(ctx, torch);
 
@@ -125,7 +131,7 @@ function animate() {
 
     // 4. Foreground Entities (Fly, Spider)
     fly.update();
-    fly.draw(ctx);
+    fly.draw(ctx, torch);
 
     spider.update(width, height, ropes, web, fly, cocoons);
     spider.draw(ctx, torch);
@@ -141,9 +147,6 @@ function animate() {
         ctx.fill();
         ctx.restore();
     });
-
-    // 6. Global Lighting/Overlay (Torch Source)
-    torch.draw(ctx);
 
     requestAnimationFrame(animate);
 }

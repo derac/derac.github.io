@@ -2,7 +2,8 @@ import { config, mouse } from './config.js';
 import { Point } from './physics.js';
 
 export class Spider {
-    constructor(width) {
+    constructor(width, scale = 1) {
+        this.scale = scale;
         this.point = new Point(width, 0);
         this.isGrabbed = false;
         this.legPhase = 0;
@@ -175,7 +176,7 @@ export class Spider {
         this.legPhase += (this.returningHome || this.targetFly) ? 0.06 : 0.025;
         this.feet.forEach((foot, i) => {
             const angle = (i / 8) * Math.PI * 2;
-            const reach = config.spiderSize * 3;
+            const reach = config.spiderSize * 3 * this.scale;
             const idealX = this.point.x + Math.cos(angle) * reach;
             const idealY = this.point.y + Math.sin(angle) * reach;
 
@@ -210,7 +211,7 @@ export class Spider {
                     foot.x += (boundClosestX - foot.x) * 0.3;
                     foot.y += (boundClosestY - foot.y) * 0.3;
                 } else {
-                    const idleRadius = 10;
+                    const idleRadius = 10 * this.scale;
                     const circleX = Math.cos(this.legPhase + i * 0.8) * idleRadius;
                     const circleY = Math.sin(this.legPhase + i * 0.8) * idleRadius;
 
@@ -283,14 +284,16 @@ export class Spider {
         const dist = Math.hypot(dx, dy);
         const light = Math.max(0.1, 1 - dist / config.lightReach) * torch.flicker;
 
+        const size = config.spiderSize * this.scale;
+
         ctx.save();
         ctx.strokeStyle = `rgba(180, 180, 200, ${0.3 + light * 0.7})`;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * this.scale;
         this.feet.forEach((foot, i) => {
-            const shoulderX = x + Math.cos((i / 8) * Math.PI * 2) * (config.spiderSize * 0.8);
-            const shoulderY = y + Math.sin((i / 8) * Math.PI * 2) * (config.spiderSize * 0.8);
+            const shoulderX = x + Math.cos((i / 8) * Math.PI * 2) * (size * 0.8);
+            const shoulderY = y + Math.sin((i / 8) * Math.PI * 2) * (size * 0.8);
             const midX = (shoulderX + foot.x) / 2;
-            const midY = (shoulderY + foot.y) / 2 - 15;
+            const midY = (shoulderY + foot.y) / 2 - 15 * this.scale;
 
             ctx.beginPath();
             ctx.moveTo(shoulderX, shoulderY);
@@ -303,7 +306,7 @@ export class Spider {
         ctx.shadowBlur = 15 * light;
         ctx.shadowColor = 'rgba(255, 230, 150, 0.8)';
         ctx.beginPath();
-        ctx.arc(x, y, config.spiderSize, 0, Math.PI * 2);
+        ctx.arc(x, y, size, 0, Math.PI * 2);
         ctx.fill();
 
         if (this.isCarrying) {
@@ -325,8 +328,8 @@ export class Spider {
         ctx.shadowBlur = 8 * light;
         ctx.shadowColor = '#ff3e3e';
         ctx.beginPath();
-        ctx.arc(x - 4, y - 4, 3, 0, Math.PI * 2);
-        ctx.arc(x + 4, y - 4, 3, 0, Math.PI * 2);
+        ctx.arc(x - 4 * this.scale, y - 4 * this.scale, 3 * this.scale, 0, Math.PI * 2);
+        ctx.arc(x + 4 * this.scale, y - 4 * this.scale, 3 * this.scale, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }
