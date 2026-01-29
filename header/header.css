@@ -1,0 +1,49 @@
+:root {
+    --header-bg: #1e1e24;
+    --header-height: 250px;
+}
+
+#header-container {
+    position: relative;
+    width: 100%;
+    height: var(--header-height);
+    background: radial-gradient(circle at 50% 50%, #2a2a35 0%, var(--header-bg) 100%);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid #ddd;
+}
+
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.header-overlay {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    pointer-events: none;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.8);
+}
+
+.header-overlay h1 {
+    font-size: 4rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to bottom, #fff, #aaa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header-overlay p {
+    font-size: 1.2rem;
+    color: #aaa;
+}
