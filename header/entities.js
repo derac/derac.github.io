@@ -389,7 +389,7 @@ export class RockText {
         this.width = width;
         this.height = height;
         this.title = "My Blog";
-        this.subtitle = "Derac's thoughts and projects";
+        this.subtitle = "derac's thoughts and projects";
         this.baseX = width / 2;
         this.baseY = height / 2;
 
@@ -488,7 +488,8 @@ export class RockText {
         const subY = y + 60;
 
         // Draw stable irregular strip
-        ctx.fillStyle = `rgb(${25 + light * 35}, ${27 + light * 35}, ${30 + light * 35})`;
+        // Lightened the rock strip color significantly
+        ctx.fillStyle = `rgb(${75 + light * 45}, ${77 + light * 45}, ${80 + light * 45})`;
         ctx.beginPath();
         this.stripPoints.forEach((p, i) => {
             const px = x + Math.cos(p.angle) * (subWidth / 2 + p.rxOffset);
@@ -499,30 +500,53 @@ export class RockText {
         ctx.closePath();
         ctx.fill();
 
+        // Add Noise/Texture to the strip
+        ctx.save();
+        ctx.clip(); // Clip to the strip shape
+        ctx.fillStyle = `rgba(0, 0, 0, ${0.1 + light * 0.1})`;
+        for (let i = 0; i < 30; i++) {
+            // Using stable random-ish values based on strip points or index would be better 
+            // but for simple noise we can use the pre-generated cracks seeds or generating new ones if strictly needed to be static
+            // For now, let's use a simple determined noise
+            const nx = x + ((i * 1234.56) % subWidth) - subWidth / 2;
+            const ny = subY + ((i * 789.12) % subHeight) - subHeight / 2;
+            ctx.fillRect(nx, ny, 2, 2);
+        }
+        // Add some lighter speckles too
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + light * 0.1})`;
+        for (let i = 0; i < 20; i++) {
+            const nx = x + ((i * 2345.67) % subWidth) - subWidth / 2;
+            const ny = subY + ((i * 890.12) % subHeight) - subHeight / 2;
+            ctx.fillRect(nx, ny, 1, 1);
+        }
+        ctx.restore();
+
         // High-contrast chiseled edges
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.05 + light * 0.4})`;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + light * 0.5})`; // Slightly lighter edge
         ctx.lineWidth = 2.5;
         ctx.stroke();
 
         // --- Advanced Etching Effect ---
         // 1. Inner Shadow (Top-Left bevel)
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Reduced opacity
         ctx.fillText(this.subtitle, x - 1.5, subY - 1.5);
 
         // 2. Lower Highlight (Bottom-Right glow from "inside" the cut)
         if (light > 0.2) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${light * 0.25})`;
+            ctx.fillStyle = `rgba(255, 255, 255, ${light * 0.4})`; // Stronger highlight
             ctx.fillText(this.subtitle, x + 1, subY + 1);
         }
 
         // 3. Main Etched Content (Deep color)
-        const etchingColor = `rgb(${80 + light * 60}, ${82 + light * 60}, ${85 + light * 60})`;
+        // Lightened the text color to match title brightness better
+        const etchingColor = `rgb(${150 + light * 80}, ${152 + light * 80}, ${155 + light * 80})`;
         ctx.fillStyle = etchingColor;
         ctx.fillText(this.subtitle, x, subY);
         ctx.restore();
 
         ctx.restore();
+
     }
 
     drawCrack(ctx, cx, cy, c, nx, ny, light) {

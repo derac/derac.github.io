@@ -1,8 +1,14 @@
 :root {
-    --bg-color: #f8f9fa;
-    --text-color: #333;
-    --text-muted: #666;
-    --accent-color: #ff3e3e;
+    --bg-color: #3e5033;
+    /* Dark earthy green/dirt base */
+    --content-bg: #e6f0d1;
+    /* Light grassy paper color */
+    --text-color: #2c3e23;
+    /* Dark green-black text */
+    --text-muted: #5a7050;
+    /* Muted mossy green */
+    --accent-color: #925828;
+    /* Earthy brown accent */
 }
 
 * {
@@ -13,42 +19,108 @@
 
 body {
     background-color: var(--bg-color);
+    background-image: url('assets/grass_bg.png');
+    /* Texture on body now */
+    background-repeat: repeat;
     color: var(--text-color);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'MedievalSharp', cursive;
+    /* Changed to match the vibe slightly better, or keep Inter if preferred legibility */
     line-height: 1.6;
     overflow-x: hidden;
 }
 
+/* Header container - Ensure canvas is behind or properly positioned */
+#header-container {
+    position: relative;
+    z-index: 10;
+}
+
+/* The Cave Mouth Transition */
+.cave-mouth {
+    position: relative;
+    height: 80px;
+    /* Adjusted height for the image */
+    margin-top: -40px;
+    /* Overlap with header */
+    z-index: 15;
+    background-image: url('assets/rock_border_transparent.png');
+    /* Updated transparent image asset */
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    /* Maintain aspect ratio, fill height */
+    background-position: bottom center;
+    /* Remove previous CSS clip-path/shapes */
+    background-color: transparent;
+    clip-path: none;
+    pointer-events: none;
+    /* Let clicks pass through transparent parts if needed */
+}
+
+/* Remove the CSS grass blades since the image has them */
+.cave-mouth::after {
+    display: none;
+}
+
 .content {
-    max-width: 800px;
-    margin: 4rem auto;
-    padding: 0 2rem;
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto 4rem;
+    padding: 2rem 3rem 4rem;
+
+    /* Content Background - Semi-transparent to show body texture */
+    background-image: none;
+    background-color: rgba(230, 240, 210, 0.90);
+
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+    min-height: 50vh;
+    border-top: none;
+    clip-path: none;
+}
+
+/* Add a semi-transparent overlay for text readability */
+/* We can remove this overlay now since the .content background-color handles it */
+.content::before {
+    display: none;
 }
 
 .post {
-    margin-bottom: 4rem;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px dashed #bbccaa;
 }
 
 .post h2 {
-    font-size: 2rem;
+    font-family: 'MedievalSharp', cursive;
+    /* Consistent fantasy font */
+    font-size: 2.2rem;
     margin-bottom: 0.5rem;
     color: var(--accent-color);
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
 }
 
 .post .meta {
-    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
     color: var(--text-muted);
     margin-bottom: 1.5rem;
 }
 
 .post p {
+    font-family: 'Inter', sans-serif;
     font-size: 1.1rem;
     color: var(--text-color);
 }
 
 footer {
     text-align: center;
-    padding: 2rem;
-    color: var(--text-muted);
-    border-top: 1px solid #ddd;
+    padding: 3rem 2rem;
+    color: #8fa080;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    border-top: none;
+    background-color: var(--bg-color);
+    /* Match body bg */
 }
