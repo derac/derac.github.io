@@ -6,6 +6,7 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
 let width, height;
+let scale = 1; // Global scale
 const ropes = [];
 let web;
 let spider;
@@ -23,7 +24,7 @@ function init() {
     cocoons.length = 0;
 
     // Mobile scaling factor
-    const scale = Math.min(1, width / 800);
+    scale = Math.min(1, width / 800);
 
     web = new Web(width, 0, config.webRadius * scale, config.webComplexity);
     spider = new Spider(width, scale);
@@ -31,21 +32,21 @@ function init() {
     rockText = new RockText(width, height);
 
     if (!fly) {
-        fly = new Fly(width, height, web);
+        fly = new Fly(width, height, web, scale);
     } else {
         fly.width = width;
         fly.height = height;
         fly.web = web;
+        fly.scale = scale; // Update scale on resize
         fly.reset();
     }
 
+    // Generate Ropes
     for (let i = 0; i < config.ropeCount; i++) {
         const x1 = Math.random() * width;
         const x2 = Math.random() * width;
         const p1 = { x: x1, y: 0 };
         const p2 = { x: x2, y: 0 };
-
-
 
         const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
         let totalLength = dist * (1.1 + Math.random() * 0.2) + Math.random() * 250;
@@ -53,11 +54,11 @@ function init() {
         // Limit maximum length to half screen width
         const maxLen = width / 2;
         if (totalLength > maxLen) {
-            const scale = maxLen / totalLength;
+            const s = maxLen / totalLength;
             totalLength = maxLen;
             // Move p2 closer to p1 to respect the new length
-            p2.x = p1.x + (p2.x - p1.x) * scale;
-            p2.y = p1.y + (p2.y - p1.y) * scale;
+            p2.x = p1.x + (p2.x - p1.x) * s;
+            p2.y = p1.y + (p2.y - p1.y) * s;
         }
 
         ropes.push(new Rope(p1, p2, config.ropeSegments, totalLength));
@@ -107,14 +108,25 @@ function removePointer(e) {
 window.addEventListener('resize', resize);
 // Prevent default touch actions to allow dragging without scrolling (if needed, or careful CSS)
 canvas.addEventListener('pointerdown', e => {
-    canvas.setPointerCapture(e.pointerId);
+    // Check if touching spider to capture input
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Scale-aware distance check
+    const dist = Math.hypot(spider.point.x - x, spider.point.y - y);
+    const grabRadius = 100 * (width / 800 < 1 ? width / 800 : 1); // Approximate scale
+
+    if (dist < grabRadius) {
+        canvas.setPointerCapture(e.pointerId);
+        e.preventDefault(); // Block scroll only when grabbing spider
+    }
+
     updatePointer(e);
 });
 canvas.addEventListener('pointermove', updatePointer);
 canvas.addEventListener('pointerup', removePointer);
 canvas.addEventListener('pointercancel', removePointer);
-// Keep mouse move for hover effects when no buttons pressed? 
-// Pointermove handles hover too if device supports it.
 
 function animate() {
     ctx.clearRect(0, 0, width, height);
@@ -146,7 +158,7 @@ function animate() {
     // 5. Cocoons (also foreground)
     cocoons.forEach(c => {
         // Calculate position relative to attached point
-        const spacing = 15;
+        const spacing = 15 * scale;
         let dx = c.point.x - web.center.x;
         let dy = c.point.y - web.center.y;
 
@@ -162,9 +174,10 @@ function animate() {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(c.rotation);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+
         ctx.beginPath();
-        ctx.ellipse(0, 0, 10, 20, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.ellipse(0, 0, 10 * scale, 20 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     });
