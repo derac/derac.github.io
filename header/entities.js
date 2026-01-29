@@ -199,13 +199,22 @@ export class Torch {
 
     update() {
         this.time += 0.1;
-        this.flicker = 0.9 + Math.sin(this.time) * 0.05 + Math.random() * 0.05;
+        // Composite waves for "wind" or base fluctuation
+        const wave1 = Math.sin(this.time * 2) * 0.03;
+        const wave2 = Math.sin(this.time * 3.7) * 0.03;
+        const wave3 = Math.sin(this.time * 5.1) * 0.02;
+
+        // Sharp random jitter
+        const jitter = (Math.random() - 0.5) * 0.1;
+
+        // Base intensity + waves + jitter, clamped slightly
+        this.flicker = Math.max(0.8, Math.min(1.2, 1.0 + wave1 + wave2 + wave3 + jitter));
     }
 
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
-        ctx.scale(this.scale, this.scale); // Scale the entire torch drawing
+        ctx.scale(this.scale * 2.5, this.scale * 2.5); // Scale the entire torch drawing 2.5x
 
         // Backplate on the wall (right side)
         const wallX = 45;
@@ -319,7 +328,7 @@ export class Fly {
                 const dist = Math.hypot(dx, dy);
                 const pSpeed = Math.hypot(p.vx, p.vy);
 
-                if (dist < 40 && pSpeed > 10) {
+                if (dist < 100 && pSpeed > 25) {
                     this.isCaught = false;
                     this.caughtPoint = null;
                     this.vx = p.vx * 0.8;
@@ -338,7 +347,7 @@ export class Fly {
             const dist = Math.hypot(dx, dy);
             const pSpeed = Math.hypot(p.vx, p.vy);
 
-            if (dist < 30 && pSpeed > 15) {
+            if (dist < 75 && pSpeed > 37.5) {
                 this.vx = p.vx * 0.5;
                 this.vy = p.vy * 0.5;
             }
@@ -346,13 +355,13 @@ export class Fly {
 
         this.x += this.vx;
         this.y += this.vy;
-        this.vy += (Math.random() - 0.5) * 0.5;
-        this.vx += (Math.random() - 0.5) * 0.25;
+        this.vy += (Math.random() - 0.5) * 1.5;
+        this.vx += (Math.random() - 0.5) * 0.75;
 
         const speed = Math.abs(this.vx);
         const sign = Math.sign(this.vx) || 1;
-        if (speed < 0.5) this.vx = 0.5 * sign;
-        if (speed > 2.5 && !this.isCaught) this.vx = 2.5 * sign;
+        if (speed < 1.5) this.vx = 1.5 * sign;
+        if (speed > 6.0 && !this.isCaught) this.vx = 6.0 * sign;
 
         // Air resistance for batted flies
         this.vx *= 0.99;
@@ -402,10 +411,10 @@ export class Fly {
 
         // Wings with light influence
         ctx.fillStyle = `rgba(${200 + light * 55}, ${200 + light * 55}, 255, ${0.3 + light * 0.3})`;
-        const wingSize = 5 + Math.sin(Date.now() * 0.05) * 2;
+        const wingSize = 12.5 + Math.sin(Date.now() * 0.05) * 5;
         ctx.beginPath();
-        ctx.ellipse(-3, -2, wingSize, 3, 0.5, 0, Math.PI * 2);
-        ctx.ellipse(3, -2, wingSize, 3, -0.5, 0, Math.PI * 2);
+        ctx.ellipse(-7.5, -5, wingSize, 7.5, 0.5, 0, Math.PI * 2);
+        ctx.ellipse(7.5, -5, wingSize, 7.5, -0.5, 0, Math.PI * 2);
         ctx.fill();
 
         // Body with light influence
@@ -418,7 +427,7 @@ export class Fly {
         }
 
         ctx.beginPath();
-        ctx.arc(0, 0, 3, 0, Math.PI * 2);
+        ctx.arc(0, 0, 7.5, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
@@ -440,8 +449,8 @@ export class RockText {
         this.titleJitter = [];
         for (let i = 0; i < 15; i++) {
             this.titleJitter.push({
-                x: (Math.random() - 0.5) * 4,
-                y: (Math.random() - 0.5) * 4
+                x: (Math.random() - 0.5) * 10,
+                y: (Math.random() - 0.5) * 10
             });
         }
 
@@ -450,8 +459,8 @@ export class RockText {
         for (let i = 0; i < pts; i++) {
             this.stripPoints.push({
                 angle: (i / pts) * Math.PI * 2,
-                rxOffset: (Math.random() - 0.5) * 12,
-                ryOffset: (Math.random() - 0.5) * 10
+                rxOffset: (Math.random() - 0.5) * 30,
+                ryOffset: (Math.random() - 0.5) * 25
             });
         }
     }
@@ -461,9 +470,9 @@ export class RockText {
         const y = this.baseY;
 
         // Dynamic font size logic: Scale with width but enforce minimum
-        // Base scale: roughly 6rem at 1000px width
+        // Base scale: roughly 15rem at 1000px width (scaled 2.5x)
         const scaleFactor = Math.min(1, Math.max(0.5, this.width / 1000));
-        const fontSizeVal = Math.max(3.5, 6 * scaleFactor); // Min 3.5rem
+        const fontSizeVal = Math.max(8.75, 15 * scaleFactor); // Min 8.75rem
 
         const dx = torch.x - x;
         const dy = torch.y - y;
@@ -480,7 +489,7 @@ export class RockText {
         ctx.font = titleFont;
 
         // 1. Draw 3D Extrusion (Stone Block)
-        const depth = 14;
+        const depth = 35;
         for (let i = depth; i > 0; i--) {
             const ox = -nx * i * 1.3;
             const oy = -ny * i * 1.3;

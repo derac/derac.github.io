@@ -1,11 +1,11 @@
 :root {
     --header-bg: #1e1e24;
-    --header-height: 250px;
+    --header-height: 625px;
 }
 
 @media (max-width: 600px) {
     :root {
-        --header-height: 180px;
+        --header-height: 450px;
         /* Smaller height for mobile */
     }
 }

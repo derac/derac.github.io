@@ -38,9 +38,9 @@ body {
 /* The Cave Mouth Transition */
 .cave-mouth {
     position: relative;
-    height: 80px;
+    height: 200px;
     /* Adjusted height for the image */
-    margin-top: -40px;
+    margin-top: -100px;
     /* Overlap with header */
     z-index: 15;
     background-image: url('assets/rock_border_transparent.png');
@@ -63,15 +63,15 @@ body {
 
 .content {
     position: relative;
-    max-width: 900px;
-    margin: 0 auto 4rem;
-    padding: 2rem 3rem 4rem;
+    max-width: 2250px;
+    margin: 0 auto 10rem;
+    padding: 5rem 7.5rem 10rem;
 
     /* Content Background - Semi-transparent to show body texture */
     background-image: none;
     background-color: rgba(230, 240, 210, 0.90);
 
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 100px rgba(0, 0, 0, 0.5);
     z-index: 5;
     min-height: 50vh;
     border-top: none;
@@ -85,32 +85,32 @@ body {
 }
 
 .post {
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 2px dashed #bbccaa;
+    margin-bottom: 7.5rem;
+    padding-bottom: 5rem;
+    border-bottom: 5px dashed #bbccaa;
 }
 
 .post h2 {
     font-family: 'MedievalSharp', cursive;
     /* Consistent fantasy font */
-    font-size: 2.2rem;
-    margin-bottom: 0.5rem;
+    font-size: 5.5rem;
+    margin-bottom: 1.25rem;
     color: var(--accent-color);
-    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
+    text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.5);
 }
 
 .post .meta {
     font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
+    font-size: 2.125rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2.5px;
     color: var(--text-muted);
-    margin-bottom: 1.5rem;
+    margin-bottom: 3.75rem;
 }
 
 .post p {
     font-family: 'Inter', sans-serif;
-    font-size: 1.1rem;
+    font-size: 2.75rem;
     color: var(--text-color);
 }
 

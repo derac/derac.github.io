@@ -37,7 +37,7 @@ export class Spider {
                 let snapped = false;
                 ropes.forEach(rope => {
                     rope.points.forEach((p, idx) => {
-                        if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 60) {
+                        if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 150) {
                             this.targetRope = rope;
                             this.targetPointIdx = idx;
                             snapped = true;
@@ -46,7 +46,7 @@ export class Spider {
                     });
                 });
                 web.points.forEach(p => {
-                    if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 60) {
+                    if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 150) {
                         this.attachedToWeb = true;
                         snapped = true;
                     }
@@ -60,7 +60,7 @@ export class Spider {
         } else {
             const dx = this.point.x - mouse.x;
             const dy = this.point.y - mouse.y;
-            if (Math.hypot(dx, dy) < 40 && mouse.down) {
+            if (Math.hypot(dx, dy) < 100 && mouse.down) {
                 this.isGrabbed = true;
             }
 
@@ -69,14 +69,20 @@ export class Spider {
             }
 
             if (this.attachedToWeb) {
-                const targetPoint = this.targetFly ? { x: this.targetFly.x, y: this.targetFly.y } : web.center;
-                const tx = targetPoint.x + (this.targetFly ? 0 : -20);
-                const ty = targetPoint.y + (this.targetFly ? 0 : 20);
+                let targetPoint = web.center;
+                if (this.targetFly) {
+                    targetPoint = { x: this.targetFly.x, y: this.targetFly.y };
+                } else if (this.isCarrying && this.cocoonTarget) {
+                    targetPoint = this.cocoonTarget;
+                }
+
+                const tx = targetPoint.x;
+                const ty = targetPoint.y;
 
                 const d = Math.hypot(tx - this.point.x, ty - this.point.y);
-                if (d > 5) {
-                    this.point.x += (tx - this.point.x) * 0.0075;
-                    this.point.y += (ty - this.point.y) * 0.0075;
+                if (d > 12.5) {
+                    this.point.x += (tx - this.point.x) * 0.02;
+                    this.point.y += (ty - this.point.y) * 0.02;
                 } else {
                     this.point.x = tx;
                     this.point.y = ty;
@@ -86,14 +92,22 @@ export class Spider {
                         this.targetFly.isCaught = false;
                         this.targetFly.isCarried = true;
                         this.targetFly = null;
+                        const validPoints = web.points.filter(p => !p.isFixed);
+                        this.cocoonTarget = validPoints.length > 0
+                            ? validPoints[Math.floor(Math.random() * validPoints.length)]
+                            : web.points[Math.floor(Math.random() * web.points.length)];
                         this.returningHome = true;
-                    } else if (this.isCarrying) {
+                    } else if (this.isCarrying && this.cocoonTarget) {
+                        const targetPoint = this.cocoonTarget;
+                        targetPoint.cocoonCount = (targetPoint.cocoonCount || 0) + 1;
+
                         cocoons.push({
-                            x: web.center.x + (Math.random() - 0.5) * 40,
-                            y: web.center.y + (Math.random() - 0.5) * 40,
+                            point: targetPoint,
+                            index: targetPoint.cocoonCount,
                             rotation: Math.random() * Math.PI
                         });
                         this.isCarrying = false;
+                        this.cocoonTarget = null;
                         fly.reset();
                     }
                 }
@@ -104,7 +118,7 @@ export class Spider {
                     ropes.forEach(rope => {
                         if (rope === this.lastRope && this.junctionCooldown > 0) return;
                         rope.points.forEach((p, idx) => {
-                            if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 40) {
+                            if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 100) {
                                 this.targetRope = rope;
                                 this.targetPointIdx = idx;
                             }
@@ -113,8 +127,8 @@ export class Spider {
                     this.point.update();
                 } else {
                     const target = this.targetRope.points[this.targetPointIdx];
-                    this.point.x += (target.x - this.point.x) * 0.0125;
-                    this.point.y += (target.y - this.point.y) * 0.0125;
+                    this.point.x += (target.x - this.point.x) * 0.03;
+                    this.point.y += (target.y - this.point.y) * 0.03;
 
                     this.moveDelay++;
                     if (this.moveDelay > 10) {
@@ -141,7 +155,7 @@ export class Spider {
                                 if (rope === this.targetRope || rope === this.lastRope) continue;
                                 for (let idx = 0; idx < rope.points.length; idx++) {
                                     const p = rope.points[idx];
-                                    if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 30) {
+                                    if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 75) {
                                         this.lastRope = this.targetRope;
                                         this.targetRope = rope;
                                         this.targetPointIdx = idx;
@@ -157,7 +171,7 @@ export class Spider {
 
                     let nearWeb = false;
                     web.points.forEach(p => {
-                        if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 50) {
+                        if (Math.hypot(p.x - this.point.x, p.y - this.point.y) < 125) {
                             nearWeb = true;
                         }
                     });
@@ -173,7 +187,7 @@ export class Spider {
             }
         }
 
-        this.legPhase += (this.returningHome || this.targetFly || this.grounded) ? 0.1 : 0.025;
+        this.legPhase += (this.returningHome || this.targetFly || this.grounded) ? 0.3 : 0.075;
         this.feet.forEach((foot, i) => {
             const angle = (i / 8) * Math.PI * 2;
             const reach = config.spiderSize * 3 * this.scale;
@@ -192,8 +206,8 @@ export class Spider {
             });
 
             if (closest) {
-                foot.x += (closest.x - foot.x) * 0.3;
-                foot.y += (closest.y - foot.y) * 0.3;
+                foot.x += (closest.x - foot.x) * 0.5;
+                foot.y += (closest.y - foot.y) * 0.5;
             } else {
                 let boundClosestX = idealX, boundClosestY = idealY;
                 let boundMinDist = reach;
@@ -208,15 +222,15 @@ export class Spider {
                 });
 
                 if (boundMinDist < reach) {
-                    foot.x += (boundClosestX - foot.x) * 0.3;
-                    foot.y += (boundClosestY - foot.y) * 0.3;
+                    foot.x += (boundClosestX - foot.x) * 0.5;
+                    foot.y += (boundClosestY - foot.y) * 0.5;
                 } else {
                     const idleRadius = 10 * this.scale;
                     const circleX = Math.cos(this.legPhase + i * 0.8) * idleRadius;
                     const circleY = Math.sin(this.legPhase + i * 0.8) * idleRadius;
 
-                    foot.x += (idealX + circleX - foot.x) * 0.1;
-                    foot.y += (idealY + circleY - foot.y) * 0.1;
+                    foot.x += (idealX + circleX - foot.x) * 0.2;
+                    foot.y += (idealY + circleY - foot.y) * 0.2;
                 }
             }
         });
@@ -227,12 +241,12 @@ export class Spider {
         }
 
         // Transition to ceiling walk if at top end of a rope
-        if (this.targetRope && this.point.y < 40) {
+        if (this.targetRope && this.point.y < 100) {
             const target = this.targetRope.points[this.targetPointIdx];
-            if (target.y < 15) {
+            if (target.y < 37.5) {
                 this.lastRope = this.targetRope;
                 this.targetRope = null;
-                this.point.y = 10;
+                this.point.y = 25;
                 this.junctionCooldown = 120; // 2 second immunity
             }
         }
@@ -240,28 +254,28 @@ export class Spider {
         // Dynamic boundary offset (half body size / radius)
         const bodyRadius = config.spiderSize * this.scale;
         const snapOffset = bodyRadius;
-        const threshold = bodyRadius + 5;
+        const threshold = bodyRadius + 12.5;
 
-        if ((this.point.y > height - threshold || this.point.x > width - threshold || this.point.x < threshold || this.point.y < threshold) && !this.attachedToWeb && !this.targetRope && !this.isGrabbed) {
+        if ((this.point.y > height - threshold || this.point.x > width - threshold || this.point.y < threshold) && !this.attachedToWeb && !this.targetRope && !this.isGrabbed) {
             this.grounded = true;
 
-            const walkSpeed = 0.5;
+            const walkSpeed = 2.5;
             // Add bobbing motion (sine wave based on legPhase)
-            const bob = Math.sin(this.legPhase) * 2;
+            const bob = Math.sin(this.legPhase) * 5;
             const bobOffset = Math.abs(bob);
 
             if (this.point.y < threshold) {
+                // Ceiling
                 this.point.y = snapOffset + bobOffset;
                 this.point.x += walkSpeed;
+            } else if (this.point.x > width - threshold) {
+                // Right Wall (Prioritized over floor to allow climbing up corner)
+                this.point.x = width - snapOffset - bobOffset;
+                this.point.y -= (walkSpeed + config.gravity);
             } else if (this.point.y > height - threshold) {
+                // Floor
                 this.point.y = height - snapOffset - bobOffset;
                 this.point.x += walkSpeed;
-            } else if (this.point.x > width - threshold) {
-                this.point.x = width - snapOffset - bobOffset;
-                this.point.y -= walkSpeed;
-            } else if (this.point.x < threshold) {
-                this.point.x = snapOffset + bobOffset;
-                this.point.y -= walkSpeed;
             }
 
             this.point.oldX = this.point.x;
@@ -334,13 +348,38 @@ export class Spider {
             ctx.stroke();
         }
 
-        ctx.fillStyle = `rgba(255, 100, 100, ${0.8 + light * 0.2})`;
-        ctx.shadowBlur = 8 * light;
-        ctx.shadowColor = '#ff3e3e';
-        ctx.beginPath();
-        ctx.arc(x - 4 * this.scale, y - 4 * this.scale, 3 * this.scale, 0, Math.PI * 2);
-        ctx.arc(x + 4 * this.scale, y - 4 * this.scale, 3 * this.scale, 0, Math.PI * 2);
-        ctx.fill();
+        // Multi-Eye Cluster (8 eyes: 2 main, 2 side, 4 small top)
+        ctx.fillStyle = '#000'; // Black eyes
+        const eyeBaseX = x;
+        const eyeBaseY = y - 2 * this.scale;
+
+        const eyes = [
+            // Main pair (Large)
+            { x: -5, y: -4, r: 4 }, { x: 5, y: -4, r: 4 },
+            // Side pair (Medium)
+            { x: -11, y: -5, r: 2.5 }, { x: 11, y: -5, r: 2.5 },
+            // Top/Small cluster
+            { x: -3, y: -10, r: 1.5 }, { x: 3, y: -10, r: 1.5 },
+            { x: -7, y: -8, r: 1.5 }, { x: 7, y: -8, r: 1.5 }
+        ];
+
+        eyes.forEach(eye => {
+            const ex = eyeBaseX + eye.x * this.scale;
+            const ey = eyeBaseY + eye.y * this.scale;
+            const er = eye.r * this.scale;
+
+            // Eye ball
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(ex, ey, er, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Specular highlight (Shiny!)
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.7 + light * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(ex - er * 0.3, ey - er * 0.3, er * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        });
         ctx.restore();
     }
 }

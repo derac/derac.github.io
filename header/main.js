@@ -27,7 +27,7 @@ function init() {
 
     web = new Web(width, 0, config.webRadius * scale, config.webComplexity);
     spider = new Spider(width, scale);
-    torch = new Torch(40 * scale, 40 * scale, scale);
+    torch = new Torch(config.torchSize * scale, config.torchSize * scale, scale);
     rockText = new RockText(width, height);
 
     if (!fly) {
@@ -48,7 +48,7 @@ function init() {
 
 
         const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-        let totalLength = dist * (1.1 + Math.random() * 0.2);
+        let totalLength = dist * (1.1 + Math.random() * 0.2) + Math.random() * 250;
 
         // Limit maximum length to half screen width
         const maxLen = width / 2;
@@ -145,12 +145,26 @@ function animate() {
 
     // 5. Cocoons (also foreground)
     cocoons.forEach(c => {
+        // Calculate position relative to attached point
+        const spacing = 15;
+        let dx = c.point.x - web.center.x;
+        let dy = c.point.y - web.center.y;
+
+        // Handle center point case or very close
+        const dist = Math.hypot(dx, dy);
+        if (dist < 0.1) { dx = Math.cos(c.rotation); dy = Math.sin(c.rotation); }
+        else { dx /= dist; dy /= dist; }
+
+        // Stack outward
+        const x = c.point.x + dx * (c.index * spacing);
+        const y = c.point.y + dy * (c.index * spacing);
+
         ctx.save();
-        ctx.translate(c.x, c.y);
+        ctx.translate(x, y);
         ctx.rotate(c.rotation);
         ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.beginPath();
-        ctx.ellipse(0, 0, 4, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 0, 10, 20, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     });
