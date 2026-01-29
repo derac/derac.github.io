@@ -1,4 +1,4 @@
-import { config, mouse } from './config.js';
+import { config, mouse, pointers } from './config.js';
 
 export class Point {
     constructor(x, y, isFixed = false) {
@@ -21,18 +21,21 @@ export class Point {
         this.x += vx;
         this.y += vy + config.gravity;
 
-        const dx = this.x - mouse.x;
-        const dy = this.y - mouse.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        // Interaction with all active pointers (Multi-touch)
+        for (const p of pointers.values()) {
+            const dx = this.x - p.x;
+            const dy = this.y - p.y;
+            const dist = Math.hypot(dx, dy);
 
-        if (dist < 60 && mouse.down) {
-            // Stronger pull when mouse is down
-            this.x += (mouse.x - this.x) * 0.25;
-            this.y += (mouse.y - this.y) * 0.25;
-        } else if (dist < 30) {
-            // Slight nudge when mouse just passes by (not down)
-            this.x += mouse.vx * 0.1;
-            this.y += mouse.vy * 0.1;
+            if (dist < 60 && p.down) {
+                // Stronger pull when pointer is down (dragging)
+                this.x += (p.x - this.x) * 0.25;
+                this.y += (p.y - this.y) * 0.25;
+            } else if (dist < 30) {
+                // Slight nudge when pointer passes by
+                this.x += p.vx * 0.1;
+                this.y += p.vy * 0.1;
+            }
         }
     }
 }

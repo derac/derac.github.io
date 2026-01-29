@@ -1,4 +1,4 @@
-import { config, mouse } from './config.js';
+import { config, mouse, pointers } from './config.js';
 import { Rope, Web, Torch, Fly, RockText } from './entities.js';
 import { Spider } from './spider.js';
 
@@ -58,40 +58,79 @@ function resize() {
     init();
 }
 
-window.addEventListener('resize', resize);
-window.addEventListener('mousemove', e => {
+// Input Handling
+function updatePointer(e) {
     const rect = canvas.getBoundingClientRect();
-    const newX = e.clientX - rect.left;
-    const newY = e.clientY - rect.top;
-    mouse.vx = newX - mouse.x;
-    mouse.vy = newY - mouse.y;
-    mouse.x = newX;
-    mouse.y = newY;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    let p = pointers.get(e.pointerId);
+    if (!p) {
+        p = { x, y, vx: 0, vy: 0, down: false, id: e.pointerId };
+        pointers.set(e.pointerId, p);
+    }
+
+    p.vx = x - p.x;
+    p.vy = y - p.y;
+    p.x = x;
+    p.y = y;
+    p.down = (e.buttons > 0);
+    p.isPrimary = e.isPrimary;
+
+    // Sync primary pointer to legacy 'mouse' object for backward comp
+    if (e.isPrimary) {
+        mouse.x = p.x;
+        mouse.y = p.y;
+        mouse.vx = p.vx;
+        mouse.vy = p.vy;
+        mouse.down = p.down;
+    }
+}
+
+function removePointer(e) {
+    pointers.delete(e.pointerId);
+    if (e.isPrimary) {
+        mouse.down = false;
+    }
+}
+
+window.addEventListener('resize', resize);
+// Prevent default touch actions to allow dragging without scrolling (if needed, or careful CSS)
+canvas.addEventListener('pointerdown', e => {
+    canvas.setPointerCapture(e.pointerId);
+    updatePointer(e);
 });
-window.addEventListener('mousedown', () => mouse.down = true);
-window.addEventListener('mouseup', () => mouse.down = false);
+canvas.addEventListener('pointermove', updatePointer);
+canvas.addEventListener('pointerup', removePointer);
+canvas.addEventListener('pointercancel', removePointer);
+// Keep mouse move for hover effects when no buttons pressed? 
+// Pointermove handles hover too if device supports it.
 
 function animate() {
     ctx.clearRect(0, 0, width, height);
 
+    // 1. Logic Updates
     torch.update();
-    torch.draw(ctx);
 
+    // 2. Background Layer (Text) - Drawn FIRST so it is BEHIND everything
+    rockText.draw(ctx, torch);
+
+    // 3. Midground (Webs & Ropes)
     web.update();
     ropes.forEach(rope => {
         rope.update();
         rope.draw(ctx, torch);
     });
     web.draw(ctx, torch);
-    rockText.draw(ctx, torch);
 
+    // 4. Foreground Entities (Fly, Spider)
     fly.update();
     fly.draw(ctx);
 
     spider.update(width, height, ropes, web, fly, cocoons);
     spider.draw(ctx, torch);
 
-    // Draw cocoons
+    // 5. Cocoons (also foreground)
     cocoons.forEach(c => {
         ctx.save();
         ctx.translate(c.x, c.y);
@@ -102,6 +141,9 @@ function animate() {
         ctx.fill();
         ctx.restore();
     });
+
+    // 6. Global Lighting/Overlay (Torch Source)
+    torch.draw(ctx);
 
     requestAnimationFrame(animate);
 }

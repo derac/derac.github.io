@@ -1,4 +1,4 @@
-import { config, mouse } from './config.js';
+import { config, mouse, pointers } from './config.js';
 import { Point, Constraint } from './physics.js';
 
 export class Rope {
@@ -297,30 +297,37 @@ export class Fly {
             this.x += Math.sin(this.angle) * 1;
             this.y += Math.cos(this.angle) * 1;
 
-            // If the mouse hits the caught fly with enough speed, bat it away!
-            const dx = this.x - mouse.x;
-            const dy = this.y - mouse.y;
-            const dist = Math.hypot(dx, dy);
-            const mouseSpeed = Math.hypot(mouse.vx, mouse.vy);
+            // If any pointer hits the caught fly with enough speed, bat it away!
+            let batted = false;
+            for (const p of pointers.values()) {
+                const dx = this.x - p.x;
+                const dy = this.y - p.y;
+                const dist = Math.hypot(dx, dy);
+                const pSpeed = Math.hypot(p.vx, p.vy);
 
-            if (dist < 40 && mouseSpeed > 10) {
-                this.isCaught = false;
-                this.caughtPoint = null;
-                this.vx = mouse.vx * 0.8;
-                this.vy = mouse.vy * 0.8;
+                if (dist < 40 && pSpeed > 10) {
+                    this.isCaught = false;
+                    this.caughtPoint = null;
+                    this.vx = p.vx * 0.8;
+                    this.vy = p.vy * 0.8;
+                    batted = true;
+                    break;
+                }
             }
-            return;
+            if (batted) return;
         }
 
         // Bat away even if not caught
-        const dx = this.x - mouse.x;
-        const dy = this.y - mouse.y;
-        const dist = Math.hypot(dx, dy);
-        const mouseSpeed = Math.hypot(mouse.vx, mouse.vy);
+        for (const p of pointers.values()) {
+            const dx = this.x - p.x;
+            const dy = this.y - p.y;
+            const dist = Math.hypot(dx, dy);
+            const pSpeed = Math.hypot(p.vx, p.vy);
 
-        if (dist < 30 && mouseSpeed > 15) {
-            this.vx = mouse.vx * 0.5;
-            this.vy = mouse.vy * 0.5;
+            if (dist < 30 && pSpeed > 15) {
+                this.vx = p.vx * 0.5;
+                this.vy = p.vy * 0.5;
+            }
         }
 
         this.x += this.vx;
@@ -428,6 +435,11 @@ export class RockText {
         const x = this.baseX;
         const y = this.baseY;
 
+        // Dynamic font size logic: Scale with width but enforce minimum
+        // Base scale: roughly 6rem at 1000px width
+        const scaleFactor = Math.min(1, Math.max(0.5, this.width / 1000));
+        const fontSizeVal = Math.max(3.5, 6 * scaleFactor); // Min 3.5rem
+
         const dx = torch.x - x;
         const dy = torch.y - y;
         const dist = Math.hypot(dx, dy);
@@ -439,7 +451,7 @@ export class RockText {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        const titleFont = '6rem "Piedra", serif'; // Used Piedra for rocky look
+        const titleFont = `${fontSizeVal}rem "Piedra", serif`; // Used Piedra for rocky look
         ctx.font = titleFont;
 
         // 1. Draw 3D Extrusion (Stone Block)

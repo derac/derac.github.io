@@ -13,3 +13,4 @@ export const config = {
 };
 
 export const mouse = { x: -100, y: -100, vx: 0, vy: 0, down: false };
+export const pointers = new Map(); // Tracks multiple interaction points by ID
