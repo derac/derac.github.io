@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Multi-Scale Turing Patterns</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23151412'/%3E%3Ccircle cx='16' cy='16' r='10' fill='%234cc9a6'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="./styles.css">
+    <script>
+      if (window.location.protocol === "file:") {
+        window.addEventListener("DOMContentLoaded", () => {
+          const status = document.querySelector("#statusLine");
+          const notice = document.querySelector("#unsupportedNotice");
+          if (status) {
+            status.textContent = "Open this app through localhost, not file://.";
+          }
+          if (notice) {
+            notice.hidden = false;
+            notice.querySelector("h2").textContent = "Local server required";
+            notice.querySelector("p").textContent =
+              "Chrome blocks ES module imports from file://. Run a local server and open http://127.0.0.1:4173/.";
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>Multi-Scale Turing Patterns</h1>
+          <p id="statusLine" class="status-line">Starting WebGPU...</p>
+        </div>
+        <div class="metrics" aria-live="polite">
+          <span id="backendMetric">WebGPU</span>
+          <span id="stepMetric">0 steps</span>
+          <span id="fpsMetric">0 ms</span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="canvas-pane" aria-label="Pattern preview">
+          <canvas id="patternCanvas" width="512" height="512"></canvas>
+          <div id="unsupportedNotice" class="notice" hidden>
+            <h2>WebGPU is unavailable</h2>
+            <p>Open this app from a localhost server in a browser with WebGPU enabled.</p>
+          </div>
+        </section>
+
+        <aside class="control-panel" aria-label="Controls">
+          <section class="control-group">
+            <div class="button-grid">
+              <button id="toggleRun" type="button">Pause</button>
+              <button id="resetBtn" type="button">Reset</button>
+              <button id="randomizeBtn" type="button">Randomize</button>
+              <button id="exportBtn" type="button">Export PNG</button>
+            </div>
+          </section>
+
+          <section class="control-group grid-controls">
+            <label>
+              Mode
+              <select id="modeSelect">
+                <option value="turing">Turing</option>
+                <option value="bz">BZ Cellularity</option>
+              </select>
+            </label>
+            <label>
+              Preset
+              <select id="presetSelect"></select>
+            </label>
+            <label>
+              Resolution
+              <select id="resolutionSelect">
+                <option value="256">256</option>
+                <option value="512" selected>512</option>
+                <option value="1024">1024</option>
+              </select>
+            </label>
+            <label>
+              Steps/frame
+              <input id="stepsInput" type="number" min="1" max="12" step="1" value="1">
+            </label>
+            <label>
+              Seed
+              <input id="seedInput" type="number" min="0" max="4294967295" step="1" value="1337">
+            </label>
+            <label>
+              Noise
+              <input id="noiseStrengthInput" type="number" min="0" max="1" step="0.01" value="0.28">
+            </label>
+            <label>
+              Noise scale
+              <input id="noiseScaleInput" type="number" min="1" max="16" step="0.5" value="4">
+            </label>
+            <label class="range-row">
+              <span>Randomness <output id="randomnessValue">20%</output></span>
+              <input id="randomnessInput" type="range" min="0" max="60" step="1" value="20">
+            </label>
+            <label class="check-row">
+              <input id="colorToggle" type="checkbox" checked>
+              Color
+            </label>
+            <button id="saveUrlBtn" type="button">Save URL</button>
+          </section>
+
+          <section class="control-group scale-editor">
+            <div class="scale-header">
+              <h2>Scales</h2>
+              <button id="addScaleBtn" type="button">Add Scale</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>A</th>
+                    <th>I/A</th>
+                    <th>K</th>
+                    <th>Delta</th>
+                    <th>W</th>
+                    <th>S</th>
+                    <th>Color</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="scaleRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <template id="scaleRowTemplate">
+      <tr>
+        <td><input data-field="activatorRadius" type="number" min="0.5" max="512" step="0.5"></td>
+        <td><input data-field="inhibitorRatio" type="number" min="1.01" max="6" step="0.05"></td>
+        <td>
+          <select data-field="kernel">
+            <option value="gaussian">Gauss</option>
+            <option value="circular">Circle</option>
+          </select>
+        </td>
+        <td><input data-field="amount" type="number" min="-0.2" max="0.2" step="0.001"></td>
+        <td><input data-field="weight" type="number" min="0.01" max="10" step="0.01"></td>
+        <td><input data-field="symmetry" type="number" min="1" max="16" step="1"></td>
+        <td><input data-field="color" type="color"></td>
+        <td><button data-action="remove-scale" type="button" title="Remove scale">Remove</button></td>
+      </tr>
+    </template>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

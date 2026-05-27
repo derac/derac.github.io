@@ -1,0 +1,330 @@
+:root {
+  color-scheme: dark;
+  --bg: #151412;
+  --panel: #24221d;
+  --panel-2: #302d26;
+  --text: #f2eee4;
+  --muted: #b9b0a1;
+  --line: #484235;
+  --accent: #4cc9a6;
+  --accent-2: #f2b84b;
+  --danger: #df735d;
+  --shadow: rgba(0, 0, 0, 0.28);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+select,
+input {
+  border: 1px solid var(--line);
+  background: #1d1b17;
+  color: var(--text);
+}
+
+button {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover,
+select:hover,
+input:hover {
+  border-color: var(--accent);
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 32px;
+  border-radius: 4px;
+  padding: 4px 7px;
+}
+
+input[type="checkbox"],
+input[type="color"] {
+  width: auto;
+}
+
+input[type="color"] {
+  width: 38px;
+  min-width: 38px;
+  padding: 2px;
+}
+
+.app-shell {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.topbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #1b1915;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.status-line {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metrics span {
+  min-width: 74px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  text-align: center;
+  background: var(--panel);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 430px;
+  min-height: 0;
+}
+
+.canvas-pane {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: calc(100vh - 66px);
+  padding: 18px;
+  overflow: hidden;
+}
+
+#patternCanvas {
+  display: block;
+  width: min(calc(100vw - 484px), calc(100vh - 102px));
+  height: min(calc(100vw - 484px), calc(100vh - 102px));
+  min-width: 280px;
+  min-height: 280px;
+  max-width: 100%;
+  max-height: calc(100vh - 102px);
+  image-rendering: auto;
+  background: #080807;
+  box-shadow: 0 18px 44px var(--shadow);
+  cursor: grab;
+  touch-action: none;
+}
+
+#patternCanvas.is-panning {
+  cursor: grabbing;
+}
+
+.notice {
+  position: absolute;
+  inset: 18px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: rgba(21, 20, 18, 0.96);
+  text-align: center;
+}
+
+.notice[hidden] {
+  display: none;
+}
+
+.notice p {
+  color: var(--muted);
+}
+
+.control-panel {
+  height: calc(100vh - 66px);
+  overflow: auto;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  padding: 14px;
+}
+
+.control-group {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.control-group:first-child {
+  padding-top: 0;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.button-grid button:first-child {
+  border-color: color-mix(in srgb, var(--accent) 64%, var(--line));
+}
+
+.grid-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.check-row {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  align-content: center;
+  color: var(--text);
+}
+
+.range-row {
+  grid-column: 1 / -1;
+}
+
+.range-row span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.range-row output {
+  color: var(--text);
+}
+
+.scale-editor {
+  border-bottom: 0;
+}
+
+.scale-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 690px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 5px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+td input,
+td select,
+td button {
+  min-height: 30px;
+}
+
+td button[data-action="remove-scale"] {
+  color: var(--danger);
+}
+
+@media (max-width: 980px) {
+  .topbar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas-pane {
+    min-height: auto;
+  }
+
+  #patternCanvas {
+    width: min(92vw, 80vh);
+    height: min(92vw, 80vh);
+  }
+
+  .control-panel {
+    height: auto;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Field Loom</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-mark" src="favicon.ico" alt="" aria-hidden="true">
+          <span>Field Loom</span>
+        </div>
+        <div class="toolbar-group">
+          <button id="undoBtn" class="icon-btn" title="Undo" aria-label="Undo">↩️</button>
+          <button id="redoBtn" class="icon-btn" title="Redo" aria-label="Redo">↪️</button>
+          <button id="playBtn" class="icon-btn" title="Play or pause time" aria-label="Pause">⏸️</button>
+        </div>
+        <div class="toolbar-group">
+          <button id="randomGraphBtn" class="icon-btn" title="Random Graph" aria-label="Random Graph">🎲</button>
+          <button id="randomParamsBtn" class="icon-btn" title="Randomize Parameters and Edges" aria-label="Randomize Parameters and Edges">🎛️</button>
+          <label class="random-control" title="Random graph depth">
+            <span class="random-control-label">Depth</span>
+            <input id="randomSizeRange" type="range" min="6" max="15" step="1" value="6" aria-label="Random graph depth">
+            <span id="randomSizeValue">6</span>
+          </label>
+          <label class="random-control" title="Random graph breadth">
+            <span class="random-control-label">Breadth</span>
+            <input id="randomBranchRange" type="range" min="2" max="6" step="1" value="2" aria-label="Random graph breadth">
+            <span id="randomBranchValue">2</span>
+          </label>
+          <label class="random-control" title="Minimum incoming edges per generated node">
+            <span class="random-control-label">Edges</span>
+            <input id="randomConnectednessRange" type="range" min="1" max="5" step="1" value="2" aria-label="Random graph minimum edges">
+            <span id="randomConnectednessValue">2</span>
+          </label>
+          <label class="random-control" title="Random graph edge reconnection attempts">
+            <span class="random-control-label">Randomness</span>
+            <input id="randomEdgeRandomnessRange" type="range" min="0" max="3" step="1" value="0" aria-label="Random graph edge randomness">
+            <span id="randomEdgeRandomnessValue">0</span>
+          </label>
+          <label class="random-control" title="How far parameter randomization moves from current values">
+            <span class="random-control-label">Mutation</span>
+            <input id="randomMutationRange" type="range" min="0" max="1" step="0.05" value="0.35" aria-label="Random parameter mutation amount">
+            <span id="randomMutationValue">35%</span>
+          </label>
+          <label class="random-control global-speed-control" title="Global animation speed">
+            <span class="random-control-label">Speed</span>
+            <input id="globalSpeedRange" type="range" min="0" max="3" step="0.1" value="1" aria-label="Global animation speed">
+            <span id="globalSpeedValue">1.0x</span>
+          </label>
+        </div>
+        <button id="mobileMenuBtn" class="mobile-menu-btn" type="button" aria-label="More controls">Menu</button>
+        <div class="toolbar-spacer"></div>
+        <div class="toolbar-group secondary-toolbar">
+          <button id="savePresetBtn" class="icon-btn" title="Save Preset" aria-label="Save Preset">💾</button>
+          <button id="presetsBtn">Presets</button>
+          <button id="cycleBtn" class="icon-btn" title="Start Preset Cycling" aria-label="Start Preset Cycling">▶️</button>
+        </div>
+        <div class="toolbar-group secondary-toolbar">
+          <button id="exportBtn" class="icon-btn" title="Export" aria-label="Export">⬇️</button>
+        </div>
+        <div class="toolbar-group secondary-toolbar">
+          <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙️</button>
+          <button id="helpBtn" class="icon-btn" title="Help" aria-label="Help">❓</button>
+        </div>
+      </header>
+
+      <main id="workspace" class="workspace mobile-edit-collapsed">
+        <section class="preview-panel panel">
+          <div class="panel-header">
+            <span>Preview</span>
+            <div class="panel-header-actions">
+              <span id="previewStats" class="panel-meta">WebGPU starting</span>
+              <button id="previewFullscreenBtn" class="panel-icon-btn" title="Fullscreen Preview" aria-label="Fullscreen Preview">⛶</button>
+            </div>
+          </div>
+          <div class="preview-wrap">
+            <canvas id="previewCanvas"></canvas>
+          </div>
+        </section>
+
+        <section class="mobile-edit-panel panel">
+          <button id="mobileEditToggle" class="mobile-edit-toggle" type="button" aria-expanded="false">
+            Show Graph / Parameters
+          </button>
+        </section>
+
+        <div id="resizePreviewGraph" class="pane-resizer" data-resizer="preview-graph" title="Drag to resize panes"></div>
+
+        <section class="graph-panel panel">
+          <div class="panel-header">
+            <span>Patch Graph</span>
+            <div class="graph-header-actions">
+              <button id="mobileAddNodeBtn" class="panel-icon-btn graph-mobile-action" type="button" title="Add Node" aria-label="Add Node">+</button>
+              <button id="mobileDeleteNodeBtn" class="panel-icon-btn graph-mobile-action" type="button" title="Delete Selected Node" aria-label="Delete Selected Node">-</button>
+              <span id="graphStatus" class="panel-meta">Starter graph</span>
+            </div>
+          </div>
+          <div id="graphViewport" class="graph-viewport">
+            <div id="graphSurface" class="graph-surface">
+              <svg id="wireLayer" class="wire-layer"></svg>
+              <div id="nodeLayer" class="node-layer"></div>
+            </div>
+          </div>
+        </section>
+
+        <div id="resizeGraphInspector" class="pane-resizer" data-resizer="graph-inspector" title="Drag to resize panes"></div>
+
+        <aside class="inspector-panel panel">
+          <div class="panel-header">
+            <span>Inspector</span>
+            <span id="selectionMeta" class="panel-meta">None</span>
+          </div>
+          <div id="inspector" class="inspector"></div>
+        </aside>
+      </main>
+
+      <footer class="history-panel">
+        <div class="history-header">
+          <span>History</span>
+          <span id="historyMeta">Ready</span>
+        </div>
+        <div id="historyStrip" class="history-strip"></div>
+      </footer>
+    </div>
+
+    <div id="modalRoot" class="modal-root" hidden></div>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
