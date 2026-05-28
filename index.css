@@ -166,17 +166,26 @@ a {
 }
 
 .fieldloom-card .project-image {
-  background-image: url("./assets/fieldloom.png");
+  background-image: image-set(
+    url("./assets/fieldloom.webp") type("image/webp"),
+    url("./assets/fieldloom.png") type("image/png")
+  );
   background-position: 25% center;
 }
 
 .turing-card .project-image {
-  background-image: url("./assets/turingpatterns.png");
+  background-image: image-set(
+    url("./assets/turingpatterns.webp") type("image/webp"),
+    url("./assets/turingpatterns.png") type("image/png")
+  );
 }
 
 .griddler-card .project-image {
   background-color: #070707;
-  background-image: url("./assets/griddler.png");
+  background-image: image-set(
+    url("./assets/griddler.webp") type("image/webp"),
+    url("./assets/griddler.png") type("image/png")
+  );
   background-size: contain;
   background-repeat: no-repeat;
 }
