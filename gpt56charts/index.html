@@ -59,11 +59,18 @@
   table.sortable th { cursor:pointer; user-select:none; white-space:nowrap; font-size:14px; padding:8px 12px; }
   table.sortable th.sorted { color:var(--accent); }
   table.sortable td { padding:6px 12px; font-size:16px; white-space:nowrap; vertical-align:middle; }
-  table.sortable td:nth-child(n+3) { text-align:right; font-variant-numeric:tabular-nums; }
+  table.sortable td:nth-child(n+2) { text-align:right; font-variant-numeric:tabular-nums; }
   table.sortable td:first-child { text-align:left; }
   table.sortable tbody tr { cursor:pointer; }
   table.sortable tr.selected td { background:rgba(108,182,255,0.08); }
   table.sortable tr.selected td:first-child { border-left:3px solid var(--accent); }
+  .filter-bar { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .filter-ctrl { padding:4px 14px; border-radius:999px; font-size:15px; cursor:pointer; border:1px solid var(--grid); background:var(--panel); color:var(--muted); font-weight:600; transition:0.15s; }
+  .filter-ctrl:hover { border-color:var(--accent); color:var(--accent); }
+  .filter-chip { padding:4px 14px; border-radius:999px; font-size:15px; cursor:pointer; border:1px solid var(--grid); background:var(--panel); color:var(--muted); transition:0.15s; white-space:nowrap; }
+  .filter-chip.on { border-color:var(--accent); color:var(--accent); background:rgba(108,182,255,0.1); }
+  .filter-chip.off { opacity:0.35; }
+  .filter-chip:hover { opacity:1; }
 </style>
 </head>
 <body>
@@ -71,9 +78,10 @@
   <h1>GPT-5.6: All Benchmarks</h1>
   <p class="sub">Per-reasoning-level breakdown &middot; <a href="https://openai.com/index/gpt-5-6/" target="_blank" rel="noopener">Source</a></p>
   <div class="mode-bar">
-    <button class="mode-btn active" data-mode="cellular">Cellular</button>
-    <button class="mode-btn" data-mode="tabular">Tabular</button>
+    <button class="mode-btn" data-mode="cellular">Cellular</button>
+    <button class="mode-btn active" data-mode="tabular">Tabular</button>
   </div>
+  <div id="filterBar" class="filter-bar"></div>
   <div id="ancBar" class="anc-bar">Anchor: <strong id="ancLabel">GPT-5.5 &middot; Xhigh</strong> <span style="color:var(--muted)">&mdash; click any cell to re-anchor</span></div>
   <div id="root"></div>
 </div>
@@ -85,11 +93,15 @@
   const root = document.getElementById('root');
   const ancBar = document.getElementById('ancBar');
   const ancLabel = document.getElementById('ancLabel');
-  let mode = 'cellular';
+  let mode = 'tabular';
   let anchor = {...S.def};
-  const SORT_DEF = {model:1,level:1,score:0,cost:1,latency:1,tokens:1};
+  const SORT_DEF = {model:1,score:0,cost:1,latency:1,tokens:1};
   const LV_ORD = {none:0,low:1,medium:2,high:3,xhigh:4,max:5};
-  let tabSort = {};
+  let tabSort = {col:'score',asc:false};
+  const allModelNames = [...new Set(S.b.flatMap(b => Object.keys(b.m)))];
+  let visibleModels = new Set(allModelNames);
+  const allLevels = ['none','low','medium','high','xhigh','max'];
+  let visibleLevels = new Set(allLevels);
 
   function lvL(lv){return {none:'None',low:'Low',medium:'Medium',high:'High',xhigh:'Xhigh',max:'Max'}[lv]||lv;}
   function fs(v){if(!isFinite(v)||v==null)return ''; return '\u00d7'+(Math.round(v*100)/100).toFixed(2);}
@@ -140,10 +152,11 @@
 
     const tbd=document.createElement('tbody');
     b.ml.forEach(m=>{
-      if(!b.m[m])return;
+      if(!visibleModels.has(m)||!b.m[m])return;
       const tr=document.createElement('tr');
       const mt=document.createElement('td'); mt.className='m'; mt.textContent=m; tr.appendChild(mt);
       b.l.forEach(lv=>{
+        if(!visibleLevels.has(lv))return;
         const td=document.createElement('td');
         const celData=b.m[m]?b.m[m][lv]:null;
         const cel=document.createElement('div'); cel.className='c';
@@ -184,13 +197,13 @@
     return div;
   }
 
-  function renderCellular(){ ancBar.style.display=''; root.replaceChildren(); S.b.forEach(b=>root.appendChild(cellPanel(b))); }
+  function hasVisibleData(b){ return b.ml.some(m=>visibleModels.has(m)&&b.m[m]&&b.l.some(lv=>visibleLevels.has(lv)&&b.m[m][lv])); }
+
+  function renderCellular(){ ancBar.style.display=''; root.replaceChildren(); S.b.forEach(b=>{if(hasVisibleData(b))root.appendChild(cellPanel(b));}); }
 
   // ── Tabular mode (per-benchmark sortable tables with scales) ──
   function tabPanel(b){
-    const key=b.key;
-    if(!tabSort[key]) tabSort[key]={col:'score',asc:false};
-    const st=tabSort[key];
+    const st=tabSort;
 
     function s0(x){return b.t.indexOf('Index')!==-1||b.t==='GDPval-AA v2'?x:x/100;}
     const aRow=b.m[anchor.m];
@@ -200,8 +213,10 @@
     // Build rows
     const rows=[];
     b.ml.forEach(m=>{
+      if(!visibleModels.has(m))return;
       const md=b.m[m]; if(!md)return;
       b.l.forEach(lv=>{
+        if(!visibleLevels.has(lv))return;
         const cel=md[lv]; if(!cel||cel.s==null)return;
         rows.push({m,lv,lvO:LV_ORD[lv]??-1,cel,
           _s:cel.s!=null?s0(cel.s):null,
@@ -235,7 +250,7 @@
     const tb=document.createElement('table'); tb.className='sortable';
     const thd=document.createElement('thead'); const thr=document.createElement('tr');
 
-    const cols=[{k:'model',l:'Model'},{k:'level',l:'Reasoning'},{k:'score',l:'Score'},{k:'cost',l:'Cost'},{k:'latency',l:'Latency'},{k:'tokens',l:'Tokens'}];
+    const cols=[{k:'model',l:'Model'},{k:'score',l:'Score'},{k:'cost',l:'Cost'},{k:'latency',l:'Latency'},{k:'tokens',l:'Tokens'}];
     cols.forEach(col=>{
       const th=document.createElement('th'); th.textContent=col.l;
       if(col.k===st.col){th.classList.add('sorted');th.textContent+=st.asc?' \u25b2':' \u25bc';}
@@ -253,8 +268,7 @@
       const tr=document.createElement('tr');
       if(r.m===anchor.m&&r.lv===anchor.l) tr.className='selected';
       tr.addEventListener('click',()=>{anchor={m:r.m,l:r.lv};ancLabel.textContent=anchor.m+' \u00b7 '+lvL(anchor.l);renderAll();});
-      const tdM=document.createElement('td'); tdM.textContent=r.m; tr.appendChild(tdM);
-      const tdL=document.createElement('td'); tdL.textContent=lvL(r.lv); tr.appendChild(tdL);
+      const tdM=document.createElement('td'); tdM.textContent=r.m+' \u00b7 '+lvL(r.lv); tr.appendChild(tdM);
 
       ['s','c','l','t'].forEach(k=>{
         const td=document.createElement('td');
@@ -279,10 +293,46 @@
     return div;
   }
 
-  function renderTabular(){ ancBar.style.display=''; root.replaceChildren(); S.b.forEach(b=>root.appendChild(tabPanel(b))); }
+  function renderTabular(){ ancBar.style.display=''; root.replaceChildren(); S.b.forEach(b=>{if(hasVisibleData(b))root.appendChild(tabPanel(b));}); }
+
+  // ── Model / Level filter ──
+  function renderFilterBar(){
+    const bar=document.getElementById('filterBar');
+    bar.replaceChildren();
+    const allBtn=document.createElement('span'); allBtn.className='filter-ctrl'; allBtn.textContent='All';
+    allBtn.addEventListener('click',()=>{visibleModels=new Set(allModelNames);visibleLevels=new Set(allLevels);renderAll();});
+    bar.appendChild(allBtn);
+    const noneBtn=document.createElement('span'); noneBtn.className='filter-ctrl'; noneBtn.textContent='None';
+    noneBtn.addEventListener('click',()=>{visibleModels=new Set();visibleLevels=new Set();renderAll();});
+    bar.appendChild(noneBtn);
+    const sepM=document.createElement('span'); sepM.style.cssText='color:var(--muted);margin:0 4px;font-size:15px;'; sepM.textContent='Models:';
+    bar.appendChild(sepM);
+    allModelNames.forEach(m=>{
+      const on=visibleModels.has(m);
+      const chip=document.createElement('span'); chip.className='filter-chip'+(on?' on':' off'); chip.textContent=m;
+      chip.addEventListener('click',()=>{
+        if(visibleModels.has(m)) visibleModels.delete(m); else visibleModels.add(m);
+        renderAll();
+      });
+      bar.appendChild(chip);
+    });
+    const sepL=document.createElement('span'); sepL.style.cssText='color:var(--muted);margin:0 4px 0 12px;font-size:15px;'; sepL.textContent='Levels:';
+    bar.appendChild(sepL);
+    allLevels.forEach(lv=>{
+      const label={none:'None',low:'Low',medium:'Medium',high:'High',xhigh:'Xhigh',max:'Max'}[lv];
+      const on=visibleLevels.has(lv);
+      const chip=document.createElement('span'); chip.className='filter-chip'+(on?' on':' off'); chip.textContent=label;
+      chip.addEventListener('click',()=>{
+        if(visibleLevels.has(lv)) visibleLevels.delete(lv); else visibleLevels.add(lv);
+        renderAll();
+      });
+      bar.appendChild(chip);
+    });
+  }
 
   // ── Render dispatch ──
   function renderAll(){
+    renderFilterBar();
     if(mode==='tabular') renderTabular();
     else renderCellular();
   }
