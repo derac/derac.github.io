@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GPT-5.6: All Benchmarks per Reasoning Level</title>
+<title>GPT-5.6 Benchmark Comparison</title>
 <style>
   :root {
     --bg: #0f1115; --panel: #161a22; --panel-2: #1c2230;
@@ -30,32 +30,12 @@
     vertical-align:top; min-width:100px; }
   thead th { color:var(--muted); font-weight:600; font-size:14px;
     text-transform:uppercase; letter-spacing:0.05em; padding:8px 10px 12px; }
-  td.m { text-align:left; font-weight:600; width:200px; min-width:200px;
-    vertical-align:middle; font-size:18px; }
-  .c { cursor:pointer; padding:6px 5px; border-radius:4px; }
-  .c.e { cursor:default; opacity:0.28; }
-  .c.sel { background:rgba(108,182,255,0.1); outline:1.5px solid var(--accent); }
-  .c:hover:not(.e) { background:rgba(255,255,255,0.04); }
-  .r { display:flex; align-items:baseline; gap:4px; padding:1px 0; font-size:17px; }
-  .lb { font-size:12px; color:var(--muted); width:20px; text-align:right; flex-shrink:0; font-weight:600; }
-  .v { font-variant-numeric:tabular-nums; min-width:38px; text-align:right;
-    font-weight:500; white-space:nowrap; flex-shrink:0; font-size:17px; }
-  .v.sc { color:var(--score); }
-  .v.co { color:var(--cost); }
-  .v.la { color:var(--lat); }
-  .v.to { color:var(--tok); }
   .sf { font-variant-numeric:tabular-nums;
     white-space:nowrap; margin-left:auto; font-weight:400; font-size:17px; }
   .sf.sc { color:var(--score); }
   .sf.co { color:var(--cost); }
   .sf.la { color:var(--lat); }
   .sf.to { color:var(--tok); }
-  .mode-bar { display:flex; gap:0; margin-bottom:20px; }
-  .mode-btn { background:var(--panel); border:1px solid var(--grid); color:var(--muted); padding:10px 24px; font-size:17px; cursor:pointer; font-weight:500; transition:0.15s; }
-  .mode-btn:first-child { border-radius:10px 0 0 10px; }
-  .mode-btn:last-child { border-radius:0 10px 10px 0; }
-  .mode-btn.active { background:var(--panel-2); border-color:var(--accent); color:var(--accent); z-index:1; }
-  .mode-btn:not(.active):hover { background:var(--panel-2); color:var(--text); }
   table.sortable th { cursor:pointer; user-select:none; white-space:nowrap; font-size:14px; padding:8px 12px; }
   table.sortable th.sorted { color:var(--accent); }
   table.sortable td { padding:6px 12px; font-size:16px; white-space:nowrap; vertical-align:middle; }
@@ -77,12 +57,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>GPT-5.6: All Benchmarks</h1>
-  <p class="sub">Per-reasoning-level breakdown &middot; <a href="https://openai.com/index/gpt-5-6/" target="_blank" rel="noopener">Source</a></p>
-  <div class="mode-bar">
-    <button class="mode-btn" data-mode="cellular">Cellular</button>
-    <button class="mode-btn active" data-mode="tabular">Tabular</button>
-  </div>
+  <p class="sub"><a href="https://openai.com/index/gpt-5-6/" target="_blank" rel="noopener">Source</a></p>
   <div id="filterBar" class="filter-bar"></div>
   <div id="ancBar" class="anc-bar">Anchor: <strong id="ancLabel">GPT-5.5 &middot; Xhigh</strong> <span style="color:var(--muted)">&mdash; click any cell to re-anchor</span></div>
   <div id="root"></div>
@@ -95,7 +70,6 @@
   const root = document.getElementById('root');
   const ancBar = document.getElementById('ancBar');
   const ancLabel = document.getElementById('ancLabel');
-  let mode = 'tabular';
   let anchor = {...S.def};
   const SORT_DEF = {model:1,score:0,cost:1,latency:1,tokens:1};
   const LV_ORD = {none:0,low:1,medium:2,high:3,xhigh:4,max:5};
@@ -146,75 +120,7 @@
     return (v/1e6).toFixed(2)+'M';
   }
 
-  // ── Cellular mode (per-benchmark grid with per-level columns) ──
-  function cellPanel(b){
-    function s0(x){return b.t.indexOf('Index')!==-1||b.t==='GDPval-AA v2'?x:x/100;}
-    const aRow=b.m[anchor.m];
-    const aCel=aRow?aRow[anchor.l]:null;
-    const a={s:aCel?aCel.s:null, c:aCel?aCel.c:null, l:aCel?aCel.l:null, t:aCel?aCel.t:null};
-
-    const div=document.createElement('div'); div.className='panel';
-    const hd=document.createElement('div'); hd.className='ph';
-    const t=document.createElement('h2'); t.textContent=b.t; hd.appendChild(t);
-    div.appendChild(hd);
-
-    const wr=document.createElement('div'); wr.className='tw';
-    const tb=document.createElement('table');
-    const thd=document.createElement('thead'); const thr=document.createElement('tr');
-    const sp=document.createElement('th'); sp.textContent='Model / Effort'; sp.style.textAlign='left'; thr.appendChild(sp);
-    b.l.forEach(lv=>{const th=document.createElement('th'); th.textContent=lvL(lv); thr.appendChild(th);});
-    thd.appendChild(thr); tb.appendChild(thd);
-
-    const tbd=document.createElement('tbody');
-    b.ml.forEach(m=>{
-      if(!visibleModels.has(m)||!b.m[m])return;
-      const tr=document.createElement('tr');
-      const mt=document.createElement('td'); mt.className='m'; mt.textContent=m; tr.appendChild(mt);
-      b.l.forEach(lv=>{
-        if(!visibleLevels.has(lv))return;
-        const td=document.createElement('td');
-        const celData=b.m[m]?b.m[m][lv]:null;
-        const cel=document.createElement('div'); cel.className='c';
-        cel.dataset.model=m; cel.dataset.level=lv;
-        cel.title=m+' \u00b7 '+lvL(lv);
-        if(celData){
-          const keys=['s','c','l','t']; const cls=['sc','co','la','to'];
-          const labels=['S','C','L','T'];
-          keys.forEach((k,i)=>{
-            const val=celData[k];
-            if(val==null)return;
-            const ln=document.createElement('div'); ln.className='r';
-            const lb=document.createElement('span'); lb.className='lb'; lb.textContent=labels[i]; ln.appendChild(lb);
-            const vl=document.createElement('span'); vl.className='v '+cls[i];
-            const display=k==='s'?fmtScore(val,b):[fmtCost,fmtLat,fmtTok][i-1](val);
-            vl.textContent=display; ln.appendChild(vl);
-            const sf=document.createElement('span'); sf.className='sf '+cls[i];
-            const base=a[k];
-            if(base!=null&&base!==0){
-              const raw=k==='s'?s0(val):val;
-              const baseRaw=k==='s'?s0(base):base;
-              sf.textContent=fs(raw/baseRaw);
-            }else sf.textContent='\u00d7\u2014';
-            ln.appendChild(sf);
-            cel.appendChild(ln);
-          });
-          if(m===anchor.m&&lv===anchor.l)cel.classList.add('sel');
-          cel.addEventListener('click',()=>{anchor={m,l:lv}; ancLabel.textContent=m+' \u00b7 '+lvL(lv); renderAll();});
-        }else{
-          cel.classList.add('e');
-          const ln=document.createElement('div'); ln.className='r'; ln.style.justifyContent='center'; ln.textContent='\u2014'; cel.appendChild(ln);
-        }
-        td.appendChild(cel); tr.appendChild(td);
-      });
-      tbd.appendChild(tr);
-    });
-    tb.appendChild(tbd); wr.appendChild(tb); div.appendChild(wr);
-    return div;
-  }
-
   function hasVisibleData(b){ return b.ml.some(m=>visibleModels.has(m)&&b.m[m]&&b.l.some(lv=>visibleLevels.has(lv)&&b.m[m][lv])); }
-
-  function renderCellular(){ ancBar.style.display=''; root.replaceChildren(); S.b.forEach(b=>{if(hasVisibleData(b))root.appendChild(cellPanel(b));}); }
 
   // ── Tabular mode (per-benchmark sortable tables with scales) ──
   function tabPanel(b){
@@ -362,19 +268,8 @@
   // ── Render dispatch ──
   function renderAll(){
     renderFilterBar();
-    if(mode==='tabular') renderTabular();
-    else renderCellular();
+    renderTabular();
   }
-
-  // Mode toggle
-  document.querySelectorAll('.mode-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      mode=btn.dataset.mode;
-      renderAll();
-    });
-  });
 
   renderAll();
 })();
