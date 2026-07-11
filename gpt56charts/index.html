@@ -64,7 +64,9 @@
   table.sortable tbody tr { cursor:pointer; }
   table.sortable tr.selected td { background:rgba(108,182,255,0.08); }
   table.sortable tr.selected td:first-child { border-left:3px solid var(--accent); }
-  .filter-bar { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+  .filter-bar { margin-bottom:16px; }
+  .filter-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .filter-row:last-child { margin-bottom:0; }
   .filter-ctrl { padding:4px 14px; border-radius:999px; font-size:15px; cursor:pointer; border:1px solid var(--grid); background:var(--panel); color:var(--muted); font-weight:600; transition:0.15s; }
   .filter-ctrl:hover { border-color:var(--accent); color:var(--accent); }
   .filter-chip { padding:4px 14px; border-radius:999px; font-size:15px; cursor:pointer; border:1px solid var(--grid); background:var(--panel); color:var(--muted); transition:0.15s; white-space:nowrap; }
@@ -99,6 +101,19 @@
   const LV_ORD = {none:0,low:1,medium:2,high:3,xhigh:4,max:5};
   let tabSort = {col:'score',asc:false};
   const allModelNames = [...new Set(S.b.flatMap(b => Object.keys(b.m)))];
+  function baseModel(m){const i=m.indexOf(' · ');return i>=0?m.slice(0,i):m;}
+  const allBaseNames = [...new Set(allModelNames.map(baseModel))];
+  const BASE_ORDER = ['GPT-5.5','GPT-5.6 Luna','GPT-5.6 Terra','GPT-5.6 Sol','GPT-5.6 Sol Ultra'];
+  allBaseNames.sort((a,b)=>{
+    const ia=BASE_ORDER.indexOf(a), ib=BASE_ORDER.indexOf(b);
+    if(ia>=0&&ib>=0)return ia-ib; if(ia>=0)return -1; if(ib>=0)return 1;
+    const aG=a.startsWith('Gemini'), bG=b.startsWith('Gemini');
+    const aC=a.startsWith('Claude'), bC=b.startsWith('Claude');
+    if(aG&&!bG)return -1; if(!aG&&bG)return 1;
+    if(aC&&!bC)return 1; if(!aC&&bC)return -1;
+    return a.localeCompare(b);
+  });
+  function variantsOf(base){return allModelNames.filter(m=>baseModel(m)===base);}
   let visibleModels = new Set(allModelNames);
   const allLevels = ['none','low','medium','high','xhigh','max'];
   let visibleLevels = new Set(allLevels);
@@ -299,25 +314,38 @@
   function renderFilterBar(){
     const bar=document.getElementById('filterBar');
     bar.replaceChildren();
+
+    // Row 1: All / None
+    const r1=document.createElement('div'); r1.className='filter-row';
     const allBtn=document.createElement('span'); allBtn.className='filter-ctrl'; allBtn.textContent='All';
     allBtn.addEventListener('click',()=>{visibleModels=new Set(allModelNames);visibleLevels=new Set(allLevels);renderAll();});
-    bar.appendChild(allBtn);
+    r1.appendChild(allBtn);
     const noneBtn=document.createElement('span'); noneBtn.className='filter-ctrl'; noneBtn.textContent='None';
     noneBtn.addEventListener('click',()=>{visibleModels=new Set();visibleLevels=new Set();renderAll();});
-    bar.appendChild(noneBtn);
-    const sepM=document.createElement('span'); sepM.style.cssText='color:var(--muted);margin:0 4px;font-size:15px;'; sepM.textContent='Models:';
-    bar.appendChild(sepM);
-    allModelNames.forEach(m=>{
-      const on=visibleModels.has(m);
-      const chip=document.createElement('span'); chip.className='filter-chip'+(on?' on':' off'); chip.textContent=m;
+    r1.appendChild(noneBtn);
+    bar.appendChild(r1);
+
+    // Row 2: Models
+    const r2=document.createElement('div'); r2.className='filter-row';
+    const mM=document.createElement('span'); mM.style.cssText='color:var(--muted);font-size:15px;font-weight:600;'; mM.textContent='Models:';
+    r2.appendChild(mM);
+    allBaseNames.forEach(base=>{
+      const vars=variantsOf(base);
+      const anyOn=vars.some(m=>visibleModels.has(m));
+      const chip=document.createElement('span'); chip.className='filter-chip'+(anyOn?' on':' off'); chip.textContent=base;
       chip.addEventListener('click',()=>{
-        if(visibleModels.has(m)) visibleModels.delete(m); else visibleModels.add(m);
+        const on=vars.some(m=>visibleModels.has(m));
+        vars.forEach(m=>{if(on)visibleModels.delete(m);else visibleModels.add(m);});
         renderAll();
       });
-      bar.appendChild(chip);
+      r2.appendChild(chip);
     });
-    const sepL=document.createElement('span'); sepL.style.cssText='color:var(--muted);margin:0 4px 0 12px;font-size:15px;'; sepL.textContent='Levels:';
-    bar.appendChild(sepL);
+    bar.appendChild(r2);
+
+    // Row 3: Levels
+    const r3=document.createElement('div'); r3.className='filter-row';
+    const mL=document.createElement('span'); mL.style.cssText='color:var(--muted);font-size:15px;font-weight:600;'; mL.textContent='Levels:';
+    r3.appendChild(mL);
     allLevels.forEach(lv=>{
       const label={none:'None',low:'Low',medium:'Medium',high:'High',xhigh:'Xhigh',max:'Max'}[lv];
       const on=visibleLevels.has(lv);
@@ -326,8 +354,9 @@
         if(visibleLevels.has(lv)) visibleLevels.delete(lv); else visibleLevels.add(lv);
         renderAll();
       });
-      bar.appendChild(chip);
+      r3.appendChild(chip);
     });
+    bar.appendChild(r3);
   }
 
   // ── Render dispatch ──
