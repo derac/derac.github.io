@@ -14,10 +14,10 @@ let mouseTravelSinceDyeChange = 0;
 let clickAudioContext;
 let clickNoiseBuffer;
 
-const DYE_CHANGE_DISTANCE = 220;
+const DYE_CHANGE_DISTANCE = 90;
 
 function dyeDensity(polarity, strength = 1) {
-  return (polarity > 0 ? 0.36 : -0.29) * strength;
+  return (polarity > 0 ? 0.36 : -0.35) * strength;
 }
 
 function playRumblyClick() {
@@ -532,9 +532,11 @@ function startFluidSimulation() {
       float cloudShape = smoothstep(0.34, 0.78, broadClouds * 0.76 + fineClouds * 0.24);
       float patchA = cloudNoise(vUv * vec2(2.7, 2.2) + seed * 0.47 + 3.1);
       float patchB = cloudNoise(vUv.yx * vec2(3.4, 2.6) - seed * 0.31 + 17.6);
-      float diagonalDrift = sin((vUv.x * 1.2 + vUv.y * 1.55) * 6.283 + uSeed) * 0.07;
-      float whiteField = patchA * 0.68 + patchB * 0.32 + diagonalDrift;
-      float whiteMix = smoothstep(0.44, 0.61, whiteField);
+      float waveA = sin((vUv.x * 2.0 + vUv.y) * 6.283 + uSeed) * 0.34;
+      float waveB = sin((-vUv.x + vUv.y * 2.0) * 6.283 - uSeed * 0.73) * 0.22;
+      float organicDrift = (patchA * 0.68 + patchB * 0.32 - 0.5) * 0.3;
+      float whiteField = waveA + waveB + organicDrift;
+      float whiteMix = smoothstep(-0.09, 0.09, whiteField);
       float blueClouds = 0.01 + cloudShape * 0.32;
       float whiteClouds = 0.48 + cloudShape * 0.62;
       float density = mix(blueClouds, whiteClouds, whiteMix);
