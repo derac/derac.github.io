@@ -252,7 +252,7 @@ img {
   position: fixed;
   bottom: max(12px, env(safe-area-inset-bottom));
   left: max(12px, env(safe-area-inset-left));
-  z-index: 30;
+  z-index: 19;
   display: grid;
   place-items: center;
   width: 54px;
@@ -700,6 +700,7 @@ img {
   user-select: none;
   filter: drop-shadow(0 8px 10px rgba(28, 12, 21, 0.2));
   animation: fingertip-float 12.6s cubic-bezier(0.42, 0.04, 0.28, 0.98) infinite;
+  transition: scale 90ms ease-out, filter 140ms ease;
   transform-origin: 50% 100%;
   will-change: transform;
   -webkit-user-drag: none;

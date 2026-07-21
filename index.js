@@ -14,11 +14,14 @@ let touchTravelSinceDyeChange = 0;
 let mouseTravelSinceDyeChange = 0;
 let clickAudioContext;
 let clickNoiseBuffer;
+let clickReverb;
+let clickReverbGain;
 let musicContext;
 let musicMaster;
 let ambientBus;
 let padBus;
 let musicReverb;
+let sceneReverbSend;
 let activePad;
 let isSiteMuted = false;
 let lastBellTime = -Infinity;
@@ -62,6 +65,7 @@ function ensureSoundscape() {
   ambientBus = musicContext.createGain();
   padBus = musicContext.createGain();
   musicReverb = musicContext.createConvolver();
+  sceneReverbSend = musicContext.createGain();
   const reverbGain = musicContext.createGain();
   const ambientHighpass = musicContext.createBiquadFilter();
   const ambientFilter = musicContext.createBiquadFilter();
@@ -70,10 +74,14 @@ function ensureSoundscape() {
   ambientBus.gain.value = 0.13;
   padBus.gain.value = 0.98;
   reverbGain.gain.value = 0.26;
+  sceneReverbSend.gain.value = 0.15;
   musicReverb.buffer = createReverbImpulse(musicContext);
+  sceneReverbSend.connect(musicReverb);
   musicReverb.connect(reverbGain).connect(musicMaster);
   ambientBus.connect(musicMaster);
+  ambientBus.connect(sceneReverbSend);
   padBus.connect(musicMaster);
+  padBus.connect(sceneReverbSend);
   musicMaster.connect(musicContext.destination);
 
   ambientHighpass.type = "highpass";
@@ -235,10 +243,20 @@ function playRumblyClick(force = false) {
   clickAudioContext ??= new AudioContextClass();
   if (clickAudioContext.state === "suspended") clickAudioContext.resume();
 
+  if (!clickReverb) {
+    clickReverb = clickAudioContext.createConvolver();
+    clickReverbGain = clickAudioContext.createGain();
+    clickReverb.buffer = createReverbImpulse(clickAudioContext);
+    clickReverbGain.gain.value = 0.2;
+    clickReverb.connect(clickReverbGain).connect(clickAudioContext.destination);
+  }
+
   const now = clickAudioContext.currentTime;
   const master = clickAudioContext.createGain();
   const thump = clickAudioContext.createOscillator();
   const thumpGain = clickAudioContext.createGain();
+  const snap = clickAudioContext.createOscillator();
+  const snapGain = clickAudioContext.createGain();
   const noise = clickAudioContext.createBufferSource();
   const noiseFilter = clickAudioContext.createBiquadFilter();
   const noiseGain = clickAudioContext.createGain();
@@ -259,6 +277,13 @@ function playRumblyClick(force = false) {
   thumpGain.gain.exponentialRampToValueAtTime(0.3, now + 0.006);
   thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
 
+  snap.type = "square";
+  snap.frequency.setValueAtTime(1250, now);
+  snap.frequency.exponentialRampToValueAtTime(620, now + 0.028);
+  snapGain.gain.setValueAtTime(0.0001, now);
+  snapGain.gain.exponentialRampToValueAtTime(0.075, now + 0.002);
+  snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
   noise.buffer = clickNoiseBuffer;
   noiseFilter.type = "lowpass";
   noiseFilter.frequency.setValueAtTime(220, now);
@@ -267,11 +292,15 @@ function playRumblyClick(force = false) {
   noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
 
   thump.connect(thumpGain).connect(master);
+  snap.connect(snapGain).connect(master);
   noise.connect(noiseFilter).connect(noiseGain).connect(master);
   master.connect(clickAudioContext.destination);
+  master.connect(clickReverb);
   thump.start(now);
+  snap.start(now);
   noise.start(now);
   thump.stop(now + 0.14);
+  snap.stop(now + 0.04);
   noise.stop(now + 0.08);
 }
 
@@ -291,6 +320,7 @@ function playMuteBell(intensity = 1) {
   const output = context.createGain();
   output.gain.value = 0.48 * intensity;
   output.connect(musicMaster);
+  output.connect(sceneReverbSend);
 
   for (const [index, frequency] of [760, 1168, 1576].entries()) {
     const oscillator = context.createOscillator();
@@ -425,34 +455,41 @@ function triggerFingerMute() {
     fingertipCue.style.setProperty("--finger-press-y", y + "px");
   }
 
-  moveFinger(contactX, contactY, 260, "cubic-bezier(0.2, 0.82, 0.24, 1)");
-  setTimeout(() => {
-    moveFinger(contactX + 27, contactY + 8, 240, "cubic-bezier(0.18, 0.72, 0.24, 1)");
-  }, 290);
-  setTimeout(() => {
-    moveFinger(contactX - 29, contactY - 3, 170, "cubic-bezier(0.55, 0, 0.92, 0.48)");
-  }, 740);
+  moveFinger(contactX, contactY, 280, "cubic-bezier(0.16, 0.82, 0.24, 1)");
   setTimeout(() => {
     fingertipCue.classList.add("is-pressing");
     muteButton.classList.add("is-triggered");
+    moveFinger(contactX - 2, contactY - 2, 90, "cubic-bezier(0.35, 0, 0.65, 1)");
     playRumblyClick(true);
     toggleSiteMute();
+  }, 280);
+  setTimeout(() => {
+    fingertipCue.classList.remove("is-pressing");
+    muteButton.classList.remove("is-triggered");
+    moveFinger(contactX + 7, contactY + 5, 180, "cubic-bezier(0.16, 0.82, 0.3, 1)");
+  }, 380);
+  setTimeout(() => {
+    moveFinger(contactX + 27, contactY + 8, 220, "cubic-bezier(0.18, 0.72, 0.24, 1)");
+  }, 570);
+  setTimeout(() => {
+    moveFinger(contactX - 29, contactY - 3, 170, "cubic-bezier(0.55, 0, 0.92, 0.48)");
+  }, 840);
+  setTimeout(() => {
     muteButton.classList.add("is-flicking");
     void muteButton.offsetWidth;
     setMuteTarget(muteOffsetX - 132, muteOffsetY - 10);
     kickBellPhysics(-132, -10, 1.5);
     playMuteBell(0.72);
-  }, 820);
+  }, 920);
   setTimeout(() => {
-    fingertipCue.classList.remove("is-pressing");
     moveFinger(contactX + 10, contactY + 5, 220, "cubic-bezier(0.16, 0.82, 0.3, 1)");
-  }, 960);
+  }, 1060);
   setTimeout(() => {
-    muteButton.classList.remove("is-triggered", "is-flicking");
-  }, 1110);
+    muteButton.classList.remove("is-flicking");
+  }, 1210);
   setTimeout(() => {
     moveFinger(0, 0, 480, "cubic-bezier(0.16, 0.82, 0.3, 1)");
-  }, 1200);
+  }, 1300);
   setTimeout(() => {
     fingertipCue.classList.remove("is-clicking");
     fingertipCue.style.removeProperty("transition");
@@ -461,7 +498,7 @@ function triggerFingerMute() {
     fingertip.style.removeProperty("animation");
     fingertip.style.removeProperty("transform");
     fingerTriggerLocked = false;
-  }, 1740);
+  }, 1840);
 }
 
 function fingerPointPosition(xFraction, yFraction) {
