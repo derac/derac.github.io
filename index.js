@@ -14,7 +14,9 @@ let mouseTravelSinceDyeChange = 0;
 let clickAudioContext;
 let clickNoiseBuffer;
 
-const DYE_CHANGE_DISTANCE = 90;
+const MOUSE_DYE_CHANGE_DISTANCE = 220;
+const TOUCH_DYE_CHANGE_DISTANCE = 120;
+const TOUCH_SPLAT_SPACING = 14;
 
 function dyeDensity(polarity, strength = 1) {
   return (polarity > 0 ? 0.36 : -0.35) * strength;
@@ -105,21 +107,12 @@ window.addEventListener("pointerdown", (event) => {
     y: position.y,
     dx: 0,
     dy: 0,
-    density: dyeDensity(polarity, isTouch ? 1.5 : 0.8),
+    density: dyeDensity(polarity, isTouch ? 1 : 0.8),
     radius: isTouch ? 0.014 : 0.006,
   });
 }, { passive: true });
 
-window.addEventListener("pointermove", (event) => {
-  const position = pointerPosition(event);
-  const previous = pointerState.get(event.pointerId);
-
-  if (!previous) {
-    pointerState.set(event.pointerId, position);
-    pointerDyePolarity.set(event.pointerId, mouseDyePolarity);
-    return;
-  }
-
+function paintPointerSegment(event, previous, position) {
   const travel = Math.hypot(
     (position.x - previous.x) * window.innerWidth,
     (position.y - previous.y) * window.innerHeight,
@@ -127,15 +120,15 @@ window.addEventListener("pointermove", (event) => {
 
   if (event.pointerType === "mouse") {
     mouseTravelSinceDyeChange += travel;
-    while (mouseTravelSinceDyeChange >= DYE_CHANGE_DISTANCE) {
-      mouseTravelSinceDyeChange -= DYE_CHANGE_DISTANCE;
+    while (mouseTravelSinceDyeChange >= MOUSE_DYE_CHANGE_DISTANCE) {
+      mouseTravelSinceDyeChange -= MOUSE_DYE_CHANGE_DISTANCE;
       mouseDyePolarity *= -1;
     }
     pointerDyePolarity.set(event.pointerId, mouseDyePolarity);
   } else if (event.pointerType === "touch") {
     touchTravelSinceDyeChange += travel;
-    while (touchTravelSinceDyeChange >= DYE_CHANGE_DISTANCE) {
-      touchTravelSinceDyeChange -= DYE_CHANGE_DISTANCE;
+    while (touchTravelSinceDyeChange >= TOUCH_DYE_CHANGE_DISTANCE) {
+      touchTravelSinceDyeChange -= TOUCH_DYE_CHANGE_DISTANCE;
       touchDyePolarity *= -1;
     }
     pointerDyePolarity.set(event.pointerId, touchDyePolarity);
@@ -156,6 +149,36 @@ window.addEventListener("pointermove", (event) => {
       density: dyeDensity(polarity, event.pointerType === "touch" ? 1 : 0.72),
       radius: event.pointerType === "touch" ? 0.007 : 0.0038,
     });
+  }
+}
+
+window.addEventListener("pointermove", (event) => {
+  const position = pointerPosition(event);
+  const previous = pointerState.get(event.pointerId);
+
+  if (!previous) {
+    pointerState.set(event.pointerId, position);
+    pointerDyePolarity.set(event.pointerId, event.pointerType === "touch" ? touchDyePolarity : mouseDyePolarity);
+    return;
+  }
+
+  const travel = Math.hypot(
+    (position.x - previous.x) * window.innerWidth,
+    (position.y - previous.y) * window.innerHeight,
+  );
+  const steps = event.pointerType === "touch"
+    ? Math.max(1, Math.ceil(travel / TOUCH_SPLAT_SPACING))
+    : 1;
+
+  let segmentStart = previous;
+  for (let step = 1; step <= steps; step += 1) {
+    const amount = step / steps;
+    const segmentEnd = {
+      x: previous.x + (position.x - previous.x) * amount,
+      y: previous.y + (position.y - previous.y) * amount,
+    };
+    paintPointerSegment(event, segmentStart, segmentEnd);
+    segmentStart = segmentEnd;
   }
 
   pointerState.set(event.pointerId, position);
