@@ -180,14 +180,17 @@ a {
   );
 }
 
-.griddler-card .project-image {
-  background-color: #070707;
-  background-image: image-set(
-    url("./assets/griddler.webp") type("image/webp"),
-    url("./assets/griddler.png") type("image/png")
-  );
-  background-size: contain;
-  background-repeat: no-repeat;
+.snapdragin-card .project-image {
+  background-color: #08101f;
+  background-image:
+    linear-gradient(135deg, transparent 0 25%, rgba(64, 213, 255, 0.78) 25% 75%, transparent 75%),
+    linear-gradient(rgba(210, 242, 255, 0.48) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(210, 242, 255, 0.48) 1px, transparent 1px),
+    radial-gradient(circle at 75% 18%, rgba(74, 222, 255, 0.5), transparent 35%),
+    linear-gradient(145deg, #152a52, #08101f 68%);
+  background-position: center;
+  background-size: 50% 66.667%, 25% 33.333%, 25% 33.333%, auto, auto;
+  box-shadow: inset 0 0 28px rgba(28, 129, 255, 0.2);
 }
 
 .project-sheen {
@@ -209,7 +212,7 @@ a {
     linear-gradient(135deg, rgba(66, 227, 209, 0.26), transparent 38%, rgba(255, 75, 184, 0.2));
 }
 
-.griddler-card .project-sheen {
+.snapdragin-card .project-sheen {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.08) 48%, rgba(4, 4, 8, 0.2) 100%),
     linear-gradient(120deg, rgba(0, 195, 220, 0.24), transparent 38%, rgba(148, 48, 156, 0.18));

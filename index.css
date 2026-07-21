@@ -470,15 +470,59 @@ img {
   object-position: 41% center;
 }
 
-.project-card--griddler .image-art img {
-  object-position: 18% center;
-}
-
 .kwin-art {
   background:
     radial-gradient(circle at 80% 12%, rgba(92, 221, 255, 0.58), transparent 38%),
     radial-gradient(circle at 10% 95%, rgba(255, 57, 166, 0.62), transparent 42%),
     linear-gradient(145deg, #3c195b, #131421 64%);
+}
+
+.snapdragin-art {
+  background:
+    radial-gradient(circle at 75% 18%, rgba(74, 222, 255, 0.46), transparent 34%),
+    radial-gradient(circle at 14% 92%, rgba(126, 91, 255, 0.46), transparent 44%),
+    linear-gradient(145deg, #152a52, #08101f 68%);
+}
+
+.snapdragin-grid {
+  position: absolute;
+  inset: 12%;
+  border: 2px solid rgba(224, 247, 255, 0.86);
+  border-radius: clamp(3px, 0.55vw, 7px);
+  background-image:
+    linear-gradient(rgba(210, 242, 255, 0.56) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(210, 242, 255, 0.56) 1px, transparent 1px);
+  background-size: 25% 33.333%;
+  box-shadow:
+    0 0 20px rgba(79, 206, 255, 0.28),
+    inset 0 0 18px rgba(28, 129, 255, 0.13);
+}
+
+.snapdragin-selection {
+  position: absolute;
+  top: 37.333%;
+  left: 31%;
+  width: 38%;
+  height: 50.667%;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: clamp(2px, 0.35vw, 5px);
+  background: linear-gradient(145deg, rgba(68, 216, 255, 0.72), rgba(118, 88, 255, 0.68));
+  box-shadow:
+    0 0 16px rgba(78, 213, 255, 0.72),
+    inset 0 0 12px rgba(255, 255, 255, 0.16);
+}
+
+.snapdragin-cursor {
+  position: absolute;
+  top: 54%;
+  left: 57%;
+  z-index: 2;
+  width: clamp(12px, 2.1vw, 26px);
+  aspect-ratio: 0.72;
+  background: #f8fdff;
+  clip-path: polygon(0 0, 100% 73%, 59% 76%, 79% 100%, 62% 100%, 44% 78%, 17% 100%);
+  filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.62));
+  transform: rotate(-11deg);
 }
 
 .kwin-grid {
