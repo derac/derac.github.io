@@ -6,6 +6,7 @@ const pointerDyePolarity = new Map();
 const activeTouchCards = new Map();
 const activeTouchPointers = new Set();
 const projectCards = [...document.querySelectorAll(".project-card")];
+const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 let lastTouchTime = -Infinity;
 let requestFluidFrame = () => {};
 let touchDyePolarity = 1;
@@ -88,6 +89,7 @@ function ensureSoundscape() {
   musicReverb = musicContext.createConvolver();
   sceneReverbSend = musicContext.createGain();
   const reverbGain = musicContext.createGain();
+  const outputLimiter = musicContext.createDynamicsCompressor();
   const ambientHighpass = musicContext.createBiquadFilter();
   ambientFilter = musicContext.createBiquadFilter();
   ambientPanner = musicContext.createStereoPanner ? musicContext.createStereoPanner() : musicContext.createGain();
@@ -95,12 +97,12 @@ function ensureSoundscape() {
   ambientSend = musicContext.createGain();
   airyStringWave = createStringWave(musicContext, true);
   bowedStringWave = createStringWave(musicContext);
-  const mobileAmbientBoost = window.matchMedia("(pointer: coarse)").matches ? 1.72 : 1;
+  const mobileAmbientBoost = isCoarsePointer ? 2.15 : 1;
 
   musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
   ambientBus.gain.value = 0.11 * mobileAmbientBoost;
   ambientMotionGain.gain.value = 0.92;
-  padBus.gain.value = 1.05;
+  padBus.gain.value = isCoarsePointer ? 0.52 : 1.05;
   reverbGain.gain.value = 0.26;
   sceneReverbSend.gain.value = 0.2;
   musicReverb.buffer = createReverbImpulse(musicContext);
@@ -110,7 +112,12 @@ function ensureSoundscape() {
   ambientBus.connect(sceneReverbSend);
   padBus.connect(musicMaster);
   padBus.connect(sceneReverbSend);
-  musicMaster.connect(musicContext.destination);
+  outputLimiter.threshold.value = -8;
+  outputLimiter.knee.value = 1;
+  outputLimiter.ratio.value = 16;
+  outputLimiter.attack.value = 0.003;
+  outputLimiter.release.value = 0.22;
+  musicMaster.connect(outputLimiter).connect(musicContext.destination);
 
   ambientHighpass.type = "highpass";
   ambientHighpass.frequency.value = 170;
@@ -210,7 +217,7 @@ function stopProjectPad(card) {
     voice.gain.gain.cancelAndHoldAtTime(now);
   } else {
     voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setValueAtTime(0.8, now);
+    voice.gain.gain.setValueAtTime(isCoarsePointer ? 0.56 : 0.8, now);
   }
   voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
   for (const source of voice.sources) source.stop(now + 1.4);
@@ -223,7 +230,8 @@ function morphProjectPad(card, event) {
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
   const now = activePad.context.currentTime;
   activePad.filter.frequency.setTargetAtTime(1300 + (1 - y) * 3900, now, 0.08);
-  activePad.reverbSend.gain.setTargetAtTime(0.28 + y * 0.52, now, 0.1);
+  const reverbScale = isCoarsePointer ? 0.36 : 1;
+  activePad.reverbSend.gain.setTargetAtTime((0.28 + y * 0.52) * reverbScale, now, 0.1);
   activePad.lfoDepth.gain.setTargetAtTime(7 + x * 18, now, 0.1);
   if (activePad.panner.pan) activePad.panner.pan.setTargetAtTime((x - 0.5) * 1.55, now, 0.08);
   for (const source of activePad.tones) {
@@ -248,6 +256,7 @@ function startProjectPad(card, index, event) {
 
   const now = context.currentTime;
   const gain = context.createGain();
+  const highpass = context.createBiquadFilter();
   const filter = context.createBiquadFilter();
   const panner = context.createStereoPanner ? context.createStereoPanner() : context.createGain();
   const reverbSend = context.createGain();
@@ -257,12 +266,16 @@ function startProjectPad(card, index, event) {
   const tones = [];
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.8 + index * 0.018, now + 0.48);
+  const voiceLevel = isCoarsePointer ? 0.56 + index * 0.012 : 0.8 + index * 0.018;
+  gain.gain.exponentialRampToValueAtTime(voiceLevel, now + 0.48);
+  highpass.type = "highpass";
+  highpass.frequency.value = isCoarsePointer ? 190 : 70;
+  highpass.Q.value = 0.45;
   filter.type = "lowpass";
   filter.frequency.value = 2350;
   filter.Q.value = 0.45 + index * 0.08;
-  reverbSend.gain.value = 0.44;
-  gain.connect(filter).connect(panner);
+  reverbSend.gain.value = isCoarsePointer ? 0.16 : 0.44;
+  gain.connect(highpass).connect(filter).connect(panner);
   panner.connect(padBus);
   panner.connect(reverbSend).connect(musicReverb);
 
