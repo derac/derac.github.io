@@ -2,33 +2,80 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Software, graphics, and desktop experiments by derac.">
+    <meta name="theme-color" content="#72b6e5">
+    <meta property="og:title" content="derac">
+    <meta property="og:description" content="Software, graphics, and desktop experiments.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://derac.org/">
+    <meta property="og:image" content="https://derac.org/assets/og-holo.png">
+    <meta name="twitter:card" content="summary_large_image">
     <title>derac</title>
-    <link rel="icon" href="favicon.ico">
+    <link rel="icon" href="./favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css">
+    <script type="module" src="./index.js"></script>
   </head>
   <body>
-    <div class="backdrop" aria-hidden="true"></div>
+    <canvas id="liquid-light" aria-hidden="true"></canvas>
+    <div class="liquid-fallback" aria-hidden="true"></div>
 
-    <header class="title-stage">
-      <img class="title-image" src="./assets/title.png" alt="derac">
-    </header>
+    <main class="portfolio">
+      <div class="brand-stage">
+        <h1 class="brand">
+          <span class="sr-only">derac</span>
+          <img src="./assets/title.png" alt="" width="1254" height="600">
+        </h1>
+        <a class="github-link" href="https://github.com/derac" target="_blank" rel="noreferrer"><span>github ↗</span></a>
+      </div>
 
-    <main class="dial" aria-label="Project links">
-      <nav class="project-grid" aria-label="Projects">
-        <a class="project-card fieldloom-card" href="./fieldloom/" aria-label="Open Field Loom">
-          <span class="project-image" aria-hidden="true"></span>
-          <span class="project-sheen" aria-hidden="true"></span>
+      <nav class="card-grid" aria-label="Projects">
+        <a class="project-card project-card--kwin" href="https://github.com/derac/kwin-clicktile" target="_blank" rel="noreferrer" aria-label="Open kwin-clicktile on GitHub">
+          <span class="card-category">KWin / Wayland</span>
+          <span class="card-art kwin-art" aria-hidden="true">
+            <span class="kwin-grid"></span>
+            <span class="kwin-selection"></span>
+            <span class="kwin-window">
+              <i></i><i></i><i></i>
+            </span>
+          </span>
+          <span class="card-name">kwin-clicktile</span>
         </a>
 
-        <a class="project-card turing-card" href="./turingpatterns/" aria-label="Open Multi-Scale Turing Patterns">
-          <span class="project-image" aria-hidden="true"></span>
-          <span class="project-sheen" aria-hidden="true"></span>
+        <a class="project-card project-card--fieldloom" href="./fieldloom/" aria-label="Open Field Loom">
+          <span class="card-category">WebGPU / Nodes</span>
+          <span class="card-art image-art" aria-hidden="true">
+            <picture>
+              <source srcset="./assets/fieldloom.webp" type="image/webp">
+              <img src="./assets/fieldloom.png" alt="" width="1200" height="675">
+            </picture>
+          </span>
+          <span class="card-name">Field Loom</span>
         </a>
 
-        <a class="project-card griddler-card" href="https://github.com/derac/TheGriddler" aria-label="Open The Griddler on GitHub">
-          <span class="project-image" aria-hidden="true"></span>
-          <span class="project-sheen" aria-hidden="true"></span>
+        <a class="project-card project-card--turing" href="./turingpatterns/" aria-label="Open Multi-Scale Turing Patterns">
+          <span class="card-category">WebGPU / Reaction</span>
+          <span class="card-art image-art" aria-hidden="true">
+            <picture>
+              <source srcset="./assets/turingpatterns.webp" type="image/webp">
+              <img src="./assets/turingpatterns.png" alt="" width="1200" height="675">
+            </picture>
+          </span>
+          <span class="card-name">Turing Patterns</span>
+        </a>
+
+        <a class="project-card project-card--griddler" href="https://github.com/derac/TheGriddler" target="_blank" rel="noreferrer" aria-label="Open The Griddler on GitHub">
+          <span class="card-category">Windows / .NET</span>
+          <span class="card-art image-art" aria-hidden="true">
+            <picture>
+              <source srcset="./assets/griddler.webp" type="image/webp">
+              <img src="./assets/griddler.png" alt="" width="1200" height="675">
+            </picture>
+          </span>
+          <span class="card-name">The Griddler</span>
         </a>
       </nav>
     </main>
