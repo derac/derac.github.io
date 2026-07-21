@@ -95,9 +95,10 @@ function ensureSoundscape() {
   ambientSend = musicContext.createGain();
   airyStringWave = createStringWave(musicContext, true);
   bowedStringWave = createStringWave(musicContext);
+  const mobileAmbientBoost = window.matchMedia("(pointer: coarse)").matches ? 1.72 : 1;
 
   musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
-  ambientBus.gain.value = 0.11;
+  ambientBus.gain.value = 0.11 * mobileAmbientBoost;
   ambientMotionGain.gain.value = 0.92;
   padBus.gain.value = 1.05;
   reverbGain.gain.value = 0.26;
