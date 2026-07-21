@@ -13,12 +13,10 @@ let touchDyePolarity = 1;
 let mouseDyePolarity = 1;
 let touchTravelSinceDyeChange = 0;
 let mouseTravelSinceDyeChange = 0;
-let clickAudioContext;
 let clickNoiseBuffer;
-let clickReverb;
-let clickReverbGain;
 let musicContext;
 let musicMaster;
+let siteMix;
 let ambientBus;
 let ambientFilter;
 let ambientPanner;
@@ -84,12 +82,14 @@ function ensureSoundscape() {
 
   musicContext = new AudioContextClass();
   musicMaster = musicContext.createGain();
+  siteMix = musicContext.createGain();
   ambientBus = musicContext.createGain();
   padBus = musicContext.createGain();
   musicReverb = musicContext.createConvolver();
   sceneReverbSend = musicContext.createGain();
   const reverbGain = musicContext.createGain();
   const outputLimiter = musicContext.createDynamicsCompressor();
+  const outputCeiling = musicContext.createGain();
   const ambientHighpass = musicContext.createBiquadFilter();
   ambientFilter = musicContext.createBiquadFilter();
   ambientPanner = musicContext.createStereoPanner ? musicContext.createStereoPanner() : musicContext.createGain();
@@ -100,6 +100,7 @@ function ensureSoundscape() {
   const mobileAmbientBoost = isCoarsePointer ? 2.15 : 1;
 
   musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
+  siteMix.gain.value = 1;
   ambientBus.gain.value = 0.11 * mobileAmbientBoost;
   ambientMotionGain.gain.value = 0.92;
   padBus.gain.value = isCoarsePointer ? 0.52 : 1.05;
@@ -112,12 +113,14 @@ function ensureSoundscape() {
   ambientBus.connect(sceneReverbSend);
   padBus.connect(musicMaster);
   padBus.connect(sceneReverbSend);
-  outputLimiter.threshold.value = -8;
+  outputLimiter.threshold.value = isCoarsePointer ? -10 : -8;
   outputLimiter.knee.value = 1;
-  outputLimiter.ratio.value = 16;
-  outputLimiter.attack.value = 0.003;
+  outputLimiter.ratio.value = isCoarsePointer ? 20 : 16;
+  outputLimiter.attack.value = 0.002;
   outputLimiter.release.value = 0.22;
-  musicMaster.connect(outputLimiter).connect(musicContext.destination);
+  outputCeiling.gain.value = isCoarsePointer ? 0.82 : 1;
+  musicMaster.connect(siteMix);
+  siteMix.connect(outputLimiter).connect(outputCeiling).connect(musicContext.destination);
 
   ambientHighpass.type = "highpass";
   ambientHighpass.frequency.value = 170;
@@ -325,44 +328,43 @@ function startProjectPad(card, index, event) {
 
 function playRumblyClick(force = false) {
   if (isSiteMuted && !force) return;
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
-
-  clickAudioContext ??= new AudioContextClass();
-  if (clickAudioContext.state === "suspended") clickAudioContext.resume();
-
-  if (!clickReverb) {
-    clickReverb = clickAudioContext.createConvolver();
-    clickReverbGain = clickAudioContext.createGain();
-    clickReverb.buffer = createReverbImpulse(clickAudioContext);
-    clickReverbGain.gain.value = 0.2;
-    clickReverb.connect(clickReverbGain).connect(clickAudioContext.destination);
+  let context;
+  try {
+    context = ensureSoundscape();
+  } catch {
+    return;
   }
+  if (!context || !siteMix) return;
+  if (context.state === "suspended") context.resume().catch(() => {});
 
-  const now = clickAudioContext.currentTime;
-  const master = clickAudioContext.createGain();
-  const thump = clickAudioContext.createOscillator();
-  const thumpGain = clickAudioContext.createGain();
-  const snap = clickAudioContext.createOscillator();
-  const snapGain = clickAudioContext.createGain();
-  const pebble = clickAudioContext.createOscillator();
-  const pebbleGain = clickAudioContext.createGain();
-  const noise = clickAudioContext.createBufferSource();
-  const noiseFilter = clickAudioContext.createBiquadFilter();
-  const noiseGain = clickAudioContext.createGain();
-  const chip = clickAudioContext.createBufferSource();
-  const chipFilter = clickAudioContext.createBiquadFilter();
-  const chipGain = clickAudioContext.createGain();
+  const now = context.currentTime;
+  const master = context.createGain();
+  const speakerHighpass = context.createBiquadFilter();
+  const thump = context.createOscillator();
+  const thumpGain = context.createGain();
+  const snap = context.createOscillator();
+  const snapGain = context.createGain();
+  const pebble = context.createOscillator();
+  const pebbleGain = context.createGain();
+  const noise = context.createBufferSource();
+  const noiseFilter = context.createBiquadFilter();
+  const noiseGain = context.createGain();
+  const chip = context.createBufferSource();
+  const chipFilter = context.createBiquadFilter();
+  const chipGain = context.createGain();
 
   if (!clickNoiseBuffer) {
-    clickNoiseBuffer = clickAudioContext.createBuffer(1, Math.ceil(clickAudioContext.sampleRate * 0.12), clickAudioContext.sampleRate);
+    clickNoiseBuffer = context.createBuffer(1, Math.ceil(context.sampleRate * 0.12), context.sampleRate);
     const samples = clickNoiseBuffer.getChannelData(0);
     for (let index = 0; index < samples.length; index += 1) {
       samples[index] = Math.random() * 2 - 1;
     }
   }
 
-  master.gain.setValueAtTime(0.42, now);
+  master.gain.setValueAtTime(isCoarsePointer ? 0.38 : 0.42, now);
+  speakerHighpass.type = "highpass";
+  speakerHighpass.frequency.value = isCoarsePointer ? 145 : 55;
+  speakerHighpass.Q.value = 0.55;
   thump.type = "triangle";
   thump.frequency.setValueAtTime(118, now);
   thump.frequency.exponentialRampToValueAtTime(54, now + 0.085);
@@ -404,8 +406,11 @@ function playRumblyClick(force = false) {
   pebble.connect(pebbleGain).connect(master);
   noise.connect(noiseFilter).connect(noiseGain).connect(master);
   chip.connect(chipFilter).connect(chipGain).connect(master);
-  master.connect(clickAudioContext.destination);
-  master.connect(clickReverb);
+  // Keep clicks in the shared, limited output path. The mobile high-pass also
+  // avoids asking small phone speakers to reproduce the click's sub-bass tail.
+  master.connect(speakerHighpass);
+  speakerHighpass.connect(siteMix);
+  speakerHighpass.connect(musicReverb);
   thump.start(now);
   snap.start(now);
   pebble.start(now);
