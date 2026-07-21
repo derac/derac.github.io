@@ -247,7 +247,7 @@ function updateTouchCard(pointer) {
 
   if (currentCard) {
     currentCard.classList.add("is-touching");
-    setCardFoil(currentCard, pointer);
+    setCardFoil(currentCard, pointer, 2);
   }
 }
 
