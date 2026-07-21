@@ -445,12 +445,15 @@ img {
 }
 
 .image-art picture,
-.image-art img {
+.image-art img,
+.image-art video {
+  display: block;
   width: 100%;
   height: 100%;
 }
 
-.image-art img {
+.image-art img,
+.image-art video {
   object-fit: cover;
   filter: contrast(1.04) saturate(1.08);
   transform: scale(1.025);
@@ -458,7 +461,9 @@ img {
 }
 
 .project-card.is-mousing .image-art img,
-.project-card:focus-visible .image-art img {
+.project-card.is-mousing .image-art video,
+.project-card:focus-visible .image-art img,
+.project-card:focus-visible .image-art video {
   transform: scale(1.07);
 }
 
@@ -470,125 +475,12 @@ img {
   object-position: 41% center;
 }
 
-.kwin-art {
-  background:
-    radial-gradient(circle at 80% 12%, rgba(92, 221, 255, 0.58), transparent 38%),
-    radial-gradient(circle at 10% 95%, rgba(255, 57, 166, 0.62), transparent 42%),
-    linear-gradient(145deg, #3c195b, #131421 64%);
-}
-
-.snapdragin-art {
-  background:
-    radial-gradient(circle at 75% 18%, rgba(74, 222, 255, 0.46), transparent 34%),
-    radial-gradient(circle at 14% 92%, rgba(126, 91, 255, 0.46), transparent 44%),
-    linear-gradient(145deg, #152a52, #08101f 68%);
-}
-
-.snapdragin-grid {
-  position: absolute;
-  inset: 12%;
-  border: 2px solid rgba(224, 247, 255, 0.86);
-  border-radius: clamp(3px, 0.55vw, 7px);
-  background-image:
-    linear-gradient(rgba(210, 242, 255, 0.56) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(210, 242, 255, 0.56) 1px, transparent 1px);
-  background-size: 25% 33.333%;
-  box-shadow:
-    0 0 20px rgba(79, 206, 255, 0.28),
-    inset 0 0 18px rgba(28, 129, 255, 0.13);
-}
-
-.snapdragin-selection {
-  position: absolute;
-  top: 37.333%;
-  left: 31%;
-  width: 38%;
-  height: 50.667%;
-  border: 2px solid rgba(255, 255, 255, 0.96);
-  border-radius: clamp(2px, 0.35vw, 5px);
-  background: linear-gradient(145deg, rgba(68, 216, 255, 0.72), rgba(118, 88, 255, 0.68));
-  box-shadow:
-    0 0 16px rgba(78, 213, 255, 0.72),
-    inset 0 0 12px rgba(255, 255, 255, 0.16);
-}
-
-.snapdragin-cursor {
-  position: absolute;
-  top: 54%;
-  left: 57%;
-  z-index: 2;
-  width: clamp(12px, 2.1vw, 26px);
-  aspect-ratio: 0.72;
-  background: #f8fdff;
-  clip-path: polygon(0 0, 100% 73%, 59% 76%, 79% 100%, 62% 100%, 44% 78%, 17% 100%);
-  filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.62));
-  transform: rotate(-11deg);
-}
-
-.kwin-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.27) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.27) 1px, transparent 1px);
-  background-size: 33.333% 25%;
-}
-
-.kwin-selection {
-  position: absolute;
-  left: 33.333%;
-  top: 25%;
-  width: 66.666%;
-  height: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.95);
-  background:
-    linear-gradient(135deg, rgba(255, 46, 157, 0.66), rgba(83, 224, 255, 0.48));
-  box-shadow:
-    0 0 22px rgba(255, 65, 169, 0.52),
-    inset 0 0 17px rgba(255, 255, 255, 0.18);
-  animation: selection-glow 3.2s ease-in-out infinite;
-}
-
-.kwin-window {
-  position: absolute;
-  left: 9%;
-  top: 12%;
-  width: 55%;
-  height: 43%;
-  padding: 9px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 7px;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.18) 0 25%, transparent 25%),
-    rgba(18, 15, 30, 0.86);
-  box-shadow: 9px 12px 21px rgba(5, 2, 10, 0.42);
-  transform: rotate(-4deg);
-}
-
-.kwin-window i {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 2px;
-  border-radius: 50%;
-  background: #ff58ac;
-}
-
-.kwin-window i:nth-child(2) {
-  background: #ffdc65;
-}
-
-.kwin-window i:nth-child(3) {
-  background: #5ceaff;
-}
-
-@keyframes selection-glow {
-  50% {
-    filter: hue-rotate(25deg);
-    box-shadow:
-      0 0 29px rgba(112, 225, 255, 0.58),
-      inset 0 0 17px rgba(255, 255, 255, 0.2);
-  }
+.project-card--snapdragin .image-art video {
+  width: auto;
+  max-width: none;
+  height: 200%;
+  object-fit: contain;
+  transform-origin: top left;
 }
 
 @keyframes brand-float {

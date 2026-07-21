@@ -151,10 +151,26 @@ a {
 }
 
 .project-image,
+.project-media,
 .project-sheen {
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.project-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.04);
+}
+
+.snapdragin-card .project-media {
+  width: auto;
+  max-width: none;
+  height: 200%;
+  object-fit: contain;
+  transform-origin: top left;
 }
 
 .project-image {
@@ -178,19 +194,6 @@ a {
     url("./assets/turingpatterns.webp") type("image/webp"),
     url("./assets/turingpatterns.png") type("image/png")
   );
-}
-
-.snapdragin-card .project-image {
-  background-color: #08101f;
-  background-image:
-    linear-gradient(135deg, transparent 0 25%, rgba(64, 213, 255, 0.78) 25% 75%, transparent 75%),
-    linear-gradient(rgba(210, 242, 255, 0.48) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(210, 242, 255, 0.48) 1px, transparent 1px),
-    radial-gradient(circle at 75% 18%, rgba(74, 222, 255, 0.5), transparent 35%),
-    linear-gradient(145deg, #152a52, #08101f 68%);
-  background-position: center;
-  background-size: 50% 66.667%, 25% 33.333%, 25% 33.333%, auto, auto;
-  box-shadow: inset 0 0 28px rgba(28, 129, 255, 0.2);
 }
 
 .project-sheen {
@@ -266,7 +269,8 @@ a {
   }
 
   .project-card,
-  .project-image {
+  .project-image,
+  .project-media {
     transition: none;
     transform: none;
   }
