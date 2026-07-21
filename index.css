@@ -145,6 +145,7 @@ img {
   --tilt-x: 0deg;
   --tilt-y: 0deg;
   --lift: 0px;
+  --metal-x: 50%;
   position: fixed;
   bottom: max(12px, env(safe-area-inset-bottom));
   left: 50%;
@@ -167,6 +168,8 @@ img {
       #6c6f78 88%,
       #f8ffff 100%
     );
+  background-size: 132% 100%;
+  background-position: var(--metal-x) 50%;
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.66),
     inset 0 0 0 4px rgba(255, 255, 255, 0.22),
@@ -187,7 +190,7 @@ img {
     rotateX(var(--tilt-x))
     rotateY(var(--tilt-y));
   transform-style: preserve-3d;
-  transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+  transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease, background-position 110ms linear;
 }
 
 .github-link::before {
@@ -258,6 +261,7 @@ img {
   --tilt-y: 0deg;
   --foil-x: 50%;
   --foil-y: 45%;
+  --metal-x: 50%;
   --rest-turn: -0.25deg;
   --lift: 0px;
   position: relative;
@@ -286,7 +290,7 @@ img {
       #e8f8ff 100%
     );
   background-size: 132% 100%;
-  animation: metal-drift 6.4s linear infinite alternate;
+  background-position: var(--metal-x) 50%;
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.72),
     inset 0 0 0 var(--frame-inset) rgba(255, 255, 255, 0.24),
@@ -303,14 +307,14 @@ img {
   transition:
     transform 210ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 210ms ease,
-    filter 210ms ease;
+    filter 210ms ease,
+    background-position 110ms linear;
   will-change: transform;
   touch-action: none;
 }
 
 .project-card:nth-child(even) {
   --rest-turn: 0.25deg;
-  animation-delay: -3.2s;
 }
 
 .project-card::after {
@@ -522,16 +526,6 @@ img {
   }
 }
 
-@keyframes metal-drift {
-  from {
-    background-position: 38% 50%;
-  }
-
-  to {
-    background-position: 62% 50%;
-  }
-}
-
 @keyframes fallback-drift {
   from {
     background-position: 0% 5%, 25% 95%, 76% 8%, 100% 92%, center;
@@ -682,11 +676,6 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .project-card {
-    animation: none;
-    background-position: 50% 50%;
-  }
-
   .mobile-fingertip-cue,
   .mobile-fingertip {
     animation: none;

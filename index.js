@@ -203,6 +203,7 @@ function setCardFoil(card, event, touchAmount = 1) {
   card.style.setProperty("--tilt-y", ((x - 0.5) * 12 * touchAmount) + "deg");
   card.style.setProperty("--foil-x", (x * 100) + "%");
   card.style.setProperty("--foil-y", (y * 100) + "%");
+  card.style.setProperty("--metal-x", (38 + x * 24) + "%");
 }
 
 function resetCardFoil(card) {
@@ -212,6 +213,7 @@ function resetCardFoil(card) {
   card.style.setProperty("--tilt-y", "0deg");
   card.style.setProperty("--foil-x", "50%");
   card.style.setProperty("--foil-y", "45%");
+  card.style.setProperty("--metal-x", "50%");
 }
 
 function releaseTouchCard(identifier) {
