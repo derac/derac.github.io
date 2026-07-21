@@ -3,6 +3,7 @@ const canvas = document.querySelector("#liquid-light");
 const pendingSplats = [];
 const pointerState = new Map();
 const activeTouchCards = new Map();
+const activeTouchPointers = new Set();
 let lastTouchTime = -Infinity;
 let requestFluidFrame = () => {};
 
@@ -31,7 +32,7 @@ window.addEventListener("pointerdown", (event) => {
     y: position.y,
     dx: 0,
     dy: 0,
-    density: event.pointerType === "touch" ? 0.34 : 0.24,
+    density: 0,
     radius: event.pointerType === "touch" ? 0.008 : 0.0045,
   });
 }, { passive: true });
@@ -51,12 +52,13 @@ window.addEventListener("pointermove", (event) => {
   const movement = Math.abs(dx) + Math.abs(dy);
 
   if (movement > 0.08) {
+    const horizontalDirection = dx / Math.max(Math.abs(dx) + Math.abs(dy), 1);
     queueSplat({
       x: position.x,
       y: position.y,
       dx,
       dy,
-      density: event.pointerType === "touch" ? 0.26 : 0.18,
+      density: (event.pointerType === "touch" ? 0.34 : 0.24) * horizontalDirection,
       radius: event.pointerType === "touch" ? 0.007 : 0.0038,
     });
   }
@@ -78,8 +80,8 @@ function setCardFoil(card, event, touchAmount = 1) {
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
 
-  card.style.setProperty("--tilt-x", ((0.5 - y) * 7 * touchAmount) + "deg");
-  card.style.setProperty("--tilt-y", ((x - 0.5) * 8 * touchAmount) + "deg");
+  card.style.setProperty("--tilt-x", ((0.5 - y) * 10 * touchAmount) + "deg");
+  card.style.setProperty("--tilt-y", ((x - 0.5) * 12 * touchAmount) + "deg");
   card.style.setProperty("--foil-x", (x * 100) + "%");
   card.style.setProperty("--foil-y", (y * 100) + "%");
 }
@@ -104,20 +106,68 @@ function releaseTouchCard(identifier) {
 function releaseAllTouchCards() {
   const cards = new Set(activeTouchCards.values());
   activeTouchCards.clear();
+  activeTouchPointers.clear();
   for (const card of cards) resetCardFoil(card);
 }
+
+function cardAtPointer(pointer) {
+  return document.elementFromPoint(pointer.clientX, pointer.clientY)?.closest(".project-card") ?? null;
+}
+
+function updateTouchCard(pointer) {
+  const previousCard = activeTouchCards.get(pointer.pointerId);
+  const currentCard = cardAtPointer(pointer);
+
+  if (previousCard !== currentCard) {
+    activeTouchCards.delete(pointer.pointerId);
+    if (previousCard && ![...activeTouchCards.values()].includes(previousCard)) {
+      resetCardFoil(previousCard);
+    }
+    if (currentCard) activeTouchCards.set(pointer.pointerId, currentCard);
+  }
+
+  if (currentCard) {
+    currentCard.classList.add("is-touching");
+    setCardFoil(currentCard, pointer);
+  }
+}
+
+function startTouchPointer(event) {
+  if (event.pointerType !== "touch") return;
+  lastTouchTime = performance.now();
+  activeTouchPointers.add(event.pointerId);
+  updateTouchCard(event);
+}
+
+function moveTouchPointer(event) {
+  if (event.pointerType !== "touch" || !activeTouchPointers.has(event.pointerId)) return;
+  lastTouchTime = performance.now();
+  updateTouchCard(event);
+}
+
+function finishTouchPointer(event) {
+  if (event.pointerType !== "touch") return;
+  lastTouchTime = performance.now();
+  activeTouchPointers.delete(event.pointerId);
+  releaseTouchCard(event.pointerId);
+}
+
+window.addEventListener("pointerdown", startTouchPointer, { passive: true, capture: true });
+window.addEventListener("pointermove", moveTouchPointer, { passive: true, capture: true });
+window.addEventListener("pointerup", finishTouchPointer, { passive: true, capture: true });
+window.addEventListener("pointercancel", finishTouchPointer, { passive: true, capture: true });
 
 for (const card of document.querySelectorAll(".project-card")) {
   card.addEventListener("pointerdown", (event) => {
     if (event.pointerType !== "pen") return;
 
     card.classList.add("is-touching");
-    setCardFoil(card, event, 0.72);
+    setCardFoil(card, event, 0.88);
   }, { passive: true });
 
   card.addEventListener("pointermove", (event) => {
     if (event.pointerType === "pen" && card.classList.contains("is-touching")) {
-      setCardFoil(card, event, 0.72);
+      setCardFoil(card, event, 0.88);
     }
   }, { passive: true });
 
@@ -135,41 +185,7 @@ for (const card of document.querySelectorAll(".project-card")) {
     setCardFoil(card, event);
   }, { passive: true });
   card.addEventListener("mouseleave", () => resetCardFoil(card), { passive: true });
-
-  card.addEventListener("touchstart", (event) => {
-    lastTouchTime = performance.now();
-    for (const touch of event.changedTouches) {
-      activeTouchCards.set(touch.identifier, card);
-      card.classList.add("is-touching");
-      setCardFoil(card, touch, 0.78);
-    }
-  }, { passive: true });
-
-  card.addEventListener("touchmove", (event) => {
-    lastTouchTime = performance.now();
-    for (const touch of event.changedTouches) {
-      if (activeTouchCards.get(touch.identifier) === card) {
-        setCardFoil(card, touch, 0.78);
-      }
-    }
-  }, { passive: true });
-
-  const finishTouches = (event) => {
-    lastTouchTime = performance.now();
-    for (const touch of event.changedTouches) releaseTouchCard(touch.identifier);
-  };
-
-  card.addEventListener("touchend", finishTouches, { passive: true });
-  card.addEventListener("touchcancel", finishTouches, { passive: true });
 }
-
-function finishWindowTouches(event) {
-  lastTouchTime = performance.now();
-  for (const touch of event.changedTouches) releaseTouchCard(touch.identifier);
-}
-
-window.addEventListener("touchend", finishWindowTouches, { passive: true });
-window.addEventListener("touchcancel", finishWindowTouches, { passive: true });
 window.addEventListener("blur", releaseAllTouchCards);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) releaseAllTouchCards();
@@ -378,6 +394,53 @@ function startFluidSimulation() {
     }
   `;
 
+  const seedDyeSource = `#version 300 es
+    precision highp float;
+
+    in vec2 vUv;
+    out vec4 fragColor;
+
+    float random(vec2 point) {
+      return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    float noise(vec2 point) {
+      vec2 cell = floor(point);
+      vec2 fraction = fract(point);
+      fraction = fraction * fraction * (3.0 - 2.0 * fraction);
+
+      return mix(
+        mix(random(cell), random(cell + vec2(1.0, 0.0)), fraction.x),
+        mix(random(cell + vec2(0.0, 1.0)), random(cell + vec2(1.0)), fraction.x),
+        fraction.y
+      );
+    }
+
+    float cloudNoise(vec2 point) {
+      float value = 0.0;
+      float weight = 0.55;
+      for (int octave = 0; octave < 4; octave += 1) {
+        value += noise(point) * weight;
+        point = point * 2.03 + vec2(3.7, 1.9);
+        weight *= 0.48;
+      }
+      return value;
+    }
+
+    void main() {
+      float broadClouds = cloudNoise(vUv * vec2(4.8, 3.8));
+      float fineClouds = cloudNoise(vUv * vec2(9.0, 7.0) + 12.4);
+      float cloudShape = smoothstep(0.34, 0.78, broadClouds * 0.76 + fineClouds * 0.24);
+      float boundary = 0.5 + (cloudNoise(vUv * 3.2 + 7.1) - 0.5) * 0.14;
+      float whiteHalf = smoothstep(boundary - 0.045, boundary + 0.045, vUv.x);
+      float blueClouds = 0.01 + cloudShape * 0.32;
+      float whiteClouds = 0.48 + cloudShape * 0.62;
+      float density = mix(blueClouds, whiteClouds, whiteHalf);
+
+      fragColor = vec4(density, 0.0, 0.0, 1.0);
+    }
+  `;
+
   const displaySource = `#version 300 es
     precision highp float;
 
@@ -475,6 +538,7 @@ function startFluidSimulation() {
     divergence: createProgram(divergenceSource),
     pressure: createProgram(pressureSource),
     gradient: createProgram(gradientSource),
+    seedDye: createProgram(seedDyeSource),
     display: createProgram(displaySource),
   };
 
@@ -647,13 +711,14 @@ function startFluidSimulation() {
     clearTarget(fluid.pressure.write);
     clearTarget(fluid.divergence);
     clearTarget(fluid.curl);
-    clearTarget(fluid.dye.read, 0.18);
-    clearTarget(fluid.dye.write, 0.18);
+    use(programs.seedDye);
+    draw(fluid.dye.read);
+    draw(fluid.dye.write);
 
     pendingSplats.push(
-      { x: 0.16, y: 0.32, dx: 28, dy: 8, density: 0.34, radius: 0.025 },
-      { x: 0.52, y: 0.58, dx: -18, dy: 23, density: 0.28, radius: 0.032 },
-      { x: 0.82, y: 0.42, dx: -25, dy: -11, density: 0.32, radius: 0.026 },
+      { x: 0.16, y: 0.32, dx: 28, dy: 8, density: 0, radius: 0.025 },
+      { x: 0.52, y: 0.58, dx: -18, dy: 23, density: 0, radius: 0.032 },
+      { x: 0.82, y: 0.42, dx: -25, dy: -11, density: 0, radius: 0.026 },
     );
   }
 
@@ -828,7 +893,7 @@ function startFluidSimulation() {
           y: 0.5 + Math.cos(automaticPhase * 0.83) * 0.24,
           dx: Math.cos(automaticPhase) * 24,
           dy: -Math.sin(automaticPhase * 0.83) * 18,
-          density: 0.18,
+          density: Math.cos(automaticPhase) * 0.18,
           radius: 0.016,
         });
         lastAutomaticSplat = now;

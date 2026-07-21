@@ -67,6 +67,11 @@ img {
   pointer-events: none;
 }
 
+.mobile-fingertip-cue,
+.mobile-fingertip {
+  display: none;
+}
+
 #liquid-light {
   z-index: 1;
   display: block;
@@ -82,10 +87,12 @@ img {
 .liquid-fallback {
   z-index: 0;
   background:
-    radial-gradient(ellipse at 14% 26%, rgba(255, 255, 255, 0.86), transparent 52%),
-    radial-gradient(ellipse at 84% 72%, rgba(224, 244, 255, 0.72), transparent 58%),
-    linear-gradient(180deg, #69ade0, #91c9eb);
-  background-size: 135% 135%, 145% 145%, auto;
+    radial-gradient(ellipse at 14% 26%, rgba(255, 255, 255, 0.9), transparent 47%),
+    radial-gradient(ellipse at 34% 78%, rgba(235, 248, 255, 0.62), transparent 43%),
+    radial-gradient(ellipse at 76% 30%, rgba(77, 157, 214, 0.32), transparent 50%),
+    radial-gradient(ellipse at 91% 82%, rgba(98, 174, 223, 0.24), transparent 44%),
+    linear-gradient(90deg, #64abe0 0%, #7cbae4 48%, #f7fbff 52%, #ffffff 100%);
+  background-size: 135% 135%, 145% 145%, 130% 130%, 150% 150%, auto;
   animation: fallback-drift 18s ease-in-out infinite alternate;
 }
 
@@ -104,6 +111,7 @@ img {
     max(var(--page-pad), env(safe-area-inset-right))
     max(10px, env(safe-area-inset-bottom))
     max(var(--page-pad), env(safe-area-inset-left));
+  touch-action: none;
 }
 
 .brand-stage {
@@ -213,6 +221,10 @@ img {
 }
 
 .project-card {
+  --frame-border: clamp(1px, 0.16vw, 2px);
+  --frame-inset: clamp(2px, 0.32vw, 4px);
+  --frame-offset: clamp(1px, 0.16vw, 2px);
+  --label-gap: clamp(5px, 0.8vw, 9px);
   --tilt-x: 0deg;
   --tilt-y: 0deg;
   --foil-x: 50%;
@@ -223,12 +235,13 @@ img {
   isolation: isolate;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: clamp(5px, 0.8vw, 9px);
+  gap: var(--label-gap);
   min-width: 0;
   aspect-ratio: 5 / 7;
-  padding: clamp(7px, 1.05vw, 13px);
+  padding-block: calc(var(--label-gap) + var(--frame-inset));
+  padding-inline: clamp(7px, 1.05vw, 13px);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.86);
+  border: var(--frame-border) solid rgba(255, 255, 255, 0.86);
   border-radius: clamp(13px, 1.7vw, 22px);
   background:
     linear-gradient(
@@ -246,8 +259,9 @@ img {
     );
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.72),
-    inset 0 0 0 3px rgba(255, 255, 255, 0.2),
-    0 12px 23px rgba(22, 2, 14, 0.27);
+    inset 0 0 0 var(--frame-inset) rgba(255, 255, 255, 0.24),
+    0 4px 0 rgba(47, 45, 54, 0.76),
+    0 14px 25px rgba(22, 2, 14, 0.29);
   color: var(--ink);
   transform:
     perspective(1000px)
@@ -261,7 +275,7 @@ img {
     box-shadow 210ms ease,
     filter 210ms ease;
   will-change: transform;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 .project-card:nth-child(even) {
@@ -272,7 +286,7 @@ img {
 .project-card::after {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: var(--frame-offset);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -318,9 +332,11 @@ img {
   filter: saturate(1.14);
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.72),
-    inset 0 0 0 3px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 var(--frame-inset) rgba(255, 255, 255, 0.34),
+    0 5px 0 rgba(47, 45, 54, 0.72),
     0 20px 35px rgba(25, 1, 16, 0.38),
     0 0 26px rgba(255, 111, 188, 0.19);
+  transition-duration: 70ms, 150ms, 150ms;
   outline: none;
 }
 
@@ -345,6 +361,8 @@ img {
   font-family: "Nunito", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
   font-weight: 900;
   text-align: center;
+  align-items: center;
+  justify-content: center;
   background: linear-gradient(
     180deg,
     #949ba4 0%,
@@ -366,10 +384,12 @@ img {
 }
 
 .card-category {
+  display: flex;
+  min-height: 1.2em;
   overflow: hidden;
   font-size: clamp(0.45rem, 1.45vw, 0.63rem);
   letter-spacing: 0.055em;
-  line-height: 1.1;
+  line-height: 1;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -394,7 +414,7 @@ img {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 2px solid rgba(26, 25, 33, 0.84);
+  border: var(--frame-border) solid rgba(26, 25, 33, 0.84);
   border-radius: clamp(8px, 1.2vw, 15px);
   background: #17101d;
   box-shadow:
@@ -540,11 +560,33 @@ img {
 
 @keyframes fallback-drift {
   from {
-    background-position: 0% 5%, 100% 95%, center;
+    background-position: 0% 5%, 25% 95%, 76% 8%, 100% 92%, center;
   }
 
   to {
-    background-position: 18% 20%, 78% 72%, center;
+    background-position: 18% 20%, 8% 72%, 94% 26%, 74% 68%, center;
+  }
+}
+
+@keyframes fingertip-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(68%, 48%, 0) rotate(14deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0);
+  }
+}
+
+@keyframes fingertip-float {
+  from {
+    transform: translate3d(0, 5px, 0) rotate(-15deg);
+  }
+
+  to {
+    transform: translate3d(-5px, -9px, 0) rotate(-12deg);
   }
 }
 
@@ -576,6 +618,7 @@ img {
   }
 
   .project-card {
+    --frame-inset: 2px;
     border-radius: 14px;
   }
 
@@ -588,6 +631,7 @@ img {
   }
 
   .card-category {
+    min-height: 1.35em;
     font-size: clamp(0.53rem, 2.2vw, 0.62rem);
     -webkit-text-stroke-width: 0.46px;
   }
@@ -599,6 +643,30 @@ img {
 
   .github-link {
     top: 4px;
+  }
+
+  .mobile-fingertip-cue {
+    position: fixed;
+    right: clamp(-42px, -8vw, -24px);
+    bottom: -28px;
+    z-index: 20;
+    display: block;
+    pointer-events: none;
+    animation: fingertip-enter 820ms cubic-bezier(0.16, 0.82, 0.28, 1) both;
+  }
+
+  .mobile-fingertip {
+    display: block;
+    width: clamp(140px, 40vw, 180px);
+    max-width: none;
+    height: auto;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 8px 10px rgba(28, 12, 21, 0.2));
+    animation: fingertip-float 3.2s ease-in-out infinite alternate;
+    transform-origin: 50% 100%;
+    will-change: transform;
+    -webkit-user-drag: none;
   }
 }
 
@@ -612,8 +680,8 @@ img {
   }
 
   .project-card {
-    gap: 4px;
-    padding: 6px;
+    --label-gap: 4px;
+    padding-inline: 6px;
   }
 
   .card-name {
@@ -632,5 +700,16 @@ img {
   .project-card::after,
   .card-art::after {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-fingertip-cue,
+  .mobile-fingertip {
+    animation: none;
+  }
+
+  .mobile-fingertip {
+    transform: rotate(-13deg);
   }
 }
