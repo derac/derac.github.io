@@ -20,8 +20,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&amp;display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./index.css?v=20260721-11">
-    <script type="module" src="./index.js?v=20260721-11"></script>
+    <link rel="stylesheet" href="./index.css?v=20260721-18">
+    <script type="module" src="./index.js?v=20260721-18"></script>
   </head>
   <body>
     <canvas id="liquid-light" aria-hidden="true"></canvas>
@@ -29,6 +29,20 @@
     <div class="mobile-fingertip-cue" aria-hidden="true" style="display: none">
       <img class="mobile-fingertip" src="./assets/fingertip.png" alt="" draggable="false">
     </div>
+    <button class="mute-button" type="button" aria-label="Mute sound" aria-pressed="false">
+      <svg viewBox="0 0 40 52" aria-hidden="true">
+        <path class="bell-cord" d="M20 1v9"></path>
+        <g class="bell-clapper">
+          <path d="M20 18v22"></path>
+          <circle cx="20" cy="43" r="3.4"></circle>
+        </g>
+        <g class="bell-body">
+          <path class="bell-crown" d="M16 10a4 4 0 0 1 8 0v2h-8Z"></path>
+          <path class="bell-shell" d="M7 37c3-3 4-8 4-14 0-7 3.7-11 9-11s9 4 9 11c0 6 1 11 4 14-6 4-20 4-26 0Z"></path>
+          <path class="bell-rim" d="M7 37c6 3.7 20 3.7 26 0"></path>
+        </g>
+      </svg>
+    </button>
 
     <main class="portfolio">
       <div class="brand-stage">

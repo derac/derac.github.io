@@ -13,6 +13,14 @@ let touchTravelSinceDyeChange = 0;
 let mouseTravelSinceDyeChange = 0;
 let clickAudioContext;
 let clickNoiseBuffer;
+let musicContext;
+let musicMaster;
+let ambientBus;
+let padBus;
+let musicReverb;
+let activePad;
+let isSiteMuted = false;
+let lastBellTime = -Infinity;
 
 const MOUSE_DYE_CHANGE_DISTANCE = 220;
 const TOUCH_DYE_CHANGE_DISTANCE = 120;
@@ -22,7 +30,204 @@ function dyeDensity(polarity, strength = 1) {
   return (polarity > 0 ? 0.36 : -0.35) * strength;
 }
 
-function playRumblyClick() {
+const PAD_CHORDS = [
+  [146.83, 185.0, 220.0, 277.18],
+  [130.81, 164.81, 196.0, 293.66],
+  [164.81, 207.65, 246.94, 329.63],
+  [110.0, 138.59, 164.81, 220.0],
+  [185.0, 233.08, 277.18, 369.99],
+];
+
+function createReverbImpulse(context) {
+  const length = Math.floor(context.sampleRate * 2.8);
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+  for (let channel = 0; channel < impulse.numberOfChannels; channel += 1) {
+    const data = impulse.getChannelData(channel);
+    for (let index = 0; index < length; index += 1) {
+      const decay = Math.pow(1 - index / length, 2.7);
+      data[index] = (Math.random() * 2 - 1) * decay;
+    }
+  }
+  return impulse;
+}
+
+function ensureSoundscape() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (musicContext) return musicContext;
+
+  musicContext = new AudioContextClass();
+  musicMaster = musicContext.createGain();
+  ambientBus = musicContext.createGain();
+  padBus = musicContext.createGain();
+  musicReverb = musicContext.createConvolver();
+  const reverbGain = musicContext.createGain();
+  const ambientHighpass = musicContext.createBiquadFilter();
+  const ambientFilter = musicContext.createBiquadFilter();
+
+  musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
+  ambientBus.gain.value = 0.13;
+  padBus.gain.value = 0.98;
+  reverbGain.gain.value = 0.26;
+  musicReverb.buffer = createReverbImpulse(musicContext);
+  musicReverb.connect(reverbGain).connect(musicMaster);
+  ambientBus.connect(musicMaster);
+  padBus.connect(musicMaster);
+  musicMaster.connect(musicContext.destination);
+
+  ambientHighpass.type = "highpass";
+  ambientHighpass.frequency.value = 220;
+  ambientHighpass.Q.value = 0.45;
+  ambientFilter.type = "lowpass";
+  ambientFilter.frequency.value = 900;
+  ambientFilter.Q.value = 0.28;
+  ambientFilter.connect(ambientBus);
+  const ambientSend = musicContext.createGain();
+  ambientSend.gain.value = 0.18;
+  ambientFilter.connect(ambientSend).connect(musicReverb);
+
+  const breeze = musicContext.createBufferSource();
+  const breezeBuffer = musicContext.createBuffer(1, musicContext.sampleRate * 5, musicContext.sampleRate);
+  const breezeData = breezeBuffer.getChannelData(0);
+  let breezeValue = 0;
+  for (let index = 0; index < breezeData.length; index += 1) {
+    const whiteNoise = Math.random() * 2 - 1;
+    breezeValue = breezeValue * 0.97 + whiteNoise * 0.03;
+    breezeData[index] = (whiteNoise * 0.04 + breezeValue * 0.96) * 0.58;
+  }
+  breeze.buffer = breezeBuffer;
+  breeze.loop = true;
+  breeze.connect(ambientHighpass).connect(ambientFilter);
+  breeze.start();
+
+  const ambientLfo = musicContext.createOscillator();
+  const ambientLfoDepth = musicContext.createGain();
+  ambientLfo.frequency.value = 0.018;
+  ambientLfoDepth.gain.value = 260;
+  ambientLfo.connect(ambientLfoDepth).connect(ambientFilter.frequency);
+  ambientLfo.start();
+
+  const noise = musicContext.createBufferSource();
+  const noiseBuffer = musicContext.createBuffer(1, musicContext.sampleRate * 3, musicContext.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noiseData.length; index += 1) noiseData[index] = Math.random() * 2 - 1;
+  const shimmerFilter = musicContext.createBiquadFilter();
+  const shimmerGain = musicContext.createGain();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+  shimmerFilter.type = "bandpass";
+  shimmerFilter.frequency.value = 3200;
+  shimmerFilter.Q.value = 0.35;
+  shimmerGain.gain.value = 0.003;
+  noise.connect(shimmerFilter).connect(shimmerGain).connect(ambientBus);
+  noise.start();
+
+  return musicContext;
+}
+
+function resumeSoundscape() {
+  let context;
+  try {
+    context = ensureSoundscape();
+  } catch {
+    return;
+  }
+  if (context?.state === "suspended") context.resume().catch(() => {});
+}
+
+function stopProjectPad(card) {
+  if (!activePad || (card && activePad.card !== card)) return;
+  const voice = activePad;
+  activePad = null;
+  const now = voice.context.currentTime;
+  if (voice.gain.gain.cancelAndHoldAtTime) {
+    voice.gain.gain.cancelAndHoldAtTime(now);
+  } else {
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(0.66, now);
+  }
+  voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
+  for (const source of voice.sources) source.stop(now + 1.1);
+}
+
+function morphProjectPad(card, event) {
+  if (!activePad || activePad.card !== card) return;
+  const bounds = card.getBoundingClientRect();
+  const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+  const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+  const now = activePad.context.currentTime;
+  activePad.filter.frequency.setTargetAtTime(650 + (1 - y) * 2750, now, 0.08);
+  activePad.reverbSend.gain.setTargetAtTime(0.18 + y * 0.5, now, 0.1);
+  activePad.lfoDepth.gain.setTargetAtTime(4 + x * 14, now, 0.1);
+  if (activePad.panner.pan) activePad.panner.pan.setTargetAtTime((x - 0.5) * 1.55, now, 0.08);
+  for (const source of activePad.tones) {
+    source.oscillator.detune.setTargetAtTime(source.baseDetune + (x - 0.5) * 24 + (0.5 - y) * 8, now, 0.08);
+  }
+}
+
+function startProjectPad(card, index, event) {
+  let context;
+  try {
+    context = ensureSoundscape();
+  } catch {
+    return;
+  }
+  if (!context) return;
+  resumeSoundscape();
+  if (activePad?.card === card) {
+    morphProjectPad(card, event);
+    return;
+  }
+  stopProjectPad();
+
+  const now = context.currentTime;
+  const gain = context.createGain();
+  const filter = context.createBiquadFilter();
+  const panner = context.createStereoPanner ? context.createStereoPanner() : context.createGain();
+  const reverbSend = context.createGain();
+  const lfo = context.createOscillator();
+  const lfoDepth = context.createGain();
+  const sources = [lfo];
+  const tones = [];
+
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.66 + index * 0.02, now + 0.36);
+  filter.type = "lowpass";
+  filter.frequency.value = 1450;
+  filter.Q.value = 0.68 + index * 0.12;
+  reverbSend.gain.value = 0.34;
+  gain.connect(filter).connect(panner);
+  panner.connect(padBus);
+  panner.connect(reverbSend).connect(musicReverb);
+
+  for (const [toneIndex, frequency] of PAD_CHORDS[index % PAD_CHORDS.length].entries()) {
+    for (const octave of [1, 2]) {
+      const oscillator = context.createOscillator();
+      const toneGain = context.createGain();
+      const baseDetune = (toneIndex - 1.5) * 2.5 + (octave === 1 ? -4 : 5);
+      oscillator.type = octave === 1 ? "sawtooth" : "triangle";
+      oscillator.frequency.value = frequency * octave;
+      oscillator.detune.value = baseDetune;
+      toneGain.gain.value = octave === 1 ? 0.03 : 0.015;
+      oscillator.connect(toneGain).connect(gain);
+      oscillator.start(now);
+      sources.push(oscillator);
+      tones.push({ oscillator, baseDetune });
+    }
+  }
+
+  lfo.frequency.value = 0.09 + index * 0.023;
+  lfoDepth.gain.value = 8;
+  lfo.connect(lfoDepth);
+  for (const tone of tones) lfoDepth.connect(tone.oscillator.detune);
+  lfo.start(now);
+
+  activePad = { card, context, gain, filter, panner, reverbSend, lfoDepth, sources, tones };
+  morphProjectPad(card, event);
+}
+
+function playRumblyClick(force = false) {
+  if (isSiteMuted && !force) return;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioContextClass) return;
 
@@ -68,6 +273,280 @@ function playRumblyClick() {
   thump.stop(now + 0.14);
   noise.stop(now + 0.08);
 }
+
+function playMuteBell(intensity = 1) {
+  if (isSiteMuted) return;
+  let context;
+  try {
+    context = ensureSoundscape();
+  } catch {
+    return;
+  }
+  if (!context || context.currentTime - lastBellTime < 0.16) return;
+  if (context.state === "suspended") context.resume().catch(() => {});
+  lastBellTime = context.currentTime;
+
+  const now = context.currentTime;
+  const output = context.createGain();
+  output.gain.value = 0.48 * intensity;
+  output.connect(musicMaster);
+
+  for (const [index, frequency] of [760, 1168, 1576].entries()) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const start = now + index * 0.012;
+    oscillator.type = "sine";
+    oscillator.frequency.value = frequency;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.12 / (index + 1), start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.72 + index * 0.12);
+    oscillator.connect(gain).connect(output);
+    oscillator.start(start);
+    oscillator.stop(start + 1.1);
+  }
+
+  const rattle = context.createBufferSource();
+  const rattleBuffer = context.createBuffer(1, Math.ceil(context.sampleRate * 0.09), context.sampleRate);
+  const rattleData = rattleBuffer.getChannelData(0);
+  for (let index = 0; index < rattleData.length; index += 1) rattleData[index] = Math.random() * 2 - 1;
+  const rattleFilter = context.createBiquadFilter();
+  const rattleGain = context.createGain();
+  rattle.buffer = rattleBuffer;
+  rattleFilter.type = "bandpass";
+  rattleFilter.frequency.value = 1850;
+  rattleFilter.Q.value = 1.3;
+  rattleGain.gain.setValueAtTime(0.08, now);
+  rattleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+  rattle.connect(rattleFilter).connect(rattleGain).connect(output);
+  rattle.start(now);
+
+  if (muteButton) {
+    muteButton.classList.remove("is-ringing");
+    void muteButton.offsetWidth;
+    muteButton.classList.add("is-ringing");
+    setTimeout(() => muteButton.classList.remove("is-ringing"), 480);
+  }
+}
+
+const muteButton = document.querySelector(".mute-button");
+const fingertipCue = document.querySelector(".mobile-fingertip-cue");
+const fingertip = document.querySelector(".mobile-fingertip");
+let muteOffsetX = 0;
+let muteOffsetY = 0;
+let muteOriginRect = muteButton?.getBoundingClientRect();
+let fingerTriggerLocked = false;
+let bellAngle = 0;
+let bellVelocity = 0;
+let clapperAngle = 0;
+let clapperVelocity = 0;
+let bellPhysicsFrame = 0;
+let bellPhysicsTime = 0;
+let lastBellPointerX = null;
+let lastBellPointerY = null;
+let lastBellPointerTime = 0;
+
+function animateBellPhysics(time) {
+  if (!muteButton) return;
+  const step = bellPhysicsTime ? Math.min((time - bellPhysicsTime) / 16.667, 2) : 1;
+  bellPhysicsTime = time;
+
+  bellVelocity += -bellAngle * 0.075 * step;
+  bellVelocity *= Math.pow(0.875, step);
+  bellAngle = clamp(bellAngle + bellVelocity * step, -24, 24);
+  clapperVelocity += -(clapperAngle + bellAngle * 0.58) * 0.12 * step;
+  clapperVelocity *= Math.pow(0.82, step);
+  clapperAngle = clamp(clapperAngle + clapperVelocity * step, -32, 32);
+  muteButton.style.setProperty("--bell-angle", bellAngle.toFixed(2) + "deg");
+  muteButton.style.setProperty("--clapper-angle", clapperAngle.toFixed(2) + "deg");
+
+  if (Math.abs(bellAngle) + Math.abs(bellVelocity) + Math.abs(clapperAngle) + Math.abs(clapperVelocity) > 0.18) {
+    bellPhysicsFrame = requestAnimationFrame(animateBellPhysics);
+  } else {
+    bellPhysicsFrame = 0;
+    bellPhysicsTime = 0;
+  }
+}
+
+function kickBellPhysics(deltaX, deltaY = 0, pointerSpeed = 0) {
+  const velocityScale = clamp(pointerSpeed / 0.65, 0.08, 1.5);
+  bellVelocity += clamp((deltaX * 0.055 + deltaY * 0.012) * velocityScale, -10, 10);
+  clapperVelocity -= clamp(deltaX * 0.085 * velocityScale, -14, 14);
+  if (!bellPhysicsFrame) bellPhysicsFrame = requestAnimationFrame(animateBellPhysics);
+}
+
+function setMuteTarget(offsetX, offsetY) {
+  if (!muteButton || !muteOriginRect) return;
+  const margin = 10;
+  muteOffsetX = clamp(
+    offsetX,
+    margin - muteOriginRect.left,
+    window.innerWidth - margin - muteOriginRect.right,
+  );
+  muteOffsetY = clamp(
+    offsetY,
+    margin - muteOriginRect.top,
+    window.innerHeight - margin - muteOriginRect.bottom,
+  );
+  muteButton.style.setProperty("--mute-x", muteOffsetX + "px");
+  muteButton.style.setProperty("--mute-y", muteOffsetY + "px");
+}
+
+function toggleSiteMute() {
+  isSiteMuted = !isSiteMuted;
+  if (!isSiteMuted) resumeSoundscape();
+  if (musicMaster && musicContext) {
+    musicMaster.gain.setTargetAtTime(isSiteMuted ? 0.0001 : 0.68, musicContext.currentTime, 0.08);
+  }
+  muteButton?.setAttribute("aria-pressed", String(isSiteMuted));
+  if (muteButton) muteButton.setAttribute("aria-label", isSiteMuted ? "Unmute sound" : "Mute sound");
+  muteButton?.classList.toggle("is-muted", isSiteMuted);
+}
+
+function triggerFingerMute() {
+  if (fingerTriggerLocked || !muteButton || !fingertipCue) return;
+  fingerTriggerLocked = true;
+  fingertipCue.classList.add("is-clicking");
+  muteButton.classList.add("is-triggered");
+  playRumblyClick(true);
+  toggleSiteMute();
+  setTimeout(() => {
+    fingertipCue.classList.remove("is-clicking");
+    muteButton.classList.remove("is-triggered");
+    setMuteTarget(muteOffsetX - 150, muteOffsetY - 24);
+    playMuteBell(0.72);
+  }, 780);
+  setTimeout(() => {
+    fingerTriggerLocked = false;
+  }, 1900);
+}
+
+function fingerTipPosition() {
+  if (!fingertip || !fingertipCue) return null;
+  const cueRect = fingertipCue.getBoundingClientRect();
+  const style = getComputedStyle(fingertip);
+  const origin = style.transformOrigin.split(" ").map(Number.parseFloat);
+  const localX = fingertip.offsetWidth * 0.5;
+  const localY = fingertip.offsetHeight * 0.08;
+  if (window.DOMMatrixReadOnly && style.transform !== "none") {
+    const matrix = new DOMMatrixReadOnly(style.transform);
+    const x = localX - origin[0];
+    const y = localY - origin[1];
+    return {
+      x: cueRect.left + origin[0] + matrix.a * x + matrix.c * y + matrix.e,
+      y: cueRect.top + origin[1] + matrix.b * x + matrix.d * y + matrix.f,
+    };
+  }
+  return { x: cueRect.left + localX, y: cueRect.top + localY };
+}
+
+function checkFingerMuteProximity(targetCenter) {
+  if (!muteButton || !fingertip || fingerTriggerLocked) return;
+  const buttonRect = muteButton.getBoundingClientRect();
+  const fingerTip = fingerTipPosition();
+  if (!buttonRect.width || !fingerTip) return;
+  const buttonCenter = targetCenter ?? {
+    x: buttonRect.left + buttonRect.width * 0.5,
+    y: buttonRect.top + buttonRect.height * 0.5,
+  };
+  if (Math.hypot(buttonCenter.x - fingerTip.x, buttonCenter.y - fingerTip.y) < 82) {
+    triggerFingerMute();
+  }
+}
+
+function evadeMuteButton(event) {
+  if (!muteButton || !muteOriginRect) return;
+  const pointerTime = performance.now();
+  const pointerElapsed = pointerTime - lastBellPointerTime;
+  const pointerSpeed = lastBellPointerX !== null && pointerElapsed > 0 && pointerElapsed < 100
+    ? Math.hypot(event.clientX - lastBellPointerX, event.clientY - lastBellPointerY) / pointerElapsed
+    : 0;
+  lastBellPointerX = event.clientX;
+  lastBellPointerY = event.clientY;
+  lastBellPointerTime = pointerTime;
+
+  const rect = muteButton.getBoundingClientRect();
+  const center = { x: rect.left + rect.width * 0.5, y: rect.top + rect.height * 0.5 };
+  let dx = center.x - event.clientX;
+  let dy = center.y - event.clientY;
+  let distance = Math.hypot(dx, dy);
+  const clearance = event.pointerType === "touch" ? 86 : 70;
+  if (distance >= clearance) return;
+
+  if (distance < 1) {
+    dx = 0.7;
+    dy = -0.7;
+    distance = 1;
+  }
+  const previousX = muteOffsetX;
+  const previousY = muteOffsetY;
+  const originCenterX = muteOriginRect.left + muteOriginRect.width * 0.5;
+  const originCenterY = muteOriginRect.top + muteOriginRect.height * 0.5;
+  const targetCenterX = event.clientX + dx / distance * clearance;
+  const targetCenterY = event.clientY + dy / distance * clearance;
+  const desiredX = targetCenterX - originCenterX;
+  const desiredY = targetCenterY - originCenterY;
+  const follow = clamp(0.28 + pointerSpeed * 0.12, 0.28, 0.52);
+  const requestedX = muteOffsetX + (desiredX - muteOffsetX) * follow;
+  const requestedY = muteOffsetY + (desiredY - muteOffsetY) * follow;
+  setMuteTarget(requestedX, requestedY);
+
+  const hitBoundary = Math.hypot(muteOffsetX - requestedX, muteOffsetY - requestedY) > 1;
+  if (hitBoundary) {
+    const options = [
+      { x: muteOffsetX + 46, y: muteOffsetY },
+      { x: muteOffsetX - 46, y: muteOffsetY },
+      { x: muteOffsetX, y: muteOffsetY - 46 },
+      { x: muteOffsetX, y: muteOffsetY + 46 },
+    ];
+    let best = null;
+    for (const option of options) {
+      const x = clamp(option.x, 10 - muteOriginRect.left, window.innerWidth - 10 - muteOriginRect.right);
+      const y = clamp(option.y, 10 - muteOriginRect.top, window.innerHeight - 10 - muteOriginRect.bottom);
+      const score = Math.hypot(
+        muteOriginRect.left + muteOriginRect.width * 0.5 + x - event.clientX,
+        muteOriginRect.top + muteOriginRect.height * 0.5 + y - event.clientY,
+      );
+      if (!best || score > best.score) best = { x, y, score };
+    }
+    if (best) setMuteTarget(best.x, best.y);
+  }
+  const movement = Math.hypot(muteOffsetX - previousX, muteOffsetY - previousY);
+  if (movement > 2) {
+    kickBellPhysics(muteOffsetX - previousX, muteOffsetY - previousY, pointerSpeed);
+    const chimeStrength = clamp((pointerSpeed - 0.12) / 1.35, 0, 1);
+    if (chimeStrength > 0.035) playMuteBell(chimeStrength);
+  }
+}
+
+if (muteButton) {
+  window.addEventListener("pointermove", evadeMuteButton, { passive: true });
+  muteButton.addEventListener("pointerenter", evadeMuteButton, { passive: true });
+  muteButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    evadeMuteButton(event);
+  });
+  muteButton.addEventListener("click", (event) => event.preventDefault());
+  window.addEventListener("resize", () => {
+    muteOffsetX = 0;
+    muteOffsetY = 0;
+    muteButton.style.transition = "none";
+    muteButton.style.setProperty("--mute-x", "0px");
+    muteButton.style.setProperty("--mute-y", "0px");
+    requestAnimationFrame(() => {
+      muteOriginRect = muteButton.getBoundingClientRect();
+      requestAnimationFrame(() => muteButton.style.removeProperty("transition"));
+    });
+  }, { passive: true });
+  setInterval(checkFingerMuteProximity, 180);
+}
+
+try {
+  ensureSoundscape();
+} catch {
+  // The visual experience remains available when Web Audio is unsupported.
+}
+window.addEventListener("pointerdown", resumeSoundscape, { capture: true, passive: true });
+window.addEventListener("keydown", resumeSoundscape, { capture: true });
 
 for (const link of document.querySelectorAll("a[href]")) {
   link.addEventListener("pointerdown", (event) => {
@@ -278,24 +757,33 @@ window.addEventListener("pointermove", moveTouchPointer, { passive: true, captur
 window.addEventListener("pointerup", finishTouchPointer, { passive: true, capture: true });
 window.addEventListener("pointercancel", finishTouchPointer, { passive: true, capture: true });
 
-for (const card of document.querySelectorAll(".project-card")) {
+for (const [cardIndex, card] of [...document.querySelectorAll(".project-card")].entries()) {
+  card.addEventListener("pointerenter", (event) => {
+    if (event.pointerType === "mouse") startProjectPad(card, cardIndex, event);
+  }, { passive: true });
+
   card.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") startProjectPad(card, cardIndex, event);
     if (event.pointerType !== "pen") return;
 
+    startProjectPad(card, cardIndex, event);
     card.classList.add("is-touching");
     setCardFoil(card, event, 0.88);
   }, { passive: true });
 
   card.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") morphProjectPad(card, event);
     if (event.pointerType === "pen" && card.classList.contains("is-touching")) {
       setCardFoil(card, event, 0.88);
     }
   }, { passive: true });
 
   card.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") stopProjectPad(card);
     if (event.pointerType === "pen") resetCardFoil(card);
   }, { passive: true });
   card.addEventListener("pointercancel", (event) => {
+    if (event.pointerType === "touch" || event.pointerType === "pen") stopProjectPad(card);
     if (event.pointerType === "pen") resetCardFoil(card);
   }, { passive: true });
   card.addEventListener("lostpointercapture", () => resetCardFoil(card), { passive: true });
@@ -304,17 +792,29 @@ for (const card of document.querySelectorAll(".project-card")) {
     if (performance.now() - lastTouchTime < 800) return;
     card.classList.add("is-mousing");
     setCardFoil(card, event);
+    morphProjectPad(card, event);
   }, { passive: true });
-  card.addEventListener("mouseleave", () => resetCardFoil(card), { passive: true });
+  card.addEventListener("mouseleave", () => {
+    resetCardFoil(card);
+    stopProjectPad(card);
+  }, { passive: true });
 }
 
 const githubLink = document.querySelector(".github-link");
 if (githubLink) {
+  githubLink.addEventListener("mouseenter", (event) => startProjectPad(githubLink, 4, event), { passive: true });
   githubLink.addEventListener("mousemove", (event) => {
     githubLink.classList.add("is-mousing");
     setCardFoil(githubLink, event, 0.82);
+    morphProjectPad(githubLink, event);
   }, { passive: true });
-  githubLink.addEventListener("mouseleave", () => resetCardFoil(githubLink), { passive: true });
+  githubLink.addEventListener("mouseleave", () => {
+    resetCardFoil(githubLink);
+    stopProjectPad(githubLink);
+  }, { passive: true });
+  githubLink.addEventListener("pointerdown", (event) => startProjectPad(githubLink, 4, event), { passive: true });
+  githubLink.addEventListener("pointerup", () => stopProjectPad(githubLink), { passive: true });
+  githubLink.addEventListener("pointercancel", () => stopProjectPad(githubLink), { passive: true });
 }
 
 window.addEventListener("blur", releaseAllTouchCards);
