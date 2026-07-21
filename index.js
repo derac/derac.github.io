@@ -19,12 +19,21 @@ let clickReverbGain;
 let musicContext;
 let musicMaster;
 let ambientBus;
+let ambientFilter;
+let ambientPanner;
+let ambientMotionGain;
+let ambientSend;
 let padBus;
 let musicReverb;
 let sceneReverbSend;
+let airyStringWave;
+let bowedStringWave;
 let activePad;
 let isSiteMuted = false;
 let lastBellTime = -Infinity;
+let lastAmbientPointerX = null;
+let lastAmbientPointerY = null;
+let lastAmbientPointerTime = 0;
 
 const MOUSE_DYE_CHANGE_DISTANCE = 220;
 const TOUCH_DYE_CHANGE_DISTANCE = 120;
@@ -41,6 +50,18 @@ const PAD_CHORDS = [
   [110.0, 138.59, 164.81, 220.0],
   [185.0, 233.08, 277.18, 369.99],
 ];
+
+function createStringWave(context, airy = false) {
+  const harmonics = airy
+    ? [0, 1, 0.3, 0.12, 0.055, 0.026, 0.012]
+    : [0, 1, 0.52, 0.28, 0.16, 0.09, 0.052, 0.03];
+  const real = new Float32Array(harmonics.length);
+  const imaginary = new Float32Array(harmonics.length);
+  for (let index = 1; index < harmonics.length; index += 1) {
+    imaginary[index] = harmonics[index];
+  }
+  return context.createPeriodicWave(real, imaginary, { disableNormalization: false });
+}
 
 function createReverbImpulse(context) {
   const length = Math.floor(context.sampleRate * 2.8);
@@ -68,13 +89,19 @@ function ensureSoundscape() {
   sceneReverbSend = musicContext.createGain();
   const reverbGain = musicContext.createGain();
   const ambientHighpass = musicContext.createBiquadFilter();
-  const ambientFilter = musicContext.createBiquadFilter();
+  ambientFilter = musicContext.createBiquadFilter();
+  ambientPanner = musicContext.createStereoPanner ? musicContext.createStereoPanner() : musicContext.createGain();
+  ambientMotionGain = musicContext.createGain();
+  ambientSend = musicContext.createGain();
+  airyStringWave = createStringWave(musicContext, true);
+  bowedStringWave = createStringWave(musicContext);
 
   musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
-  ambientBus.gain.value = 0.13;
-  padBus.gain.value = 0.98;
+  ambientBus.gain.value = 0.11;
+  ambientMotionGain.gain.value = 0.92;
+  padBus.gain.value = 1.05;
   reverbGain.gain.value = 0.26;
-  sceneReverbSend.gain.value = 0.15;
+  sceneReverbSend.gain.value = 0.2;
   musicReverb.buffer = createReverbImpulse(musicContext);
   sceneReverbSend.connect(musicReverb);
   musicReverb.connect(reverbGain).connect(musicMaster);
@@ -85,15 +112,44 @@ function ensureSoundscape() {
   musicMaster.connect(musicContext.destination);
 
   ambientHighpass.type = "highpass";
-  ambientHighpass.frequency.value = 220;
-  ambientHighpass.Q.value = 0.45;
+  ambientHighpass.frequency.value = 170;
+  ambientHighpass.Q.value = 0.38;
   ambientFilter.type = "lowpass";
-  ambientFilter.frequency.value = 900;
-  ambientFilter.Q.value = 0.28;
-  ambientFilter.connect(ambientBus);
-  const ambientSend = musicContext.createGain();
-  ambientSend.gain.value = 0.18;
-  ambientFilter.connect(ambientSend).connect(musicReverb);
+  ambientFilter.frequency.value = 1900;
+  ambientFilter.Q.value = 0.18;
+  ambientFilter.connect(ambientPanner).connect(ambientMotionGain).connect(ambientBus);
+  ambientSend.gain.value = 0.24;
+  ambientMotionGain.connect(ambientSend).connect(musicReverb);
+
+  const stringVibrato = musicContext.createOscillator();
+  const stringVibratoDepth = musicContext.createGain();
+  const stringSwell = musicContext.createOscillator();
+  const stringSwellDepth = musicContext.createGain();
+  stringVibrato.frequency.value = 0.11;
+  stringVibratoDepth.gain.value = 2.2;
+  stringSwell.frequency.value = 0.025;
+  stringSwellDepth.gain.setValueAtTime(0, musicContext.currentTime);
+  stringSwellDepth.gain.linearRampToValueAtTime(0.00055, musicContext.currentTime + 5.5);
+  stringVibrato.connect(stringVibratoDepth);
+  stringSwell.connect(stringSwellDepth);
+  for (const [toneIndex, frequency] of [349.23, 440, 523.25, 698.46].entries()) {
+    for (const detune of [-7, 7]) {
+      const string = musicContext.createOscillator();
+      const stringGain = musicContext.createGain();
+      string.setPeriodicWave(airyStringWave);
+      string.frequency.value = frequency;
+      string.detune.value = detune + (toneIndex - 1.5) * 1.5;
+      const voiceLevel = toneIndex < 2 ? 0.0055 : 0.0042;
+      stringGain.gain.setValueAtTime(0.0001, musicContext.currentTime);
+      stringGain.gain.linearRampToValueAtTime(voiceLevel, musicContext.currentTime + 2.4 + toneIndex * 0.35);
+      stringVibratoDepth.connect(string.detune);
+      stringSwellDepth.connect(stringGain.gain);
+      string.connect(stringGain).connect(ambientHighpass);
+      string.start();
+    }
+  }
+  stringVibrato.start();
+  stringSwell.start();
 
   const breeze = musicContext.createBufferSource();
   const breezeBuffer = musicContext.createBuffer(1, musicContext.sampleRate * 5, musicContext.sampleRate);
@@ -101,8 +157,8 @@ function ensureSoundscape() {
   let breezeValue = 0;
   for (let index = 0; index < breezeData.length; index += 1) {
     const whiteNoise = Math.random() * 2 - 1;
-    breezeValue = breezeValue * 0.97 + whiteNoise * 0.03;
-    breezeData[index] = (whiteNoise * 0.04 + breezeValue * 0.96) * 0.58;
+    breezeValue = breezeValue * 0.98 + whiteNoise * 0.02;
+    breezeData[index] = (whiteNoise * 0.012 + breezeValue * 0.988) * 0.14;
   }
   breeze.buffer = breezeBuffer;
   breeze.loop = true;
@@ -111,8 +167,8 @@ function ensureSoundscape() {
 
   const ambientLfo = musicContext.createOscillator();
   const ambientLfoDepth = musicContext.createGain();
-  ambientLfo.frequency.value = 0.018;
-  ambientLfoDepth.gain.value = 260;
+  ambientLfo.frequency.value = 0.012;
+  ambientLfoDepth.gain.value = 180;
   ambientLfo.connect(ambientLfoDepth).connect(ambientFilter.frequency);
   ambientLfo.start();
 
@@ -125,10 +181,10 @@ function ensureSoundscape() {
   noise.buffer = noiseBuffer;
   noise.loop = true;
   shimmerFilter.type = "bandpass";
-  shimmerFilter.frequency.value = 3200;
-  shimmerFilter.Q.value = 0.35;
-  shimmerGain.gain.value = 0.003;
-  noise.connect(shimmerFilter).connect(shimmerGain).connect(ambientBus);
+  shimmerFilter.frequency.value = 3600;
+  shimmerFilter.Q.value = 0.28;
+  shimmerGain.gain.value = 0.0005;
+  noise.connect(shimmerFilter).connect(shimmerGain).connect(ambientPanner);
   noise.start();
 
   return musicContext;
@@ -153,10 +209,10 @@ function stopProjectPad(card) {
     voice.gain.gain.cancelAndHoldAtTime(now);
   } else {
     voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setValueAtTime(0.66, now);
+    voice.gain.gain.setValueAtTime(0.8, now);
   }
-  voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.85);
-  for (const source of voice.sources) source.stop(now + 1.1);
+  voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
+  for (const source of voice.sources) source.stop(now + 1.4);
 }
 
 function morphProjectPad(card, event) {
@@ -165,9 +221,9 @@ function morphProjectPad(card, event) {
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
   const now = activePad.context.currentTime;
-  activePad.filter.frequency.setTargetAtTime(650 + (1 - y) * 2750, now, 0.08);
-  activePad.reverbSend.gain.setTargetAtTime(0.18 + y * 0.5, now, 0.1);
-  activePad.lfoDepth.gain.setTargetAtTime(4 + x * 14, now, 0.1);
+  activePad.filter.frequency.setTargetAtTime(1300 + (1 - y) * 3900, now, 0.08);
+  activePad.reverbSend.gain.setTargetAtTime(0.28 + y * 0.52, now, 0.1);
+  activePad.lfoDepth.gain.setTargetAtTime(7 + x * 18, now, 0.1);
   if (activePad.panner.pan) activePad.panner.pan.setTargetAtTime((x - 0.5) * 1.55, now, 0.08);
   for (const source of activePad.tones) {
     source.oscillator.detune.setTargetAtTime(source.baseDetune + (x - 0.5) * 24 + (0.5 - y) * 8, now, 0.08);
@@ -200,24 +256,42 @@ function startProjectPad(card, index, event) {
   const tones = [];
 
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.66 + index * 0.02, now + 0.36);
+  gain.gain.exponentialRampToValueAtTime(0.8 + index * 0.018, now + 0.48);
   filter.type = "lowpass";
-  filter.frequency.value = 1450;
-  filter.Q.value = 0.68 + index * 0.12;
-  reverbSend.gain.value = 0.34;
+  filter.frequency.value = 2350;
+  filter.Q.value = 0.45 + index * 0.08;
+  reverbSend.gain.value = 0.44;
   gain.connect(filter).connect(panner);
   panner.connect(padBus);
   panner.connect(reverbSend).connect(musicReverb);
+
+  const bowNoise = context.createBufferSource();
+  const bowNoiseBuffer = context.createBuffer(1, Math.floor(context.sampleRate * 1.2), context.sampleRate);
+  const bowNoiseData = bowNoiseBuffer.getChannelData(0);
+  for (let sample = 0; sample < bowNoiseData.length; sample += 1) {
+    bowNoiseData[sample] = Math.random() * 2 - 1;
+  }
+  const bowFilter = context.createBiquadFilter();
+  const bowGain = context.createGain();
+  bowNoise.buffer = bowNoiseBuffer;
+  bowNoise.loop = true;
+  bowFilter.type = "bandpass";
+  bowFilter.frequency.value = 1750;
+  bowFilter.Q.value = 0.42;
+  bowGain.gain.value = 0.012;
+  bowNoise.connect(bowFilter).connect(bowGain).connect(gain);
+  bowNoise.start(now);
+  sources.push(bowNoise);
 
   for (const [toneIndex, frequency] of PAD_CHORDS[index % PAD_CHORDS.length].entries()) {
     for (const octave of [1, 2]) {
       const oscillator = context.createOscillator();
       const toneGain = context.createGain();
       const baseDetune = (toneIndex - 1.5) * 2.5 + (octave === 1 ? -4 : 5);
-      oscillator.type = octave === 1 ? "sawtooth" : "triangle";
+      oscillator.setPeriodicWave(bowedStringWave);
       oscillator.frequency.value = frequency * octave;
       oscillator.detune.value = baseDetune;
-      toneGain.gain.value = octave === 1 ? 0.03 : 0.015;
+      toneGain.gain.value = octave === 1 ? 0.034 : 0.015;
       oscillator.connect(toneGain).connect(gain);
       oscillator.start(now);
       sources.push(oscillator);
@@ -257,9 +331,14 @@ function playRumblyClick(force = false) {
   const thumpGain = clickAudioContext.createGain();
   const snap = clickAudioContext.createOscillator();
   const snapGain = clickAudioContext.createGain();
+  const pebble = clickAudioContext.createOscillator();
+  const pebbleGain = clickAudioContext.createGain();
   const noise = clickAudioContext.createBufferSource();
   const noiseFilter = clickAudioContext.createBiquadFilter();
   const noiseGain = clickAudioContext.createGain();
+  const chip = clickAudioContext.createBufferSource();
+  const chipFilter = clickAudioContext.createBiquadFilter();
+  const chipGain = clickAudioContext.createGain();
 
   if (!clickNoiseBuffer) {
     clickNoiseBuffer = clickAudioContext.createBuffer(1, Math.ceil(clickAudioContext.sampleRate * 0.12), clickAudioContext.sampleRate);
@@ -269,39 +348,60 @@ function playRumblyClick(force = false) {
     }
   }
 
-  master.gain.setValueAtTime(0.38, now);
+  master.gain.setValueAtTime(0.42, now);
   thump.type = "triangle";
-  thump.frequency.setValueAtTime(92, now);
-  thump.frequency.exponentialRampToValueAtTime(42, now + 0.11);
+  thump.frequency.setValueAtTime(118, now);
+  thump.frequency.exponentialRampToValueAtTime(54, now + 0.085);
   thumpGain.gain.setValueAtTime(0.0001, now);
-  thumpGain.gain.exponentialRampToValueAtTime(0.3, now + 0.006);
-  thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+  thumpGain.gain.exponentialRampToValueAtTime(0.24, now + 0.004);
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
 
-  snap.type = "square";
-  snap.frequency.setValueAtTime(1250, now);
-  snap.frequency.exponentialRampToValueAtTime(620, now + 0.028);
+  snap.type = "triangle";
+  snap.frequency.setValueAtTime(620, now);
+  snap.frequency.exponentialRampToValueAtTime(455, now + 0.045);
   snapGain.gain.setValueAtTime(0.0001, now);
-  snapGain.gain.exponentialRampToValueAtTime(0.075, now + 0.002);
-  snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+  snapGain.gain.exponentialRampToValueAtTime(0.12, now + 0.002);
+  snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.052);
+
+  pebble.type = "sine";
+  pebble.frequency.setValueAtTime(970, now + 0.006);
+  pebble.frequency.exponentialRampToValueAtTime(715, now + 0.04);
+  pebbleGain.gain.setValueAtTime(0.0001, now);
+  pebbleGain.gain.exponentialRampToValueAtTime(0.07, now + 0.007);
+  pebbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
 
   noise.buffer = clickNoiseBuffer;
-  noiseFilter.type = "lowpass";
-  noiseFilter.frequency.setValueAtTime(220, now);
-  noiseFilter.Q.setValueAtTime(0.8, now);
-  noiseGain.gain.setValueAtTime(0.11, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+  noiseFilter.type = "bandpass";
+  noiseFilter.frequency.setValueAtTime(1420, now);
+  noiseFilter.Q.setValueAtTime(0.9, now);
+  noiseGain.gain.setValueAtTime(0.18, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.058);
+
+  chip.buffer = clickNoiseBuffer;
+  chipFilter.type = "highpass";
+  chipFilter.frequency.value = 2350;
+  chipFilter.Q.value = 0.65;
+  chipGain.gain.setValueAtTime(0.0001, now);
+  chipGain.gain.setValueAtTime(0.08, now + 0.013);
+  chipGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.052);
 
   thump.connect(thumpGain).connect(master);
   snap.connect(snapGain).connect(master);
+  pebble.connect(pebbleGain).connect(master);
   noise.connect(noiseFilter).connect(noiseGain).connect(master);
+  chip.connect(chipFilter).connect(chipGain).connect(master);
   master.connect(clickAudioContext.destination);
   master.connect(clickReverb);
   thump.start(now);
   snap.start(now);
+  pebble.start(now);
   noise.start(now);
+  chip.start(now, 0.017);
   thump.stop(now + 0.14);
-  snap.stop(now + 0.04);
+  snap.stop(now + 0.06);
+  pebble.stop(now + 0.06);
   noise.stop(now + 0.08);
+  chip.stop(now + 0.06);
 }
 
 function playMuteBell(intensity = 1) {
@@ -652,6 +752,32 @@ for (const link of document.querySelectorAll("a[href]")) {
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
+
+function modulateBackgroundSound(event) {
+  const hoveredElement = document.elementFromPoint(event.clientX, event.clientY);
+  if (hoveredElement?.closest(".project-card, .github-link, .mute-button")) return;
+
+  const pointerTime = performance.now();
+  const elapsed = pointerTime - lastAmbientPointerTime;
+  const speed = lastAmbientPointerX !== null && elapsed > 0 && elapsed < 120
+    ? clamp(Math.hypot(event.clientX - lastAmbientPointerX, event.clientY - lastAmbientPointerY) / elapsed, 0, 1.5)
+    : 0;
+  lastAmbientPointerX = event.clientX;
+  lastAmbientPointerY = event.clientY;
+  lastAmbientPointerTime = pointerTime;
+  if (!musicContext || !ambientFilter || !ambientMotionGain || !ambientSend) return;
+
+  const x = clamp(event.clientX / window.innerWidth, 0, 1);
+  const y = clamp(event.clientY / window.innerHeight, 0, 1);
+  const now = musicContext.currentTime;
+  ambientFilter.frequency.setTargetAtTime(1150 + (1 - y) * 1650 + speed * 150, now, 0.22);
+  ambientMotionGain.gain.setTargetAtTime(0.84 + speed * 0.09, now, 0.25);
+  ambientSend.gain.setTargetAtTime(0.2 + y * 0.16, now, 0.35);
+  if (ambientPanner.pan) ambientPanner.pan.setTargetAtTime((x - 0.5) * 1.05, now, 0.24);
+}
+
+window.addEventListener("pointerdown", modulateBackgroundSound, { passive: true });
+window.addEventListener("pointermove", modulateBackgroundSound, { passive: true });
 
 function queueSplat(splat) {
   pendingSplats.push(splat);
