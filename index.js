@@ -566,11 +566,17 @@ function evadeMuteButton(event) {
   const previousY = muteOffsetY;
   const originCenterX = muteOriginRect.left + muteOriginRect.width * 0.5;
   const originCenterY = muteOriginRect.top + muteOriginRect.height * 0.5;
-  const targetCenterX = event.clientX + dx / distance * clearance;
-  const targetCenterY = event.clientY + dy / distance * clearance;
+  const mouseFling = event.pointerType === "touch"
+    ? 0
+    : clamp((pointerSpeed - 0.32) * 32, 0, 48);
+  const targetDistance = clearance + mouseFling;
+  const targetCenterX = event.clientX + dx / distance * targetDistance;
+  const targetCenterY = event.clientY + dy / distance * targetDistance;
   const desiredX = targetCenterX - originCenterX;
   const desiredY = targetCenterY - originCenterY;
-  const follow = clamp(0.28 + pointerSpeed * 0.12, 0.28, 0.52);
+  const follow = event.pointerType === "touch"
+    ? clamp(0.28 + pointerSpeed * 0.12, 0.28, 0.52)
+    : clamp(0.32 + pointerSpeed * 0.18, 0.32, 0.68);
   const requestedX = muteOffsetX + (desiredX - muteOffsetX) * follow;
   const requestedY = muteOffsetY + (desiredY - muteOffsetY) * follow;
   setMuteTarget(requestedX, requestedY);
@@ -635,6 +641,7 @@ window.addEventListener("keydown", resumeSoundscape, { capture: true });
 
 for (const link of document.querySelectorAll("a[href]")) {
   link.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch" && link.matches(".project-card, .github-link")) return;
     if (event.button === 0) playRumblyClick();
   }, { passive: true });
   link.addEventListener("keydown", (event) => {
