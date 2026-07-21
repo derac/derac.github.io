@@ -305,6 +305,16 @@ for (const card of document.querySelectorAll(".project-card")) {
   }, { passive: true });
   card.addEventListener("mouseleave", () => resetCardFoil(card), { passive: true });
 }
+
+const githubLink = document.querySelector(".github-link");
+if (githubLink) {
+  githubLink.addEventListener("mousemove", (event) => {
+    githubLink.classList.add("is-mousing");
+    setCardFoil(githubLink, event, 0.82);
+  }, { passive: true });
+  githubLink.addEventListener("mouseleave", () => resetCardFoil(githubLink), { passive: true });
+}
+
 window.addEventListener("blur", releaseAllTouchCards);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) releaseAllTouchCards();
