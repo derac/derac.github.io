@@ -7,13 +7,14 @@ const activeTouchCards = new Map();
 const activeTouchPointers = new Set();
 let lastTouchTime = -Infinity;
 let requestFluidFrame = () => {};
-let nextTouchDyePolarity = 1;
+let touchDyePolarity = 1;
 let mouseDyePolarity = 1;
+let touchTravelSinceDyeChange = 0;
 let mouseTravelSinceDyeChange = 0;
 let clickAudioContext;
 let clickNoiseBuffer;
 
-const MOUSE_DYE_CHANGE_DISTANCE = 220;
+const DYE_CHANGE_DISTANCE = 220;
 
 function dyeDensity(polarity, strength = 1) {
   return (polarity > 0 ? 0.36 : -0.29) * strength;
@@ -95,9 +96,8 @@ function pointerPosition(event) {
 window.addEventListener("pointerdown", (event) => {
   const position = pointerPosition(event);
   const isTouch = event.pointerType === "touch";
-  const polarity = isTouch ? nextTouchDyePolarity : mouseDyePolarity;
+  const polarity = isTouch ? touchDyePolarity : mouseDyePolarity;
 
-  if (isTouch) nextTouchDyePolarity *= -1;
   pointerState.set(event.pointerId, position);
   pointerDyePolarity.set(event.pointerId, polarity);
   queueSplat({
@@ -120,17 +120,25 @@ window.addEventListener("pointermove", (event) => {
     return;
   }
 
-  if (event.pointerType === "mouse") {
-    mouseTravelSinceDyeChange += Math.hypot(
-      (position.x - previous.x) * window.innerWidth,
-      (position.y - previous.y) * window.innerHeight,
-    );
+  const travel = Math.hypot(
+    (position.x - previous.x) * window.innerWidth,
+    (position.y - previous.y) * window.innerHeight,
+  );
 
-    while (mouseTravelSinceDyeChange >= MOUSE_DYE_CHANGE_DISTANCE) {
-      mouseTravelSinceDyeChange -= MOUSE_DYE_CHANGE_DISTANCE;
+  if (event.pointerType === "mouse") {
+    mouseTravelSinceDyeChange += travel;
+    while (mouseTravelSinceDyeChange >= DYE_CHANGE_DISTANCE) {
+      mouseTravelSinceDyeChange -= DYE_CHANGE_DISTANCE;
       mouseDyePolarity *= -1;
     }
     pointerDyePolarity.set(event.pointerId, mouseDyePolarity);
+  } else if (event.pointerType === "touch") {
+    touchTravelSinceDyeChange += travel;
+    while (touchTravelSinceDyeChange >= DYE_CHANGE_DISTANCE) {
+      touchTravelSinceDyeChange -= DYE_CHANGE_DISTANCE;
+      touchDyePolarity *= -1;
+    }
+    pointerDyePolarity.set(event.pointerId, touchDyePolarity);
   }
 
   const scale = event.pointerType === "touch" ? 720 : 920;
@@ -488,6 +496,8 @@ function startFluidSimulation() {
     in vec2 vUv;
     out vec4 fragColor;
 
+    uniform float uSeed;
+
     float random(vec2 point) {
       return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453);
     }
@@ -516,14 +526,18 @@ function startFluidSimulation() {
     }
 
     void main() {
-      float broadClouds = cloudNoise(vUv * vec2(4.8, 3.8));
-      float fineClouds = cloudNoise(vUv * vec2(9.0, 7.0) + 12.4);
+      vec2 seed = vec2(uSeed, uSeed * 0.618 + 9.7);
+      float broadClouds = cloudNoise(vUv * vec2(4.8, 3.8) + seed);
+      float fineClouds = cloudNoise(vUv * vec2(9.0, 7.0) + seed * 1.7 + 12.4);
       float cloudShape = smoothstep(0.34, 0.78, broadClouds * 0.76 + fineClouds * 0.24);
-      float boundary = 0.5 + (cloudNoise(vUv * 3.2 + 7.1) - 0.5) * 0.14;
-      float whiteHalf = smoothstep(boundary - 0.045, boundary + 0.045, vUv.x);
+      float patchA = cloudNoise(vUv * vec2(2.7, 2.2) + seed * 0.47 + 3.1);
+      float patchB = cloudNoise(vUv.yx * vec2(3.4, 2.6) - seed * 0.31 + 17.6);
+      float diagonalDrift = sin((vUv.x * 1.2 + vUv.y * 1.55) * 6.283 + uSeed) * 0.07;
+      float whiteField = patchA * 0.68 + patchB * 0.32 + diagonalDrift;
+      float whiteMix = smoothstep(0.44, 0.61, whiteField);
       float blueClouds = 0.01 + cloudShape * 0.32;
       float whiteClouds = 0.48 + cloudShape * 0.62;
-      float density = mix(blueClouds, whiteClouds, whiteHalf);
+      float density = mix(blueClouds, whiteClouds, whiteMix);
 
       fragColor = vec4(density, 0.0, 0.0, 1.0);
     }
@@ -629,6 +643,7 @@ function startFluidSimulation() {
     seedDye: createProgram(seedDyeSource),
     display: createProgram(displaySource),
   };
+  const initialDyeSeed = Math.random() * 128;
 
   const vertexArray = gl.createVertexArray();
   const vertexBuffer = gl.createBuffer();
@@ -800,6 +815,7 @@ function startFluidSimulation() {
     clearTarget(fluid.divergence);
     clearTarget(fluid.curl);
     use(programs.seedDye);
+    gl.uniform1f(uniform(programs.seedDye, "uSeed"), initialDyeSeed);
     draw(fluid.dye.read);
     draw(fluid.dye.write);
 
