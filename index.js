@@ -2,10 +2,78 @@ const canvas = document.querySelector("#liquid-light");
 
 const pendingSplats = [];
 const pointerState = new Map();
+const pointerDyePolarity = new Map();
 const activeTouchCards = new Map();
 const activeTouchPointers = new Set();
 let lastTouchTime = -Infinity;
 let requestFluidFrame = () => {};
+let nextTouchDyePolarity = 1;
+let mouseDyePolarity = 1;
+let mouseTravelSinceDyeChange = 0;
+let clickAudioContext;
+let clickNoiseBuffer;
+
+const MOUSE_DYE_CHANGE_DISTANCE = 220;
+
+function dyeDensity(polarity, strength = 1) {
+  return (polarity > 0 ? 0.36 : -0.29) * strength;
+}
+
+function playRumblyClick() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  clickAudioContext ??= new AudioContextClass();
+  if (clickAudioContext.state === "suspended") clickAudioContext.resume();
+
+  const now = clickAudioContext.currentTime;
+  const master = clickAudioContext.createGain();
+  const thump = clickAudioContext.createOscillator();
+  const thumpGain = clickAudioContext.createGain();
+  const noise = clickAudioContext.createBufferSource();
+  const noiseFilter = clickAudioContext.createBiquadFilter();
+  const noiseGain = clickAudioContext.createGain();
+
+  if (!clickNoiseBuffer) {
+    clickNoiseBuffer = clickAudioContext.createBuffer(1, Math.ceil(clickAudioContext.sampleRate * 0.12), clickAudioContext.sampleRate);
+    const samples = clickNoiseBuffer.getChannelData(0);
+    for (let index = 0; index < samples.length; index += 1) {
+      samples[index] = Math.random() * 2 - 1;
+    }
+  }
+
+  master.gain.setValueAtTime(0.38, now);
+  thump.type = "triangle";
+  thump.frequency.setValueAtTime(92, now);
+  thump.frequency.exponentialRampToValueAtTime(42, now + 0.11);
+  thumpGain.gain.setValueAtTime(0.0001, now);
+  thumpGain.gain.exponentialRampToValueAtTime(0.3, now + 0.006);
+  thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+
+  noise.buffer = clickNoiseBuffer;
+  noiseFilter.type = "lowpass";
+  noiseFilter.frequency.setValueAtTime(220, now);
+  noiseFilter.Q.setValueAtTime(0.8, now);
+  noiseGain.gain.setValueAtTime(0.11, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+
+  thump.connect(thumpGain).connect(master);
+  noise.connect(noiseFilter).connect(noiseGain).connect(master);
+  master.connect(clickAudioContext.destination);
+  thump.start(now);
+  noise.start(now);
+  thump.stop(now + 0.14);
+  noise.stop(now + 0.08);
+}
+
+for (const link of document.querySelectorAll("a[href]")) {
+  link.addEventListener("pointerdown", (event) => {
+    if (event.button === 0) playRumblyClick();
+  }, { passive: true });
+  link.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") playRumblyClick();
+  });
+}
 
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
@@ -26,14 +94,19 @@ function pointerPosition(event) {
 
 window.addEventListener("pointerdown", (event) => {
   const position = pointerPosition(event);
+  const isTouch = event.pointerType === "touch";
+  const polarity = isTouch ? nextTouchDyePolarity : mouseDyePolarity;
+
+  if (isTouch) nextTouchDyePolarity *= -1;
   pointerState.set(event.pointerId, position);
+  pointerDyePolarity.set(event.pointerId, polarity);
   queueSplat({
     x: position.x,
     y: position.y,
     dx: 0,
     dy: 0,
-    density: 0,
-    radius: event.pointerType === "touch" ? 0.008 : 0.0045,
+    density: dyeDensity(polarity, isTouch ? 1.5 : 0.8),
+    radius: isTouch ? 0.014 : 0.006,
   });
 }, { passive: true });
 
@@ -43,7 +116,21 @@ window.addEventListener("pointermove", (event) => {
 
   if (!previous) {
     pointerState.set(event.pointerId, position);
+    pointerDyePolarity.set(event.pointerId, mouseDyePolarity);
     return;
+  }
+
+  if (event.pointerType === "mouse") {
+    mouseTravelSinceDyeChange += Math.hypot(
+      (position.x - previous.x) * window.innerWidth,
+      (position.y - previous.y) * window.innerHeight,
+    );
+
+    while (mouseTravelSinceDyeChange >= MOUSE_DYE_CHANGE_DISTANCE) {
+      mouseTravelSinceDyeChange -= MOUSE_DYE_CHANGE_DISTANCE;
+      mouseDyePolarity *= -1;
+    }
+    pointerDyePolarity.set(event.pointerId, mouseDyePolarity);
   }
 
   const scale = event.pointerType === "touch" ? 720 : 920;
@@ -52,13 +139,13 @@ window.addEventListener("pointermove", (event) => {
   const movement = Math.abs(dx) + Math.abs(dy);
 
   if (movement > 0.08) {
-    const horizontalDirection = dx / Math.max(Math.abs(dx) + Math.abs(dy), 1);
+    const polarity = pointerDyePolarity.get(event.pointerId) ?? mouseDyePolarity;
     queueSplat({
       x: position.x,
       y: position.y,
       dx,
       dy,
-      density: (event.pointerType === "touch" ? 0.34 : 0.24) * horizontalDirection,
+      density: dyeDensity(polarity, event.pointerType === "touch" ? 1 : 0.72),
       radius: event.pointerType === "touch" ? 0.007 : 0.0038,
     });
   }
@@ -69,6 +156,7 @@ window.addEventListener("pointermove", (event) => {
 function releasePointer(event) {
   if (event.pointerType !== "mouse") {
     pointerState.delete(event.pointerId);
+    pointerDyePolarity.delete(event.pointerId);
   }
 }
 

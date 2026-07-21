@@ -143,10 +143,13 @@ img {
   position: absolute;
   top: clamp(4px, 1.2vw, 14px);
   right: 0;
+  isolation: isolate;
   z-index: 10;
-  padding: 8px 13px 7px;
+  min-width: clamp(82px, 9.5vw, 112px);
+  padding: 11px 17px 10px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 999px;
+  border-radius: clamp(11px, 1.3vw, 16px);
   background:
     linear-gradient(
       145deg,
@@ -161,37 +164,42 @@ img {
     );
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.66),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.22),
     inset 0 1px 2px rgba(255, 255, 255, 0.85),
+    0 3px 0 rgba(47, 45, 54, 0.72),
     0 6px 16px rgba(36, 4, 23, 0.24);
-  color: #f2f5f7;
+  color: #30333b;
   font-family: "Nunito", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
-  font-size: clamp(0.56rem, 1.1vw, 0.68rem);
+  font-size: clamp(0.76rem, 1.35vw, 0.98rem);
   font-weight: 900;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.035em;
   text-align: center;
   text-transform: uppercase;
   transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
 }
 
+.github-link::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(255, 255, 255, 0.86), transparent 25%),
+    conic-gradient(from 210deg, rgba(255, 45, 150, 0.68), rgba(255, 224, 72, 0.5), rgba(70, 244, 220, 0.58), rgba(79, 133, 255, 0.62), rgba(225, 75, 255, 0.64), rgba(255, 45, 150, 0.68));
+  mix-blend-mode: color-dodge;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
 .github-link span {
+  position: relative;
+  z-index: 1;
   display: block;
-  background: linear-gradient(
-    180deg,
-    #8d949d 0%,
-    #eef2f5 32%,
-    #ffffff 55%,
-    #aeb5bd 100%
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0.62px rgba(77, 82, 92, 0.96);
+  -webkit-text-stroke: 0;
   text-shadow:
-    -1.2px -1.2px 0 rgba(59, 63, 72, 0.94),
-    -2px -2px 1px rgba(71, 75, 84, 0.46),
-    0.9px 0.9px 0 rgba(255, 255, 255, 0.98),
-    1.6px 1.6px 1px rgba(255, 255, 255, 0.52),
-    0 0 1px rgba(72, 77, 87, 0.64);
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 3px rgba(32, 11, 25, 0.24);
 }
 
 .github-link:hover,
@@ -199,7 +207,9 @@ img {
   filter: saturate(1.25) brightness(1.06);
   box-shadow:
     inset 0 0 0 1px rgba(26, 28, 34, 0.66),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.3),
     inset 0 1px 2px rgba(255, 255, 255, 0.9),
+    0 3px 0 rgba(47, 45, 54, 0.66),
     0 9px 22px rgba(36, 4, 23, 0.3),
     0 0 18px rgba(255, 151, 210, 0.25);
   transform: translateY(-2px);
@@ -522,11 +532,11 @@ img {
 
 @keyframes fingertip-float {
   from {
-    transform: translate3d(0, 5px, 0) rotate(-15deg);
+    transform: translate3d(0, 5px, 0) rotate(-23deg);
   }
 
   to {
-    transform: translate3d(-5px, -9px, 0) rotate(-12deg);
+    transform: translate3d(-5px, -9px, 0) rotate(-19deg);
   }
 }
 
@@ -587,8 +597,8 @@ img {
 
   .mobile-fingertip-cue {
     position: fixed;
-    right: clamp(-42px, -8vw, -24px);
-    bottom: -28px;
+    right: clamp(-70px, -13vw, -42px);
+    bottom: clamp(-190px, -42vw, -145px);
     z-index: 20;
     display: block !important;
     pointer-events: none;
@@ -650,6 +660,6 @@ img {
   }
 
   .mobile-fingertip {
-    transform: rotate(-13deg);
+    transform: rotate(-21deg);
   }
 }
