@@ -700,7 +700,7 @@ img {
   user-select: none;
   filter: drop-shadow(0 8px 10px rgba(28, 12, 21, 0.2));
   animation: fingertip-float 12.6s cubic-bezier(0.42, 0.04, 0.28, 0.98) infinite;
-  transition: scale 90ms ease-out, filter 140ms ease;
+  transition: filter 90ms ease-out;
   transform-origin: 50% 100%;
   will-change: transform;
   -webkit-user-drag: none;
@@ -715,7 +715,7 @@ img {
 }
 
 .mobile-fingertip-cue.is-pressing .mobile-fingertip {
-  scale: 0.97;
+  filter: brightness(0.97) drop-shadow(0 7px 8px rgba(28, 12, 21, 0.24));
 }
 
 @media (min-width: 560px) {

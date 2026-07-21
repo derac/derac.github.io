@@ -438,15 +438,10 @@ function triggerFingerMute() {
   fingerTriggerLocked = true;
   const bellRect = muteButton.getBoundingClientRect();
   const fingerTip = fingerTipPosition();
-  const bellCenter = {
-    x: bellRect.left + bellRect.width * 0.5,
-    y: bellRect.top + bellRect.height * 0.52,
-  };
-  const contactX = bellCenter.x - fingerTip.x;
-  const contactY = bellCenter.y - fingerTip.y;
-  const frozenFingerTransform = getComputedStyle(fingertip).transform;
-  fingertip.style.animation = "none";
-  fingertip.style.transform = frozenFingerTransform;
+  const bellContact = closestBellPoint(bellRect, fingerTip);
+  const contactX = bellContact.x - fingerTip.x;
+  const contactY = bellContact.y - fingerTip.y;
+  fingertip.style.animationPlayState = "paused";
   fingertipCue.classList.add("is-clicking");
 
   function moveFinger(x, y, duration, easing) {
@@ -455,50 +450,51 @@ function triggerFingerMute() {
     fingertipCue.style.setProperty("--finger-press-y", y + "px");
   }
 
-  moveFinger(contactX, contactY, 280, "cubic-bezier(0.16, 0.82, 0.24, 1)");
+  moveFinger(contactX, contactY, 240, "cubic-bezier(0.16, 0.82, 0.24, 1)");
   setTimeout(() => {
     fingertipCue.classList.add("is-pressing");
     muteButton.classList.add("is-triggered");
-    moveFinger(contactX - 2, contactY - 2, 90, "cubic-bezier(0.35, 0, 0.65, 1)");
+    moveFinger(contactX - 4, contactY, 70, "cubic-bezier(0.35, 0, 0.65, 1)");
+  }, 240);
+  setTimeout(() => {
     playRumblyClick(true);
     toggleSiteMute();
-  }, 280);
+  }, 310);
   setTimeout(() => {
     fingertipCue.classList.remove("is-pressing");
     muteButton.classList.remove("is-triggered");
-    moveFinger(contactX + 7, contactY + 5, 180, "cubic-bezier(0.16, 0.82, 0.3, 1)");
-  }, 380);
+    moveFinger(contactX + 6, contactY + 4, 150, "cubic-bezier(0.16, 0.82, 0.3, 1)");
+  }, 325);
   setTimeout(() => {
-    moveFinger(contactX + 27, contactY + 8, 220, "cubic-bezier(0.18, 0.72, 0.24, 1)");
-  }, 570);
+    moveFinger(contactX + 28, contactY + 8, 220, "cubic-bezier(0.18, 0.72, 0.24, 1)");
+  }, 520);
   setTimeout(() => {
-    moveFinger(contactX - 29, contactY - 3, 170, "cubic-bezier(0.55, 0, 0.92, 0.48)");
-  }, 840);
+    moveFinger(contactX - 30, contactY - 2, 170, "cubic-bezier(0.55, 0, 0.92, 0.48)");
+  }, 860);
   setTimeout(() => {
     muteButton.classList.add("is-flicking");
     void muteButton.offsetWidth;
     setMuteTarget(muteOffsetX - 132, muteOffsetY - 10);
     kickBellPhysics(-132, -10, 1.5);
     playMuteBell(0.72);
-  }, 920);
+  }, 970);
   setTimeout(() => {
     moveFinger(contactX + 10, contactY + 5, 220, "cubic-bezier(0.16, 0.82, 0.3, 1)");
-  }, 1060);
+  }, 1110);
   setTimeout(() => {
     muteButton.classList.remove("is-flicking");
-  }, 1210);
+  }, 1260);
   setTimeout(() => {
     moveFinger(0, 0, 480, "cubic-bezier(0.16, 0.82, 0.3, 1)");
-  }, 1300);
+  }, 1360);
   setTimeout(() => {
     fingertipCue.classList.remove("is-clicking");
     fingertipCue.style.removeProperty("transition");
     fingertipCue.style.removeProperty("--finger-press-x");
     fingertipCue.style.removeProperty("--finger-press-y");
-    fingertip.style.removeProperty("animation");
-    fingertip.style.removeProperty("transform");
+    fingertip.style.removeProperty("animation-play-state");
     fingerTriggerLocked = false;
-  }, 1840);
+  }, 1900);
 }
 
 function fingerPointPosition(xFraction, yFraction) {
@@ -524,16 +520,20 @@ function fingerTipPosition() {
   return fingerPointPosition(0.5, 0.08);
 }
 
+function closestBellPoint(rect, point) {
+  return {
+    x: clamp(point.x, rect.left + 9, rect.right - 9),
+    y: clamp(point.y, rect.top + 6, rect.bottom - 7),
+  };
+}
+
 function checkFingerMuteProximity(targetCenter) {
   if (!muteButton || !fingertip || fingerTriggerLocked) return;
   const buttonRect = muteButton.getBoundingClientRect();
   const fingerTip = fingerTipPosition();
   if (!buttonRect.width || !fingerTip) return;
-  const buttonCenter = targetCenter ?? {
-    x: buttonRect.left + buttonRect.width * 0.5,
-    y: buttonRect.top + buttonRect.height * 0.5,
-  };
-  if (Math.hypot(buttonCenter.x - fingerTip.x, buttonCenter.y - fingerTip.y) < 38) {
+  const bellPoint = targetCenter ?? closestBellPoint(buttonRect, fingerTip);
+  if (Math.hypot(bellPoint.x - fingerTip.x, bellPoint.y - fingerTip.y) < 18) {
     triggerFingerMute();
   }
 }
