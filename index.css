@@ -140,9 +140,9 @@ img {
 }
 
 .github-link {
-  position: absolute;
-  top: clamp(4px, 1.2vw, 14px);
-  right: 0;
+  position: fixed;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  left: 50%;
   isolation: isolate;
   z-index: 10;
   min-width: clamp(82px, 9.5vw, 112px);
@@ -175,6 +175,7 @@ img {
   letter-spacing: 0.035em;
   text-align: center;
   text-transform: uppercase;
+  transform: translateX(-50%);
   transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
 }
 
@@ -212,12 +213,12 @@ img {
     0 3px 0 rgba(47, 45, 54, 0.66),
     0 9px 22px rgba(36, 4, 23, 0.3),
     0 0 18px rgba(255, 151, 210, 0.25);
-  transform: translateY(-2px);
+  transform: translate(-50%, -2px);
   outline: none;
 }
 
 .github-link:active {
-  transform: translateY(1px) scale(0.98);
+  transform: translate(-50%, 1px) scale(0.98);
 }
 
 .card-grid {
@@ -589,10 +590,6 @@ img {
   .card-name {
     font-size: clamp(0.88rem, 4vw, 1.12rem);
     -webkit-text-stroke-width: 0.62px;
-  }
-
-  .github-link {
-    top: 4px;
   }
 
   .mobile-fingertip-cue {
