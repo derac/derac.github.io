@@ -5,6 +5,7 @@ const pointerState = new Map();
 const pointerDyePolarity = new Map();
 const activeTouchCards = new Map();
 const activeTouchPointers = new Set();
+const projectCards = [...document.querySelectorAll(".project-card")];
 let lastTouchTime = -Infinity;
 let requestFluidFrame = () => {};
 let touchDyePolarity = 1;
@@ -403,30 +404,73 @@ function toggleSiteMute() {
 }
 
 function triggerFingerMute() {
-  if (fingerTriggerLocked || !muteButton || !fingertipCue) return;
+  if (fingerTriggerLocked || !muteButton || !fingertipCue || !fingertip) return;
   fingerTriggerLocked = true;
+  const bellRect = muteButton.getBoundingClientRect();
+  const fingerTip = fingerTipPosition();
+  const bellCenter = {
+    x: bellRect.left + bellRect.width * 0.5,
+    y: bellRect.top + bellRect.height * 0.52,
+  };
+  const contactX = bellCenter.x - fingerTip.x;
+  const contactY = bellCenter.y - fingerTip.y;
+  const frozenFingerTransform = getComputedStyle(fingertip).transform;
+  fingertip.style.animation = "none";
+  fingertip.style.transform = frozenFingerTransform;
   fingertipCue.classList.add("is-clicking");
-  muteButton.classList.add("is-triggered");
-  playRumblyClick(true);
-  toggleSiteMute();
+
+  function moveFinger(x, y, duration, easing) {
+    fingertipCue.style.transition = `translate ${duration}ms ${easing}`;
+    fingertipCue.style.setProperty("--finger-press-x", x + "px");
+    fingertipCue.style.setProperty("--finger-press-y", y + "px");
+  }
+
+  moveFinger(contactX, contactY, 260, "cubic-bezier(0.2, 0.82, 0.24, 1)");
+  setTimeout(() => {
+    moveFinger(contactX + 27, contactY + 8, 240, "cubic-bezier(0.18, 0.72, 0.24, 1)");
+  }, 290);
+  setTimeout(() => {
+    moveFinger(contactX - 29, contactY - 3, 170, "cubic-bezier(0.55, 0, 0.92, 0.48)");
+  }, 740);
+  setTimeout(() => {
+    fingertipCue.classList.add("is-pressing");
+    muteButton.classList.add("is-triggered");
+    playRumblyClick(true);
+    toggleSiteMute();
+    muteButton.classList.add("is-flicking");
+    void muteButton.offsetWidth;
+    setMuteTarget(muteOffsetX - 132, muteOffsetY - 10);
+    kickBellPhysics(-132, -10, 1.5);
+    playMuteBell(0.72);
+  }, 820);
+  setTimeout(() => {
+    fingertipCue.classList.remove("is-pressing");
+    moveFinger(contactX + 10, contactY + 5, 220, "cubic-bezier(0.16, 0.82, 0.3, 1)");
+  }, 960);
+  setTimeout(() => {
+    muteButton.classList.remove("is-triggered", "is-flicking");
+  }, 1110);
+  setTimeout(() => {
+    moveFinger(0, 0, 480, "cubic-bezier(0.16, 0.82, 0.3, 1)");
+  }, 1200);
   setTimeout(() => {
     fingertipCue.classList.remove("is-clicking");
-    muteButton.classList.remove("is-triggered");
-    setMuteTarget(muteOffsetX - 150, muteOffsetY - 24);
-    playMuteBell(0.72);
-  }, 780);
-  setTimeout(() => {
+    fingertipCue.style.removeProperty("transition");
+    fingertipCue.style.removeProperty("--finger-press-x");
+    fingertipCue.style.removeProperty("--finger-press-y");
+    fingertip.style.removeProperty("animation");
+    fingertip.style.removeProperty("transform");
     fingerTriggerLocked = false;
-  }, 1900);
+  }, 1740);
 }
 
-function fingerTipPosition() {
+function fingerPointPosition(xFraction, yFraction) {
   if (!fingertip || !fingertipCue) return null;
   const cueRect = fingertipCue.getBoundingClientRect();
   const style = getComputedStyle(fingertip);
   const origin = style.transformOrigin.split(" ").map(Number.parseFloat);
-  const localX = fingertip.offsetWidth * 0.5;
-  const localY = fingertip.offsetHeight * 0.08;
+  const localX = fingertip.offsetWidth * xFraction;
+  const localY = fingertip.offsetHeight * yFraction;
   if (window.DOMMatrixReadOnly && style.transform !== "none") {
     const matrix = new DOMMatrixReadOnly(style.transform);
     const x = localX - origin[0];
@@ -439,6 +483,10 @@ function fingerTipPosition() {
   return { x: cueRect.left + localX, y: cueRect.top + localY };
 }
 
+function fingerTipPosition() {
+  return fingerPointPosition(0.5, 0.08);
+}
+
 function checkFingerMuteProximity(targetCenter) {
   if (!muteButton || !fingertip || fingerTriggerLocked) return;
   const buttonRect = muteButton.getBoundingClientRect();
@@ -448,7 +496,7 @@ function checkFingerMuteProximity(targetCenter) {
     x: buttonRect.left + buttonRect.width * 0.5,
     y: buttonRect.top + buttonRect.height * 0.5,
   };
-  if (Math.hypot(buttonCenter.x - fingerTip.x, buttonCenter.y - fingerTip.y) < 82) {
+  if (Math.hypot(buttonCenter.x - fingerTip.x, buttonCenter.y - fingerTip.y) < 38) {
     triggerFingerMute();
   }
 }
@@ -700,7 +748,10 @@ function releaseTouchCard(identifier) {
   if (!card) return;
 
   activeTouchCards.delete(identifier);
-  if (![...activeTouchCards.values()].includes(card)) resetCardFoil(card);
+  if (![...activeTouchCards.values()].includes(card)) {
+    resetCardFoil(card);
+    stopProjectPad(card);
+  }
 }
 
 function releaseAllTouchCards() {
@@ -708,27 +759,37 @@ function releaseAllTouchCards() {
   activeTouchCards.clear();
   activeTouchPointers.clear();
   for (const card of cards) resetCardFoil(card);
+  stopProjectPad();
 }
 
-function cardAtPointer(pointer) {
-  return document.elementFromPoint(pointer.clientX, pointer.clientY)?.closest(".project-card") ?? null;
+function interactiveAtPointer(pointer) {
+  return document.elementFromPoint(pointer.clientX, pointer.clientY)?.closest(".project-card, .github-link") ?? null;
+}
+
+function soundIndexForInteractive(interactive) {
+  return interactive.classList.contains("github-link") ? 4 : projectCards.indexOf(interactive);
 }
 
 function updateTouchCard(pointer) {
   const previousCard = activeTouchCards.get(pointer.pointerId);
-  const currentCard = cardAtPointer(pointer);
+  const currentCard = interactiveAtPointer(pointer);
 
   if (previousCard !== currentCard) {
     activeTouchCards.delete(pointer.pointerId);
     if (previousCard && ![...activeTouchCards.values()].includes(previousCard)) {
       resetCardFoil(previousCard);
+      stopProjectPad(previousCard);
     }
-    if (currentCard) activeTouchCards.set(pointer.pointerId, currentCard);
+    if (currentCard) {
+      activeTouchCards.set(pointer.pointerId, currentCard);
+      startProjectPad(currentCard, soundIndexForInteractive(currentCard), pointer);
+    }
   }
 
   if (currentCard) {
     currentCard.classList.add("is-touching");
     setCardFoil(currentCard, pointer, 2);
+    morphProjectPad(currentCard, pointer);
   }
 }
 
@@ -757,13 +818,12 @@ window.addEventListener("pointermove", moveTouchPointer, { passive: true, captur
 window.addEventListener("pointerup", finishTouchPointer, { passive: true, capture: true });
 window.addEventListener("pointercancel", finishTouchPointer, { passive: true, capture: true });
 
-for (const [cardIndex, card] of [...document.querySelectorAll(".project-card")].entries()) {
+for (const [cardIndex, card] of projectCards.entries()) {
   card.addEventListener("pointerenter", (event) => {
     if (event.pointerType === "mouse") startProjectPad(card, cardIndex, event);
   }, { passive: true });
 
   card.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "touch") startProjectPad(card, cardIndex, event);
     if (event.pointerType !== "pen") return;
 
     startProjectPad(card, cardIndex, event);
@@ -805,7 +865,7 @@ if (githubLink) {
   githubLink.addEventListener("mouseenter", (event) => startProjectPad(githubLink, 4, event), { passive: true });
   githubLink.addEventListener("mousemove", (event) => {
     githubLink.classList.add("is-mousing");
-    setCardFoil(githubLink, event, 0.82);
+    setCardFoil(githubLink, event);
     morphProjectPad(githubLink, event);
   }, { passive: true });
   githubLink.addEventListener("mouseleave", () => {
