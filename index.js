@@ -7,13 +7,17 @@ const pendingSplats = [];
 const pointerState = new Map();
 const pointerDyePolarity = new Map();
 const activeTouchCards = new Map();
+const activeTouchPoints = new Map();
+const activeTouchBounds = new Map();
 const activeTouchPointers = new Set();
+const pendingTouchCards = new Set();
 const activePads = new Map();
 const projectCards = [...document.querySelectorAll(".project-card")];
 const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 let lastTouchTime = -Infinity;
 let touchChordActive = false;
 let suppressTouchClicksUntil = 0;
+let touchCardFrame = 0;
 let requestFluidFrame = () => {};
 let touchDyePolarity = 1;
 let mouseDyePolarity = 1;
@@ -23,21 +27,12 @@ let clickNoiseBuffer;
 let musicContext;
 let musicMaster;
 let siteMix;
-let ambientBus;
-let ambientFilter;
-let ambientPanner;
-let ambientMotionGain;
-let ambientSend;
 let padBus;
 let musicReverb;
 let sceneReverbSend;
-let airyStringWave;
 let bowedStringWave;
 let isSiteMuted = false;
 let lastBellTime = -Infinity;
-let lastAmbientPointerX = null;
-let lastAmbientPointerY = null;
-let lastAmbientPointerTime = 0;
 
 const MOUSE_DYE_CHANGE_DISTANCE = 220;
 const TOUCH_DYE_CHANGE_DISTANCE = 120;
@@ -55,10 +50,8 @@ const PAD_CHORDS = [
   [185.0, 233.08, 277.18, 369.99],
 ];
 
-function createStringWave(context, airy = false) {
-  const harmonics = airy
-    ? [0, 1, 0.3, 0.12, 0.055, 0.026, 0.012]
-    : [0, 1, 0.52, 0.28, 0.16, 0.09, 0.052, 0.03];
+function createStringWave(context) {
+  const harmonics = [0, 1, 0.52, 0.28, 0.16, 0.09, 0.052, 0.03];
   const real = new Float32Array(harmonics.length);
   const imaginary = new Float32Array(harmonics.length);
   for (let index = 1; index < harmonics.length; index += 1) {
@@ -88,34 +81,22 @@ function ensureSoundscape() {
   musicContext = new AudioContextClass();
   musicMaster = musicContext.createGain();
   siteMix = musicContext.createGain();
-  ambientBus = musicContext.createGain();
   padBus = musicContext.createGain();
   musicReverb = musicContext.createConvolver();
   sceneReverbSend = musicContext.createGain();
   const reverbGain = musicContext.createGain();
   const outputLimiter = musicContext.createDynamicsCompressor();
   const outputCeiling = musicContext.createGain();
-  const ambientHighpass = musicContext.createBiquadFilter();
-  ambientFilter = musicContext.createBiquadFilter();
-  ambientPanner = musicContext.createStereoPanner ? musicContext.createStereoPanner() : musicContext.createGain();
-  ambientMotionGain = musicContext.createGain();
-  ambientSend = musicContext.createGain();
-  airyStringWave = createStringWave(musicContext, true);
   bowedStringWave = createStringWave(musicContext);
-  const mobileAmbientBoost = isCoarsePointer ? 2.15 : 1;
 
   musicMaster.gain.value = isSiteMuted ? 0 : 0.68;
   siteMix.gain.value = 1;
-  ambientBus.gain.value = 0.11 * mobileAmbientBoost;
-  ambientMotionGain.gain.value = 0.92;
   padBus.gain.value = isCoarsePointer ? 0.52 : 1.05;
   reverbGain.gain.value = 0.26;
   sceneReverbSend.gain.value = 0.2;
   musicReverb.buffer = createReverbImpulse(musicContext);
   sceneReverbSend.connect(musicReverb);
   musicReverb.connect(reverbGain).connect(musicMaster);
-  ambientBus.connect(musicMaster);
-  ambientBus.connect(sceneReverbSend);
   padBus.connect(musicMaster);
   padBus.connect(sceneReverbSend);
   outputLimiter.threshold.value = isCoarsePointer ? -10 : -8;
@@ -126,82 +107,6 @@ function ensureSoundscape() {
   outputCeiling.gain.value = isCoarsePointer ? 0.82 : 1;
   musicMaster.connect(siteMix);
   siteMix.connect(outputLimiter).connect(outputCeiling).connect(musicContext.destination);
-
-  ambientHighpass.type = "highpass";
-  ambientHighpass.frequency.value = 170;
-  ambientHighpass.Q.value = 0.38;
-  ambientFilter.type = "lowpass";
-  ambientFilter.frequency.value = 1900;
-  ambientFilter.Q.value = 0.18;
-  ambientFilter.connect(ambientPanner).connect(ambientMotionGain).connect(ambientBus);
-  ambientSend.gain.value = 0.24;
-  ambientMotionGain.connect(ambientSend).connect(musicReverb);
-
-  const stringVibrato = musicContext.createOscillator();
-  const stringVibratoDepth = musicContext.createGain();
-  const stringSwell = musicContext.createOscillator();
-  const stringSwellDepth = musicContext.createGain();
-  stringVibrato.frequency.value = 0.11;
-  stringVibratoDepth.gain.value = 2.2;
-  stringSwell.frequency.value = 0.025;
-  stringSwellDepth.gain.setValueAtTime(0, musicContext.currentTime);
-  stringSwellDepth.gain.linearRampToValueAtTime(0.00055, musicContext.currentTime + 5.5);
-  stringVibrato.connect(stringVibratoDepth);
-  stringSwell.connect(stringSwellDepth);
-  for (const [toneIndex, frequency] of [349.23, 440, 523.25, 698.46].entries()) {
-    for (const detune of [-7, 7]) {
-      const string = musicContext.createOscillator();
-      const stringGain = musicContext.createGain();
-      string.setPeriodicWave(airyStringWave);
-      string.frequency.value = frequency;
-      string.detune.value = detune + (toneIndex - 1.5) * 1.5;
-      const voiceLevel = toneIndex < 2 ? 0.0055 : 0.0042;
-      stringGain.gain.setValueAtTime(0.0001, musicContext.currentTime);
-      stringGain.gain.linearRampToValueAtTime(voiceLevel, musicContext.currentTime + 2.4 + toneIndex * 0.35);
-      stringVibratoDepth.connect(string.detune);
-      stringSwellDepth.connect(stringGain.gain);
-      string.connect(stringGain).connect(ambientHighpass);
-      string.start();
-    }
-  }
-  stringVibrato.start();
-  stringSwell.start();
-
-  const breeze = musicContext.createBufferSource();
-  const breezeBuffer = musicContext.createBuffer(1, musicContext.sampleRate * 5, musicContext.sampleRate);
-  const breezeData = breezeBuffer.getChannelData(0);
-  let breezeValue = 0;
-  for (let index = 0; index < breezeData.length; index += 1) {
-    const whiteNoise = Math.random() * 2 - 1;
-    breezeValue = breezeValue * 0.98 + whiteNoise * 0.02;
-    breezeData[index] = (whiteNoise * 0.012 + breezeValue * 0.988) * 0.14;
-  }
-  breeze.buffer = breezeBuffer;
-  breeze.loop = true;
-  breeze.connect(ambientHighpass).connect(ambientFilter);
-  breeze.start();
-
-  const ambientLfo = musicContext.createOscillator();
-  const ambientLfoDepth = musicContext.createGain();
-  ambientLfo.frequency.value = 0.012;
-  ambientLfoDepth.gain.value = 180;
-  ambientLfo.connect(ambientLfoDepth).connect(ambientFilter.frequency);
-  ambientLfo.start();
-
-  const noise = musicContext.createBufferSource();
-  const noiseBuffer = musicContext.createBuffer(1, musicContext.sampleRate * 3, musicContext.sampleRate);
-  const noiseData = noiseBuffer.getChannelData(0);
-  for (let index = 0; index < noiseData.length; index += 1) noiseData[index] = Math.random() * 2 - 1;
-  const shimmerFilter = musicContext.createBiquadFilter();
-  const shimmerGain = musicContext.createGain();
-  noise.buffer = noiseBuffer;
-  noise.loop = true;
-  shimmerFilter.type = "bandpass";
-  shimmerFilter.frequency.value = 3600;
-  shimmerFilter.Q.value = 0.28;
-  shimmerGain.gain.value = 0.0005;
-  noise.connect(shimmerFilter).connect(shimmerGain).connect(ambientPanner);
-  noise.start();
 
   return musicContext;
 }
@@ -261,10 +166,9 @@ function stopProjectPad(card) {
   for (const voice of voices) releaseProjectVoice(voice);
 }
 
-function morphProjectPad(card, event) {
+function morphProjectPad(card, event, bounds = card.getBoundingClientRect()) {
   const voice = activePads.get(card);
   if (!voice) return;
-  const bounds = card.getBoundingClientRect();
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
   const now = voice.context.currentTime;
@@ -805,11 +709,6 @@ if (muteButton) {
   setInterval(checkFingerMuteProximity, 180);
 }
 
-try {
-  ensureSoundscape();
-} catch {
-  // The visual experience remains available when Web Audio is unsupported.
-}
 window.addEventListener("pointerdown", resumeSoundscape, { capture: true, passive: true });
 window.addEventListener("keydown", resumeSoundscape, { capture: true });
 
@@ -826,32 +725,6 @@ for (const link of document.querySelectorAll("a[href]")) {
 function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
-
-function modulateBackgroundSound(event) {
-  const hoveredElement = document.elementFromPoint(event.clientX, event.clientY);
-  if (hoveredElement?.closest(".project-card, .github-link, .mute-button")) return;
-
-  const pointerTime = performance.now();
-  const elapsed = pointerTime - lastAmbientPointerTime;
-  const speed = lastAmbientPointerX !== null && elapsed > 0 && elapsed < 120
-    ? clamp(Math.hypot(event.clientX - lastAmbientPointerX, event.clientY - lastAmbientPointerY) / elapsed, 0, 1.5)
-    : 0;
-  lastAmbientPointerX = event.clientX;
-  lastAmbientPointerY = event.clientY;
-  lastAmbientPointerTime = pointerTime;
-  if (!musicContext || !ambientFilter || !ambientMotionGain || !ambientSend) return;
-
-  const x = clamp(event.clientX / window.innerWidth, 0, 1);
-  const y = clamp(event.clientY / window.innerHeight, 0, 1);
-  const now = musicContext.currentTime;
-  ambientFilter.frequency.setTargetAtTime(1150 + (1 - y) * 1650 + speed * 150, now, 0.22);
-  ambientMotionGain.gain.setTargetAtTime(0.84 + speed * 0.09, now, 0.25);
-  ambientSend.gain.setTargetAtTime(0.2 + y * 0.16, now, 0.35);
-  if (ambientPanner.pan) ambientPanner.pan.setTargetAtTime((x - 0.5) * 1.05, now, 0.24);
-}
-
-window.addEventListener("pointerdown", modulateBackgroundSound, { passive: true });
-window.addEventListener("pointermove", modulateBackgroundSound, { passive: true });
 
 function queueSplat(splat) {
   pendingSplats.push(splat);
@@ -965,8 +838,7 @@ function releasePointer(event) {
 window.addEventListener("pointerup", releasePointer, { passive: true });
 window.addEventListener("pointercancel", releasePointer, { passive: true });
 
-function setCardFoil(card, event, touchAmount = 1) {
-  const bounds = card.getBoundingClientRect();
+function setCardFoil(card, event, touchAmount = 1, bounds = card.getBoundingClientRect()) {
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
 
@@ -1002,7 +874,11 @@ function releaseTouchCard(identifier) {
   if (!card) return;
 
   activeTouchCards.delete(identifier);
-  if (![...activeTouchCards.values()].includes(card)) {
+  if ([...activeTouchCards.values()].includes(card)) {
+    scheduleTouchCard(card);
+  } else {
+    pendingTouchCards.delete(card);
+    activeTouchBounds.delete(card);
     resetCardFoil(card);
     stopProjectPad(card);
   }
@@ -1011,7 +887,12 @@ function releaseTouchCard(identifier) {
 function releaseAllTouchCards() {
   const cards = new Set(activeTouchCards.values());
   activeTouchCards.clear();
+  activeTouchPoints.clear();
+  activeTouchBounds.clear();
   activeTouchPointers.clear();
+  pendingTouchCards.clear();
+  if (touchCardFrame) cancelAnimationFrame(touchCardFrame);
+  touchCardFrame = 0;
   for (const card of cards) resetCardFoil(card);
   stopProjectPad();
 }
@@ -1024,56 +905,117 @@ function soundIndexForInteractive(interactive) {
   return interactive.classList.contains("github-link") ? 4 : projectCards.indexOf(interactive);
 }
 
-function updateTouchCard(pointer) {
-  const previousCard = activeTouchCards.get(pointer.pointerId);
-  const currentCard = interactiveAtPointer(pointer);
+function averageTouchPoint(card) {
+  let clientX = 0;
+  let clientY = 0;
+  let count = 0;
 
-  if (previousCard !== currentCard) {
-    activeTouchCards.delete(pointer.pointerId);
-    if (previousCard && ![...activeTouchCards.values()].includes(previousCard)) {
-      resetCardFoil(previousCard);
-      stopProjectPad(previousCard);
-    }
-    if (currentCard) {
-      activeTouchCards.set(pointer.pointerId, currentCard);
-      startProjectPad(currentCard, soundIndexForInteractive(currentCard), pointer);
-    }
+  for (const [pointerId, activeCard] of activeTouchCards) {
+    if (activeCard !== card) continue;
+    const point = activeTouchPoints.get(pointerId);
+    if (!point) continue;
+    clientX += point.clientX;
+    clientY += point.clientY;
+    count += 1;
   }
 
-  if (currentCard) {
-    currentCard.classList.add("is-touching");
-    setCardFoil(currentCard, pointer, 2);
-    morphProjectPad(currentCard, pointer);
+  return count ? { clientX: clientX / count, clientY: clientY / count } : null;
+}
+
+function stableTouchBounds(card) {
+  const initial = activeTouchBounds.get(card);
+  if (!initial) return card.getBoundingClientRect();
+  return {
+    left: initial.left - (window.scrollX - initial.scrollX),
+    top: initial.top - (window.scrollY - initial.scrollY),
+    width: initial.width,
+    height: initial.height,
+  };
+}
+
+function renderPendingTouchCards() {
+  touchCardFrame = 0;
+  const cards = [...pendingTouchCards];
+  pendingTouchCards.clear();
+
+  for (const card of cards) {
+    const point = averageTouchPoint(card);
+    if (!point) continue;
+    const bounds = stableTouchBounds(card);
+    card.classList.add("is-touching");
+    setCardFoil(card, point, 0.9, bounds);
+    morphProjectPad(card, point, bounds);
   }
 }
 
-function registerTouchChord() {
-  if (new Set(activeTouchCards.values()).size < 2) return;
-  touchChordActive = true;
-  suppressTouchClicksUntil = Infinity;
+function scheduleTouchCard(card) {
+  pendingTouchCards.add(card);
+  if (!touchCardFrame) {
+    touchCardFrame = requestAnimationFrame(renderPendingTouchCards);
+  }
+}
+
+function touchCardAtPointer(pointer) {
+  if (pointer.target instanceof Element) {
+    const targetCard = pointer.target.closest(".project-card, .github-link");
+    if (targetCard) return targetCard;
+  }
+  return interactiveAtPointer(pointer);
+}
+
+function updateTouchPoint(pointer) {
+  const card = activeTouchCards.get(pointer.pointerId);
+  if (!card) return;
+  activeTouchPoints.set(pointer.pointerId, {
+    clientX: pointer.clientX,
+    clientY: pointer.clientY,
+  });
+  scheduleTouchCard(card);
 }
 
 function startTouchPointer(event) {
   if (event.pointerType !== "touch") return;
+  const card = touchCardAtPointer(event);
+  if (!card) return;
+
   if (activeTouchPointers.size > 0) event.preventDefault();
   lastTouchTime = performance.now();
+  const cardWasActive = [...activeTouchCards.values()].includes(card);
   activeTouchPointers.add(event.pointerId);
-  if (event.target instanceof Element) {
-    const captureTarget = event.target.closest(".project-card, .github-link");
-    try {
-      captureTarget?.setPointerCapture?.(event.pointerId);
-    } catch {
-      // Global pointer listeners still provide a complete touch lifecycle.
-    }
+  activeTouchCards.set(event.pointerId, card);
+  activeTouchPoints.set(event.pointerId, {
+    clientX: event.clientX,
+    clientY: event.clientY,
+  });
+  if (!cardWasActive) {
+    const bounds = card.getBoundingClientRect();
+    activeTouchBounds.set(card, {
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+    });
   }
-  updateTouchCard(event);
+
+  try {
+    card.setPointerCapture?.(event.pointerId);
+  } catch {
+    // Global pointer listeners still provide a complete touch lifecycle.
+  }
+
+  if (!cardWasActive) {
+    startProjectPad(card, soundIndexForInteractive(card), event);
+  }
+  scheduleTouchCard(card);
   registerTouchChord();
 }
 
 function moveTouchPointer(event) {
   if (event.pointerType !== "touch" || !activeTouchPointers.has(event.pointerId)) return;
   lastTouchTime = performance.now();
-  updateTouchCard(event);
+  updateTouchPoint(event);
   registerTouchChord();
   if (touchChordActive) event.preventDefault();
 }
@@ -1082,11 +1024,18 @@ function finishTouchPointer(event) {
   if (event.pointerType !== "touch") return;
   lastTouchTime = performance.now();
   activeTouchPointers.delete(event.pointerId);
+  activeTouchPoints.delete(event.pointerId);
   releaseTouchCard(event.pointerId);
   if (activeTouchPointers.size === 0 && touchChordActive) {
     touchChordActive = false;
     suppressTouchClicksUntil = performance.now() + 500;
   }
+}
+
+function registerTouchChord() {
+  if (new Set(activeTouchCards.values()).size < 2) return;
+  touchChordActive = true;
+  suppressTouchClicksUntil = Infinity;
 }
 
 window.addEventListener("pointerdown", startTouchPointer, { passive: false, capture: true });
@@ -1116,7 +1065,7 @@ for (const [cardIndex, card] of projectCards.entries()) {
   }, { passive: true });
 
   card.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "touch" || event.pointerType === "pen") morphProjectPad(card, event);
+    if (event.pointerType === "pen") morphProjectPad(card, event);
     if (event.pointerType === "pen" && card.classList.contains("is-touching")) {
       setCardFoil(card, event, 0.88);
     }
@@ -1130,7 +1079,9 @@ for (const [cardIndex, card] of projectCards.entries()) {
     if (event.pointerType === "pen") stopProjectPad(card);
     if (event.pointerType === "pen") resetCardFoil(card);
   }, { passive: true });
-  card.addEventListener("lostpointercapture", () => resetCardFoil(card), { passive: true });
+  card.addEventListener("lostpointercapture", (event) => {
+    if (event.pointerType === "pen") resetCardFoil(card);
+  }, { passive: true });
 
   card.addEventListener("mousemove", (event) => {
     if (performance.now() - lastTouchTime < 800) return;
@@ -1156,7 +1107,9 @@ if (githubLink) {
     resetCardFoil(githubLink);
     stopProjectPad(githubLink);
   }, { passive: true });
-  githubLink.addEventListener("pointerdown", (event) => startProjectPad(githubLink, 4, event), { passive: true });
+  githubLink.addEventListener("pointerdown", (event) => {
+    if (event.pointerType !== "touch") startProjectPad(githubLink, 4, event);
+  }, { passive: true });
   githubLink.addEventListener("pointerup", (event) => {
     if (event.pointerType !== "touch") stopProjectPad(githubLink);
   }, { passive: true });
@@ -1624,13 +1577,21 @@ function startFluidSimulation() {
       gl.viewport(0, 0, target.width, target.height);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
+  function canvasCssSize() {
+    return {
+      width: Math.max(1, window.innerWidth),
+      height: Math.max(1, window.innerHeight),
+    };
+  }
+
   function resolution(base) {
-    const aspect = Math.max(window.innerWidth, 1) / Math.max(window.innerHeight, 1);
+    const size = canvasCssSize();
+    const aspect = size.width / size.height;
     if (aspect >= 1) {
       return {
         width: Math.min(320, Math.round(base * aspect)),
@@ -1646,6 +1607,10 @@ function startFluidSimulation() {
   let fluid = null;
   let canvasWidth = 0;
   let canvasHeight = 0;
+  const maximumViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+  const maximumBufferSize = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
+  const maximumCanvasWidth = Math.min(maximumViewport[0], maximumBufferSize);
+  const maximumCanvasHeight = Math.min(maximumViewport[1], maximumBufferSize);
 
   function initializeTargets() {
     if (fluid) {
@@ -1712,9 +1677,17 @@ function startFluidSimulation() {
   }
 
   function resize() {
+    const size = canvasCssSize();
     const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
-    const nextWidth = Math.max(1, Math.round(window.innerWidth * dpr));
-    const nextHeight = Math.max(1, Math.round(window.innerHeight * dpr));
+    const desiredWidth = Math.max(1, Math.ceil(size.width * dpr));
+    const desiredHeight = Math.max(1, Math.ceil(size.height * dpr));
+    const bufferScale = Math.min(
+      1,
+      maximumCanvasWidth / desiredWidth,
+      maximumCanvasHeight / desiredHeight,
+    );
+    const nextWidth = Math.max(1, Math.floor(desiredWidth * bufferScale));
+    const nextHeight = Math.max(1, Math.floor(desiredHeight * bufferScale));
     if (nextWidth === canvasWidth && nextHeight === canvasHeight) return;
 
     canvasWidth = nextWidth;
@@ -1726,7 +1699,8 @@ function startFluidSimulation() {
 
   function applySplat(splat) {
     const program = programs.splat;
-    const aspect = window.innerWidth / Math.max(window.innerHeight, 1);
+    const size = canvasCssSize();
+    const aspect = size.width / size.height;
 
     use(program);
     gl.uniform2f(uniform(program, "uPoint"), splat.x, splat.y);

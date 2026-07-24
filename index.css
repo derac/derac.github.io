@@ -29,8 +29,12 @@ img { display: block; max-width: 100%; }
 .liquid-fallback {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  min-width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  contain: strict;
+  transform: none;
   pointer-events: none;
 }
 
@@ -282,8 +286,12 @@ img { display: block; max-width: 100%; }
 }
 
 .project-card:hover .card-face,
-.project-card.is-mousing .card-face,
-.project-card.is-touching .card-face { transition: transform 90ms linear, box-shadow 180ms ease; }
+.project-card.is-mousing .card-face { transition: transform 90ms linear, box-shadow 180ms ease; }
+
+.project-card.is-touching .card-face,
+.business-card.is-touching {
+  transition: transform 130ms cubic-bezier(.16, .72, .28, 1), box-shadow 180ms ease;
+}
 
 .card-frame {
   position: relative;
