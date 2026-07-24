@@ -204,6 +204,7 @@ img { display: block; max-width: 100%; }
   --title-letter-weight: 700;
   --mana-letter-width: 1.5;
   --mana-letter-height: 1.6;
+  --mana-letter-y: 0em;
   --mana-letter-weight: 500;
   --type-letter-width: 1.08;
   --type-letter-weight: 700;
@@ -381,7 +382,7 @@ img { display: block; max-width: 100%; }
   font-family: "Times New Roman", Times, serif;
   font-weight: var(--mana-letter-weight);
   line-height: 1;
-  transform: scaleX(var(--mana-letter-width)) scaleY(var(--mana-letter-height));
+  transform: translateY(var(--mana-letter-y)) scaleX(var(--mana-letter-width)) scaleY(var(--mana-letter-height));
 }
 
 .card-art {
@@ -626,6 +627,13 @@ img { display: block; max-width: 100%; }
     z-index: 1;
     filter: none;
     transform: rotate(var(--base-turn));
+  }
+}
+
+@container (max-width: 145px) {
+  .mana {
+    --mana-letter-height: 1.48;
+    --mana-letter-y: 0.045em;
   }
 }
 
