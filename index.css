@@ -202,16 +202,18 @@ img { display: block; max-width: 100%; }
   /* Card lettering controls: increase width above 1; use 400–700 for weight. */
   --title-letter-width: 1.08;
   --title-letter-weight: 700;
-  --mana-letter-width: 1.5;
+  --mana-letter-width: 1.6;
   --mana-letter-height: 1.6;
   --mana-letter-y: 0em;
   --mana-letter-weight: 500;
-  --type-letter-width: 1.08;
-  --type-letter-weight: 700;
+  --type-letter-width: 1.1;
+  --type-letter-weight: 800;
   --rules-letter-width: 1.055;
   --rules-letter-weight: 500;
-  --rules-font-size: clamp(0.76rem, 4.35cqw, 1.42rem);
-  --rules-line-height: 1.2;
+  --rules-font-size: clamp(0.76rem, 4.5cqw, 1.42rem);
+  --rules-letter-spacing: 0em;
+  --rules-chromium-letter-spacing: 0.012em;
+  --rules-line-height: 1.5;
   --credit-letter-width: 1.06;
   --credit-letter-weight: 700;
   position: relative;
@@ -299,8 +301,8 @@ img { display: block; max-width: 100%; }
 
 .rules-box {
   position: absolute;
-  top: 60.8%;
-  left: 11%;
+  top: 60%;
+  left: 10.5%;
   width: 78%;
   height: 29.5%;
   overflow: hidden;
@@ -416,7 +418,7 @@ img { display: block; max-width: 100%; }
 
 .card-type-row {
   justify-content: space-between;
-  font-size: clamp(0.82rem, 3.85cqw, 1.25rem);
+  font-size: clamp(0.82rem, 4cqw, 1.25rem);
   letter-spacing: 0;
   -webkit-text-stroke: 0.28px currentColor;
 }
@@ -433,7 +435,7 @@ img { display: block; max-width: 100%; }
   flex: none;
   width: clamp(29px, 12.8cqw, 65px);
   aspect-ratio: 1;
-  margin: -2.4cqw -0.3cqw -2.4cqw 2.4cqw;
+  margin: -3cqw 1cqw -2.4cqw 2.4cqw;
   pointer-events: none;
 }
 
@@ -484,7 +486,7 @@ img { display: block; max-width: 100%; }
   font-size: var(--rules-font-size);
   width: 94.8%;
   font-weight: var(--rules-letter-weight);
-  letter-spacing: 0;
+  letter-spacing: var(--rules-letter-spacing);
   line-height: var(--rules-line-height);
   transform: scaleX(var(--rules-letter-width));
   transform-origin: left top;
@@ -619,7 +621,7 @@ img { display: block; max-width: 100%; }
   .project-card { --base-turn: 0deg !important; }
   .card-title { font-size: 5.15cqw; }
   .mana { width: 6.2cqw; font-size: 4.28cqw; }
-  .card-type-row { font-size: 3.85cqw; }
+  .card-type-row { font-size: 4cqw; }
   .license-foil { width: 12.8cqw; }
   .project-card { --rules-font-size: 4.35cqw; }
   .card-footer { font-size: 4.28cqw; }
@@ -660,7 +662,7 @@ img { display: block; max-width: 100%; }
 }
 
 .is-chromium .rules-text {
-  letter-spacing: 0.012em;
+  letter-spacing: var(--rules-chromium-letter-spacing);
 }
 
 .is-chromium .card-footer {
