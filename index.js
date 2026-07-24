@@ -1,13 +1,19 @@
 const canvas = document.querySelector("#liquid-light");
+const isChromium = /(?:Chrome|Chromium|CriOS)\//.test(navigator.userAgent)
+  && !/(?:Firefox|FxiOS)\//.test(navigator.userAgent);
+document.documentElement.classList.toggle("is-chromium", isChromium);
 
 const pendingSplats = [];
 const pointerState = new Map();
 const pointerDyePolarity = new Map();
 const activeTouchCards = new Map();
 const activeTouchPointers = new Set();
+const activePads = new Map();
 const projectCards = [...document.querySelectorAll(".project-card")];
 const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 let lastTouchTime = -Infinity;
+let touchChordActive = false;
+let suppressTouchClicksUntil = 0;
 let requestFluidFrame = () => {};
 let touchDyePolarity = 1;
 let mouseDyePolarity = 1;
@@ -27,7 +33,6 @@ let musicReverb;
 let sceneReverbSend;
 let airyStringWave;
 let bowedStringWave;
-let activePad;
 let isSiteMuted = false;
 let lastBellTime = -Infinity;
 let lastAmbientPointerX = null;
@@ -211,33 +216,64 @@ function resumeSoundscape() {
   if (context?.state === "suspended") context.resume().catch(() => {});
 }
 
-function stopProjectPad(card) {
-  if (!activePad || (card && activePad.card !== card)) return;
-  const voice = activePad;
-  activePad = null;
+function releaseProjectVoice(voice) {
   const now = voice.context.currentTime;
   if (voice.gain.gain.cancelAndHoldAtTime) {
     voice.gain.gain.cancelAndHoldAtTime(now);
   } else {
     voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setValueAtTime(isCoarsePointer ? 0.56 : 0.8, now);
+    voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
   }
   voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
   for (const source of voice.sources) source.stop(now + 1.4);
 }
 
+function setProjectVoiceLevel(voice, level) {
+  const now = voice.context.currentTime;
+  if (voice.gain.gain.cancelAndHoldAtTime) {
+    voice.gain.gain.cancelAndHoldAtTime(now);
+  } else {
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
+  }
+  voice.gain.gain.setTargetAtTime(Math.max(0.0001, level), now, 0.12);
+}
+
+function rebalanceProjectPads() {
+  const voiceScale = 1 / Math.sqrt(Math.max(1, activePads.size));
+  for (const voice of activePads.values()) {
+    setProjectVoiceLevel(voice, voice.baseLevel * voiceScale);
+  }
+}
+
+function stopProjectPad(card) {
+  if (card) {
+    const voice = activePads.get(card);
+    if (!voice) return;
+    activePads.delete(card);
+    releaseProjectVoice(voice);
+    rebalanceProjectPads();
+    return;
+  }
+
+  const voices = [...activePads.values()];
+  activePads.clear();
+  for (const voice of voices) releaseProjectVoice(voice);
+}
+
 function morphProjectPad(card, event) {
-  if (!activePad || activePad.card !== card) return;
+  const voice = activePads.get(card);
+  if (!voice) return;
   const bounds = card.getBoundingClientRect();
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
-  const now = activePad.context.currentTime;
-  activePad.filter.frequency.setTargetAtTime(1300 + (1 - y) * 3900, now, 0.08);
+  const now = voice.context.currentTime;
+  voice.filter.frequency.setTargetAtTime(1300 + (1 - y) * 3900, now, 0.08);
   const reverbScale = isCoarsePointer ? 0.36 : 1;
-  activePad.reverbSend.gain.setTargetAtTime((0.28 + y * 0.52) * reverbScale, now, 0.1);
-  activePad.lfoDepth.gain.setTargetAtTime(7 + x * 18, now, 0.1);
-  if (activePad.panner.pan) activePad.panner.pan.setTargetAtTime((x - 0.5) * 1.55, now, 0.08);
-  for (const source of activePad.tones) {
+  voice.reverbSend.gain.setTargetAtTime((0.28 + y * 0.52) * reverbScale, now, 0.1);
+  voice.lfoDepth.gain.setTargetAtTime(7 + x * 18, now, 0.1);
+  if (voice.panner.pan) voice.panner.pan.setTargetAtTime((x - 0.5) * 1.55, now, 0.08);
+  for (const source of voice.tones) {
     source.oscillator.detune.setTargetAtTime(source.baseDetune + (x - 0.5) * 24 + (0.5 - y) * 8, now, 0.08);
   }
 }
@@ -251,11 +287,10 @@ function startProjectPad(card, index, event) {
   }
   if (!context) return;
   resumeSoundscape();
-  if (activePad?.card === card) {
+  if (activePads.has(card)) {
     morphProjectPad(card, event);
     return;
   }
-  stopProjectPad();
 
   const now = context.currentTime;
   const gain = context.createGain();
@@ -268,9 +303,8 @@ function startProjectPad(card, index, event) {
   const sources = [lfo];
   const tones = [];
 
-  gain.gain.setValueAtTime(0.0001, now);
   const voiceLevel = isCoarsePointer ? 0.56 + index * 0.012 : 0.8 + index * 0.018;
-  gain.gain.exponentialRampToValueAtTime(voiceLevel, now + 0.48);
+  gain.gain.setValueAtTime(0.0001, now);
   highpass.type = "highpass";
   highpass.frequency.value = isCoarsePointer ? 190 : 70;
   highpass.Q.value = 0.45;
@@ -322,7 +356,28 @@ function startProjectPad(card, index, event) {
   for (const tone of tones) lfoDepth.connect(tone.oscillator.detune);
   lfo.start(now);
 
-  activePad = { card, context, gain, filter, panner, reverbSend, lfoDepth, sources, tones };
+  const voice = {
+    card,
+    context,
+    gain,
+    filter,
+    panner,
+    reverbSend,
+    lfoDepth,
+    sources,
+    tones,
+    baseLevel: voiceLevel,
+  };
+  activePads.set(card, voice);
+  gain.gain.exponentialRampToValueAtTime(
+    voiceLevel / Math.sqrt(activePads.size),
+    now + 0.48,
+  );
+  for (const otherVoice of activePads.values()) {
+    if (otherVoice !== voice) {
+      setProjectVoiceLevel(otherVoice, otherVoice.baseLevel / Math.sqrt(activePads.size));
+    }
+  }
   morphProjectPad(card, event);
 }
 
@@ -564,7 +619,7 @@ function triggerFingerMute() {
   fingertipCue.classList.add("is-clicking");
 
   function moveFinger(x, y, duration, easing) {
-    fingertipCue.style.transition = `translate ${duration}ms ${easing}`;
+    fingertipCue.style.transition = `transform ${duration}ms ${easing}`;
     fingertipCue.style.setProperty("--finger-press-x", x + "px");
     fingertipCue.style.setProperty("--finger-press-y", y + "px");
   }
@@ -917,8 +972,6 @@ function setCardFoil(card, event, touchAmount = 1) {
 
   const tiltX = (0.5 - y) * 10 * touchAmount;
   const tiltY = (x - 0.5) * 12 * touchAmount;
-  card.style.setProperty("--tilt-x", tiltX + "deg");
-  card.style.setProperty("--tilt-y", tiltY + "deg");
   card.style.setProperty("--rx", tiltX + "deg");
   card.style.setProperty("--ry", tiltY + "deg");
   card.style.setProperty("--mx", (x * 100) + "%");
@@ -928,14 +981,11 @@ function setCardFoil(card, event, touchAmount = 1) {
   card.style.setProperty("--glare", Math.min(0.68, 0.3 + Math.hypot(x - 0.5, y - 0.5) * 0.48));
   card.style.setProperty("--foil-x", (x * 100) + "%");
   card.style.setProperty("--foil-y", (y * 100) + "%");
-  card.style.setProperty("--metal-x", (38 + x * 24) + "%");
 }
 
 function resetCardFoil(card) {
   card.classList.remove("is-touching");
   card.classList.remove("is-mousing");
-  card.style.setProperty("--tilt-x", "0deg");
-  card.style.setProperty("--tilt-y", "0deg");
   card.style.setProperty("--rx", "0deg");
   card.style.setProperty("--ry", "0deg");
   card.style.setProperty("--mx", "50%");
@@ -945,7 +995,6 @@ function resetCardFoil(card) {
   card.style.setProperty("--glare", "0");
   card.style.setProperty("--foil-x", "50%");
   card.style.setProperty("--foil-y", "45%");
-  card.style.setProperty("--metal-x", "50%");
 }
 
 function releaseTouchCard(identifier) {
@@ -998,17 +1047,35 @@ function updateTouchCard(pointer) {
   }
 }
 
+function registerTouchChord() {
+  if (new Set(activeTouchCards.values()).size < 2) return;
+  touchChordActive = true;
+  suppressTouchClicksUntil = Infinity;
+}
+
 function startTouchPointer(event) {
   if (event.pointerType !== "touch") return;
+  if (activeTouchPointers.size > 0) event.preventDefault();
   lastTouchTime = performance.now();
   activeTouchPointers.add(event.pointerId);
+  if (event.target instanceof Element) {
+    const captureTarget = event.target.closest(".project-card, .github-link");
+    try {
+      captureTarget?.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Global pointer listeners still provide a complete touch lifecycle.
+    }
+  }
   updateTouchCard(event);
+  registerTouchChord();
 }
 
 function moveTouchPointer(event) {
   if (event.pointerType !== "touch" || !activeTouchPointers.has(event.pointerId)) return;
   lastTouchTime = performance.now();
   updateTouchCard(event);
+  registerTouchChord();
+  if (touchChordActive) event.preventDefault();
 }
 
 function finishTouchPointer(event) {
@@ -1016,12 +1083,24 @@ function finishTouchPointer(event) {
   lastTouchTime = performance.now();
   activeTouchPointers.delete(event.pointerId);
   releaseTouchCard(event.pointerId);
+  if (activeTouchPointers.size === 0 && touchChordActive) {
+    touchChordActive = false;
+    suppressTouchClicksUntil = performance.now() + 500;
+  }
 }
 
-window.addEventListener("pointerdown", startTouchPointer, { passive: true, capture: true });
-window.addEventListener("pointermove", moveTouchPointer, { passive: true, capture: true });
+window.addEventListener("pointerdown", startTouchPointer, { passive: false, capture: true });
+window.addEventListener("pointermove", moveTouchPointer, { passive: false, capture: true });
 window.addEventListener("pointerup", finishTouchPointer, { passive: true, capture: true });
 window.addEventListener("pointercancel", finishTouchPointer, { passive: true, capture: true });
+
+document.addEventListener("click", (event) => {
+  if (performance.now() >= suppressTouchClicksUntil) return;
+  if (!(event.target instanceof Element)) return;
+  if (!event.target.closest(".project-card, .github-link")) return;
+  event.preventDefault();
+  event.stopPropagation();
+}, { capture: true });
 
 for (const [cardIndex, card] of projectCards.entries()) {
   card.addEventListener("pointerenter", (event) => {
@@ -1044,11 +1123,11 @@ for (const [cardIndex, card] of projectCards.entries()) {
   }, { passive: true });
 
   card.addEventListener("pointerup", (event) => {
-    if (event.pointerType === "touch" || event.pointerType === "pen") stopProjectPad(card);
+    if (event.pointerType === "pen") stopProjectPad(card);
     if (event.pointerType === "pen") resetCardFoil(card);
   }, { passive: true });
   card.addEventListener("pointercancel", (event) => {
-    if (event.pointerType === "touch" || event.pointerType === "pen") stopProjectPad(card);
+    if (event.pointerType === "pen") stopProjectPad(card);
     if (event.pointerType === "pen") resetCardFoil(card);
   }, { passive: true });
   card.addEventListener("lostpointercapture", () => resetCardFoil(card), { passive: true });
@@ -1078,8 +1157,12 @@ if (githubLink) {
     stopProjectPad(githubLink);
   }, { passive: true });
   githubLink.addEventListener("pointerdown", (event) => startProjectPad(githubLink, 4, event), { passive: true });
-  githubLink.addEventListener("pointerup", () => stopProjectPad(githubLink), { passive: true });
-  githubLink.addEventListener("pointercancel", () => stopProjectPad(githubLink), { passive: true });
+  githubLink.addEventListener("pointerup", (event) => {
+    if (event.pointerType !== "touch") stopProjectPad(githubLink);
+  }, { passive: true });
+  githubLink.addEventListener("pointercancel", (event) => {
+    if (event.pointerType !== "touch") stopProjectPad(githubLink);
+  }, { passive: true });
 }
 
 window.addEventListener("blur", releaseAllTouchCards);

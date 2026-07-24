@@ -3,23 +3,26 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="color-scheme" content="only light">
+    <meta name="supported-color-schemes" content="light">
     <meta name="description" content="Software by derac.">
     <meta name="theme-color" content="#72b6e5">
     <meta property="og:title" content="derac">
     <meta property="og:description" content="Local-first, standard-data, low/no-lib, open source software.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://derac.org/">
-    <meta property="og:image" content="https://derac.org/assets/og-clouds.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="The derac logo floating over blue and white clouds">
+    <meta property="og:image" content="https://derac.org/assets/business-card-derac.png">
+    <meta property="og:image:width" content="1662">
+    <meta property="og:image:height" content="946">
+    <meta property="og:image:alt" content="Derek, Free Software at derac. derek@derac.org and github.com/derac.">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://derac.org/assets/og-clouds.png">
+    <meta name="twitter:image" content="https://derac.org/assets/business-card-derac.png">
+    <meta name="twitter:image:alt" content="Derek, Free Software at derac. derek@derac.org and github.com/derac.">
     <title>derac</title>
     <link rel="icon" href="./favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&amp;family=Libre+Baskerville:wght@400;700&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Goudy+Bookletter+1911&amp;family=IM+Fell+English:ital@0;1&amp;family=Libre+Baskerville:wght@400;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./index.css?v=20260723-alpha-2">
     <script type="module" src="./index.js?v=20260723-alpha-2"></script>
   </head>
@@ -47,46 +50,53 @@
     </button>
 
     <main class="portfolio">
-      <aside class="business-card" aria-label="derac contact card">
-        <span class="business-name">derac</span>
-        <span class="business-role">useful little machines</span>
-        <a class="github-link" href="https://github.com/derac" target="_blank" rel="noreferrer">github.com/derac <span aria-hidden="true">↗</span></a>
+      <aside class="business-card github-link" aria-label="Derek, Free Software at derac">
+        <a class="business-card-link" href="https://github.com/derac" target="_blank" rel="noreferrer" aria-label="Open derac on GitHub">
+          <img class="business-card-image" src="./assets/business-card-derac.png" alt="Derek, Free Software at derac. derek@derac.org and github.com/derac." width="1662" height="946">
+          <span class="business-card-shine" aria-hidden="true"></span>
+          <span class="business-card-glare" aria-hidden="true"></span>
+        </a>
+        <a class="business-email" href="mailto:derek@derac.org" aria-label="Email Derek at derek@derac.org"><span>derek@derac.org</span></a>
       </aside>
 
       <nav class="card-table" aria-label="Projects">
-        <a class="project-card card-blue" href="https://github.com/derac/kwin-clicktile" target="_blank" rel="noreferrer" aria-label="Open kwin-clicktile on GitHub">
+        <a class="project-card" href="https://github.com/derac/kwin-clicktile" target="_blank" rel="noreferrer" aria-label="Open kwin-clicktile on GitHub">
           <span class="card-tilter"><span class="card-face"><span class="card-frame">
-            <span class="card-title-row"><span class="card-title">kwin-clicktile</span><span class="mana-cost" aria-label="blue, blue, and neutral"><span class="mana mana-blue" aria-hidden="true">⌁</span><span class="mana mana-blue" aria-hidden="true">⌁</span><span class="mana mana-neutral" aria-hidden="true">1</span></span></span>
+            <span class="card-title-row"><span class="card-title">kwin-clicktile</span><span class="mana-cost" aria-label="zero"><span class="mana" aria-hidden="true"><span class="mana-value">0</span></span></span></span>
             <span class="card-art"><img src="./assets/kwin-clicktile-demo.gif" alt="A desktop window snapping into a tiled position" width="800" height="711"></span>
-            <span class="card-type-row"><span>Enchant Window</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
-            <span class="rules-box"><span class="rules-text">Click or drag anywhere in a window to snap and tile it with KWin on Wayland.</span><span class="card-footer">Illus. derac</span></span>
+            <span class="card-type-row"><span>Window Tiler</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
+            <span class="rules-box"><span class="rules-text">Click or drag anywhere in a window to snap and tile it with KWin on Wayland.</span></span>
+            <span class="card-footer">Illus. Derac</span>
           </span><span class="card-shine" aria-hidden="true"></span><span class="card-glare" aria-hidden="true"></span></span></span>
         </a>
 
-        <a class="project-card card-green" href="./fieldloom/" aria-label="Open Field Loom">
+        <a class="project-card" href="./fieldloom/" aria-label="Open Field Loom">
           <span class="card-tilter"><span class="card-face"><span class="card-frame">
-            <span class="card-title-row"><span class="card-title">Field Loom</span><span class="mana-cost" aria-label="green, green, and neutral"><span class="mana mana-green" aria-hidden="true">♧</span><span class="mana mana-green" aria-hidden="true">♧</span><span class="mana mana-neutral" aria-hidden="true">2</span></span></span>
+            <span class="card-title-row"><span class="card-title">Field Loom</span><span class="mana-cost" aria-label="zero"><span class="mana" aria-hidden="true"><span class="mana-value">0</span></span></span></span>
             <span class="card-art"><picture><source srcset="./assets/fieldloom.webp" type="image/webp"><img src="./assets/fieldloom.png" alt="A colorful node graph for building generative fields" width="1200" height="675"></picture></span>
-            <span class="card-type-row"><span>Artifact — Loom</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
-            <span class="rules-box"><span class="rules-text">Weave fields, forces, and generative systems in a node-based WebGPU studio.</span><span class="card-footer">Illus. derac</span></span>
+            <span class="card-type-row"><span>Procedural Art</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
+            <span class="rules-box"><span class="rules-text">Weave fields, forces, and generative systems in a node-based WebGPU studio.</span></span>
+            <span class="card-footer">Illus. Derac</span>
           </span><span class="card-shine" aria-hidden="true"></span><span class="card-glare" aria-hidden="true"></span></span></span>
         </a>
 
-        <a class="project-card card-black" href="./turingpatterns/" aria-label="Open Multi-Scale Turing Patterns">
+        <a class="project-card" href="./turingpatterns/" aria-label="Open Turing Patterns">
           <span class="card-tilter"><span class="card-face"><span class="card-frame">
-            <span class="card-title-row"><span class="card-title">Turing Patterns</span><span class="mana-cost" aria-label="black, blue, and green"><span class="mana mana-black" aria-hidden="true">✦</span><span class="mana mana-blue" aria-hidden="true">⌁</span><span class="mana mana-green" aria-hidden="true">♧</span></span></span>
+            <span class="card-title-row"><span class="card-title">Turing Patterns</span><span class="mana-cost" aria-label="zero"><span class="mana" aria-hidden="true"><span class="mana-value">0</span></span></span></span>
             <span class="card-art"><picture><source srcset="./assets/turingpatterns.webp" type="image/webp"><img src="./assets/turingpatterns.png" alt="Organic multiscale reaction patterns in black and white" width="1200" height="675"></picture></span>
-            <span class="card-type-row"><span>Summon Pattern</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
-            <span class="rules-box"><span class="rules-text">Shape living, multi-scale reaction patterns in real time with a GPU-powered simulation.</span><span class="card-footer">Illus. derac</span></span>
+            <span class="card-type-row"><span>Procedural Art</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
+            <span class="rules-box"><span class="rules-text">Shape living, multi-scale reaction patterns in real time with a GPU-powered simulation.</span></span>
+            <span class="card-footer">Illus. Derac</span>
           </span><span class="card-shine" aria-hidden="true"></span><span class="card-glare" aria-hidden="true"></span></span></span>
         </a>
 
-        <a class="project-card card-red" href="https://github.com/derac/snapdragin" target="_blank" rel="noreferrer" aria-label="Open Snapdragin on GitHub">
+        <a class="project-card" href="https://github.com/derac/snapdragin" target="_blank" rel="noreferrer" aria-label="Open Snapdragin on GitHub">
           <span class="card-tilter"><span class="card-face"><span class="card-frame">
-            <span class="card-title-row"><span class="card-title">Snapdragin</span><span class="mana-cost" aria-label="red, red, and neutral"><span class="mana mana-red" aria-hidden="true">♨</span><span class="mana mana-red" aria-hidden="true">♨</span><span class="mana mana-neutral" aria-hidden="true">1</span></span></span>
+            <span class="card-title-row"><span class="card-title">Snapdragin</span><span class="mana-cost" aria-label="zero"><span class="mana" aria-hidden="true"><span class="mana-value">0</span></span></span></span>
             <span class="card-art"><video autoplay muted loop playsinline preload="metadata" aria-label="A window being dragged and snapped into place"><source src="./assets/snapdragin-demo.mp4" type="video/mp4"><source src="./assets/snapdragin-demo.webm" type="video/webm"></video></span>
-            <span class="card-type-row"><span>Fast Effect</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
-            <span class="rules-box"><span class="rules-text">Turn dragging into precise, effortless window snapping on Windows.</span><span class="card-footer">Illus. derac</span></span>
+            <span class="card-type-row"><span>Window Tiler</span><span class="license-foil" role="img" aria-label="MIT License"></span></span>
+            <span class="rules-box"><span class="rules-text">Turn dragging into precise, effortless window snapping on Windows.</span></span>
+            <span class="card-footer">Illus. Derac</span>
           </span><span class="card-shine" aria-hidden="true"></span><span class="card-glare" aria-hidden="true"></span></span></span>
         </a>
       </nav>
