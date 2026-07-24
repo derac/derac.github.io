@@ -915,8 +915,17 @@ function setCardFoil(card, event, touchAmount = 1) {
   const x = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   const y = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
 
-  card.style.setProperty("--tilt-x", ((0.5 - y) * 10 * touchAmount) + "deg");
-  card.style.setProperty("--tilt-y", ((x - 0.5) * 12 * touchAmount) + "deg");
+  const tiltX = (0.5 - y) * 10 * touchAmount;
+  const tiltY = (x - 0.5) * 12 * touchAmount;
+  card.style.setProperty("--tilt-x", tiltX + "deg");
+  card.style.setProperty("--tilt-y", tiltY + "deg");
+  card.style.setProperty("--rx", tiltX + "deg");
+  card.style.setProperty("--ry", tiltY + "deg");
+  card.style.setProperty("--mx", (x * 100) + "%");
+  card.style.setProperty("--my", (y * 100) + "%");
+  card.style.setProperty("--shine-x", (20 + x * 60) + "%");
+  card.style.setProperty("--shine-y", (20 + y * 60) + "%");
+  card.style.setProperty("--glare", Math.min(0.68, 0.3 + Math.hypot(x - 0.5, y - 0.5) * 0.48));
   card.style.setProperty("--foil-x", (x * 100) + "%");
   card.style.setProperty("--foil-y", (y * 100) + "%");
   card.style.setProperty("--metal-x", (38 + x * 24) + "%");
@@ -927,6 +936,13 @@ function resetCardFoil(card) {
   card.classList.remove("is-mousing");
   card.style.setProperty("--tilt-x", "0deg");
   card.style.setProperty("--tilt-y", "0deg");
+  card.style.setProperty("--rx", "0deg");
+  card.style.setProperty("--ry", "0deg");
+  card.style.setProperty("--mx", "50%");
+  card.style.setProperty("--my", "42%");
+  card.style.setProperty("--shine-x", "50%");
+  card.style.setProperty("--shine-y", "50%");
+  card.style.setProperty("--glare", "0");
   card.style.setProperty("--foil-x", "50%");
   card.style.setProperty("--foil-y", "45%");
   card.style.setProperty("--metal-x", "50%");
