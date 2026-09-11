@@ -1,6 +1,10 @@
-import { DEFAULTS, PRESETS, SPEC, LAYER_FIELDS, layerRamps, clamp, validateParams, scaleConfig, coefficients, renderPixels } from './model.mjs';
+import { DEFAULTS, PRESETS, SPEC, LAYER_FIELDS, layerRamps, clamp, validateParams, scaleConfig, coefficients, CHANNELS, SCALES } from './model.mjs';
 import { GPUEngine } from './gpu.mjs';
-import { encodeState, decodeCheckpoint } from './state.mjs';
+import { openCheckpoint } from './state.mjs';
+import { ImmediateGUI } from './immediate-gui.mjs';
+import { RANDOM_DEFAULTS, randomizeParams, changeLayers } from './randomize.mjs';
+import { checkResolution, resolutionLimit, workingBytes, reserveBytes, formatBytes, MiB } from './limits.mjs';
+import { createSink, writePNG, writeCheckpoint } from './export.mjs';
 import { PlaybackClock, MIN_SPEED, MAX_SPEED, sliderToSpeed, speedToSlider } from './playback.mjs';
 
 const $ = id => document.getElementById(id);
@@ -10,10 +14,13 @@ let jobs = Promise.resolve(), ready = false, lastReport = performance.now(), rep
 let padBindings = [], parameterInputs = new Map(), stepCost = 1;
 const playback = new PlaybackClock();
 let selectedLayer=1, layerInputs=new Map();
+let randomSettings={...RANDOM_DEFAULTS},requestedSize=512,memoryBudget=512,exportController;
+const randomGUI=new ImmediateGUI($('random-controls')),resolutionGUI=new ImmediateGUI($('resolution-controls'));
+const layerGUI=new ImmediateGUI($('layer-parameters')),parameterGUI=new ImmediateGUI($('all-params')),paintGUI=new ImmediateGUI($('paint-params'));
 const paintControls = ['hue', 'bands', 'contrast', 'relief', 'colorMix', 'separation', 'colorDrift', 'saturation'];
 const modeKeys = () => params.mode === 'turing' ? ['scale', 'spacing', 'ratio', 'rate', 'bias', 'growth', 'regionality', 'colorMemory']
   : ['feed', 'kill', 'diffusion', 'coupling', 'memory', 'growth', 'regionVariation', 'colorMemory'];
-const activeKeys = () => [...modeKeys(), ...paintControls, ...(params.mode==='turing'?Object.keys(SPEC).filter(k=>k.startsWith('layer')):[])];
+const activeKeys = () => [...modeKeys(), ...paintControls, ...(params.mode==='turing'?Object.keys(SPEC).filter(k=>k.startsWith('layer')&&Number(k.match(/\d+/)[0])<=params.layerCount):[])];
 const format = (key, v) => v.toFixed(SPEC[key][3] < .0001 ? 5 : SPEC[key][3] < .001 ? 4 : SPEC[key][3] < .01 ? 3 : 2);
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 function status(text) { $('status').textContent = text; }
@@ -24,8 +31,6 @@ function reportError(error) {
 function clearError() { $('error').hidden = true; }
 function updateTransport() {
   $('play').textContent = running ? 'Pause' : 'Run';
-  $('live-dot').classList.toggle('paused', !running);
-  $('canvas-tag').textContent = running ? 'LIVE SIMULATION' : 'PAUSED';
   if (!running) $('actual-speed').textContent = 'Paused';
 }
 function resetTiming() {
@@ -51,22 +56,24 @@ function advanceSteps(count) {
   return enqueue(`Advancing ${count} ${count === 1 ? 'step' : 'steps'}…`, async () => {
     // One action uses one parameter snapshot even if the controls move during it.
     const p = { ...params };
-    for (let i = 0; i < count; i += 4) {
-      await engine.step(p, Math.min(4, count - i));
+    const batch=n>1024?1:4;
+    for (let i = 0; i < count; i += batch) {
+      await engine.step(p, Math.min(batch, count - i));
       $('metrics').textContent = `${engine.iteration.toLocaleString()} steps · ${n}²`;
     }
     needsRender = true; resetTiming(); status(`Advanced ${count} ${count === 1 ? 'step' : 'steps'} · ${running ? 'running' : 'paused'}`);
   }).catch(() => {});
 }
 function enqueue(label, fn) {
-  queued++; status(label);
+  queued++; status(label); setBusy(true);
   const result = jobs.then(async () => { await framePromise; await fn(); });
-  jobs = result.catch(reportError).finally(() => { queued--; updateTransport(); });
+  jobs = result.catch(reportError).finally(() => { queued--; setBusy(queued>0); updateTransport(); });
   return result;
 }
 class CPUEngine {
   constructor(canvas) {
-    this.canvas = canvas; this.name = 'CPU worker'; this.maxSize = 256;
+    this.canvas = canvas; this.name = 'CPU worker'; this.budgetMiB=512;this.limits={};
+    this.preview=document.createElement('canvas');this.previewContext=this.preview.getContext('2d',{alpha:false});
     this.ctx = canvas.getContext('2d', { alpha: false });
     if (!this.ctx) throw Error('The browser could not create a canvas.');
     this.worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
@@ -77,7 +84,10 @@ class CPUEngine {
       if (data.error) pending.reject(Error(data.error));
       else {
         this.iteration = data.iteration;
-        if (data.pixels) this.ctx.putImageData(new ImageData(new Uint8ClampedArray(data.pixels), this.n, this.n), 0, 0);
+        if (data.pixels) {
+          this.n=data.n;this.preview.width=data.n;this.preview.height=data.n;
+          this.previewContext.putImageData(new ImageData(new Uint8ClampedArray(data.pixels),data.n,data.n),0,0);this.resize();
+        }
         pending.resolve(data);
       }
     };
@@ -93,11 +103,26 @@ class CPUEngine {
       this.worker.postMessage({ ...message, id }, transfers);
     });
   }
+  get limitOptions(){return {budgetMiB:this.budgetMiB,currentSize:this.n||0,backend:this.name,viewPixels:this.canvas.width*this.canvas.height};}
+  get maxSize(){return resolutionLimit(this.limitOptions);}
   async init(n, params, state, iteration = 0) {
-    this.n = n; this.canvas.width = n; this.canvas.height = n;
-    const copy = state?.slice().buffer;
-    await this.request({ type: 'init', n, params, state: copy, iteration }, copy ? [copy] : []);
+    checkResolution(n,this.limitOptions);
+    let copy;
+    if(typeof state==='function'){
+      const values=new Float32Array(n*n*CHANNELS),rows=Math.max(1,Math.floor(4*MiB/(n*CHANNELS*4)));
+      for(let row=0;row<n;row+=rows)values.set(await state(row,Math.min(rows,n-row)),row*n*CHANNELS);
+      copy=values.buffer;
+    }else copy=state?.buffer;
+    await this.request({type:'init',n,params,state:copy,iteration},copy?[copy]:[]);
   }
+  resize(){
+    const rect=this.canvas.getBoundingClientRect(),dpr=Math.min(globalThis.devicePixelRatio||1,2);
+    const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
+    if(this.canvas.width!==width||this.canvas.height!==height){this.canvas.width=width;this.canvas.height=height;}
+    const side=Math.max(width,height);this.ctx.drawImage(this.preview,(width-side)/2,(height-side)/2,side,side);
+  }
+  async readRows(row,count){const result=await this.request({type:'rows',row,count});return new Float32Array(result.state);}
+  changeLayers(params,mapping){return this.request({type:'layers',params,mapping});}
   step(params, count) { return this.request({ type: 'step', params, count }); }
   render(params) { return this.request({ type: 'render', params }); }
   async snapshot() { const r = await this.request({ type: 'snapshot' }); return { state: new Float32Array(r.state), iteration: r.iteration }; }
@@ -116,11 +141,10 @@ async function boot(forceCPU = false) {
     catch (e) { fallbackReason = e.message; engine = new CPUEngine(replaceCanvas()); }
   } else engine = new CPUEngine(canvas);
   if (n > engine.maxSize) n = 128;
-  $('resolution').value = n;
-  for (const option of $('resolution').options) option.disabled = Number(option.value) > engine.maxSize;
+  engine.budgetMiB=memoryBudget;requestedSize=n;
   await engine.init(n, params);
   $('backend').textContent = engine.name; $('loading').hidden = true;
-  for (const id of ['play', 'step', 'step-one', 'restart', 'png', 'save']) $(id).disabled = false;
+  for (const id of ['play', 'step', 'step-one', 'restart', 'png', 'save', 'load']) $(id).disabled = false;
   ready = true; syncValues(); updateTransport();
   if (fallbackReason) status(`CPU fallback · ${n}² · WebGPU unavailable`);
   else status(`${engine.name} · ${n} × ${n}`);
@@ -204,7 +228,7 @@ function buildPads() {
       const select = document.createElement('select'); select.setAttribute('aria-label', `Pad ${i + 1}, ${axis.toUpperCase()} parameter`);
       const groups=new Map();
       for (const key of activeKeys()) {
-        const groupName=key.startsWith('layer')?`Layer ${key.match(/\d/)[0]}`:paintControls.includes(key)?'Color':'Simulation';
+        const groupName=key.startsWith('layer')?`Layer ${key.match(/\d+/)[0]}`:paintControls.includes(key)?'Color':'Simulation';
         if(!groups.has(groupName)){const group=document.createElement('optgroup');group.label=groupName;groups.set(groupName,group);select.append(group);}
         groups.get(groupName).append(new Option(SPEC[key][0],key));
       }
@@ -240,7 +264,7 @@ function buildPads() {
       params = { ...params, [b.x]: nextX, [b.y]: nextY }; needsRender = true; $('preset').value = ''; syncValues();
     };
     surface.onpointerdown = event => {
-      if(event.button!==0||gesture)return;
+      if(event.button!==0||gesture||queued||!ready)return;
       gesture={x:event.clientX,y:event.clientY,fine:event.shiftKey,values:{x:params[b.x],y:params[b.y]},ranges:{x:[...b.range.x],y:[...b.range.y]}};
       surface.focus(); surface.setPointerCapture(event.pointerId); move(event);
     };
@@ -250,43 +274,34 @@ function buildPads() {
     surface.onpointercancel=()=>{gesture=null;};
     surface.onkeydown = event => {
       const directions = { ArrowLeft: ['x', -1], ArrowRight: ['x', 1], ArrowDown: ['y', -1], ArrowUp: ['y', 1] };
-      if (!directions[event.key]) return; event.preventDefault();
+      if (!directions[event.key]||queued||!ready) return; event.preventDefault();
       const [axis, direction] = directions[event.key], key = b[axis], spec = SPEC[key];
       if(b.locked[axis])return;
       setParameter(key, clamp(params[key] + direction * (event.shiftKey ? .001 : .01) * (b.range[axis][1] - b.range[axis][0]), spec[1], spec[2]));
     };
     $('pads').append(card); padBindings.push(b);
   });
-  for (const key of [...modeKeys(),...paintControls]) {
-    const row = document.createElement('label'); row.className = 'param-row';
-    const label = document.createElement('span'); label.textContent = SPEC[key][0];
-    const input = numericInput(key); input.onchange = () => {
-      if (Number.isFinite(input.valueAsNumber)) setParameter(key, clamp(input.valueAsNumber, SPEC[key][1], SPEC[key][2]));
-      input.value = format(key, params[key]);
-    };
-    parameterInputs.set(key, input); row.append(label, input); $('all-params').append(row);
-  }
   buildLayerInputs();syncValues();
 }
 const rgbHex=rgb=>'#'+rgb.map(v=>Math.round(clamp(v)*255).toString(16).padStart(2,'0')).join('');
 function buildLayerInputs(){
-  layerInputs.clear();$('layer-parameters').replaceChildren();
-  if(params.mode==='turing')for(const [suffix,spec] of Object.entries(LAYER_FIELDS)){
-    const key=`layer${selectedLayer}${suffix}`,row=document.createElement('label');row.className='param-row';
-    const title=document.createElement('span');title.textContent=spec[0];const input=numericInput(key);
-    input.onchange=()=>{if(Number.isFinite(input.valueAsNumber))setParameter(key,clamp(input.valueAsNumber,SPEC[key][1],SPEC[key][2]));input.value=format(key,params[key]);};
-    row.append(title,input);$('layer-parameters').append(row);layerInputs.set(key,input);
-  }
-  syncLayers();
+  selectedLayer=Math.min(selectedLayer,params.layerCount);syncLayers();
 }
 function syncLayers(){
-  if(!$('layer-tabs').children.length)return;
+  if($('layer-tabs').children.length!==params.layerCount){
+    $('layer-tabs').replaceChildren();
+    for(let i=1;i<=params.layerCount;i++){
+      const button=document.createElement('button');button.textContent=i;button.title=`Select layer ${i}`;button.setAttribute('aria-label',button.title);
+      button.onclick=()=>{selectedLayer=i;buildLayerInputs();};$('layer-tabs').append(button);
+    }
+  }
+  selectedLayer=Math.min(selectedLayer,params.layerCount);
   const ramps=layerRamps(params);
-  for(let i=0;i<6;i++){
+  for(let i=0;i<params.layerCount;i++){
     const button=$('layer-tabs').children[i];button.style.setProperty('--layer-color',rgbHex(ramps[i].mid));
     button.setAttribute('aria-pressed',String(i+1===selectedLayer));
   }
-  $('layers-title').textContent=params.mode==='turing'?'SIX INDEPENDENT SCALES':'SIX REGIONAL COLOR FAMILIES';
+  $('layers-title').textContent=`${params.layerCount} ${params.mode==='turing'?'layers':'color families'}`;
   $('layer-name').textContent=`${params.mode==='turing'?'Layer':'Color family'} ${selectedLayer}`;
   $('layer-to-pad').hidden=params.mode!=='turing';
   for(const [key,input] of layerInputs)if(document.activeElement!==input)input.value=format(key,params[key]);
@@ -295,25 +310,21 @@ function syncLayers(){
   $('layer-color').disabled=!colorActive;
   $('layer-auto-color').disabled=!colorActive||params[`layer${selectedLayer}Color`]===null;
   const s=scaleConfig(params,n)[selectedLayer-1];
-  $('layer-radius-note').textContent=params.mode==='turing'?`Current radii ${s.r} → ${s.inhibitor} px. Strength 0 disables this scale. Parameters change the running simulation.`:'Regional chemistry varies the shapes; these six color families follow the evolving regional fields.';
-  if(!colorActive)$('layer-radius-note').textContent+=' Switch to Color / Independent layers to edit the swatches.';
+  $('layer-radius-note').textContent=params.mode==='turing'?`${s.r} → ${s.inhibitor} px`:'Color families follow regional chemistry.';
+  $('layer-add').disabled=queued>0||!ready||params.layerCount>=SCALES;
+  $('layer-remove').disabled=queued>0||!ready||params.layerCount<=1;
+  if(!colorActive)$('layer-radius-note').textContent+=' Select layer coloring to edit.';
 }
 function initializeLayerUI(){
-  for(let i=1;i<=6;i++){
-    const button=document.createElement('button');button.textContent=i;button.title=`Select layer ${i}`;button.setAttribute('aria-label',button.title);
-    button.onclick=()=>{selectedLayer=i;buildLayerInputs();};$('layer-tabs').append(button);
-  }
   $('layer-color').oninput=()=>setParameter(`layer${selectedLayer}Color`,$('layer-color').value);
   $('layer-auto-color').onclick=()=>setParameter(`layer${selectedLayer}Color`,null);
   $('layer-to-pad').onclick=()=>{
-    const b=padBindings[0];b.x=`layer${selectedLayer}Radius`;b.y=`layer${selectedLayer}Gain`;
+    $('pads-section').open=true;const b=padBindings[0];b.x=`layer${selectedLayer}Radius`;b.y=`layer${selectedLayer}Gain`;
     for(const axis of ['x','y']){b[`${axis}Select`].value=b[axis];b.configureAxis(axis);}syncValues();b.surface.focus();b.surface.scrollIntoView({block:'nearest'});
   };
 }
 function updateModelInfo() {
   const turing = params.mode === 'turing';
-  $('model-caption').textContent = turing ? 'Independent Turing scales' : 'Regional reactions';
-  $('model-detail').textContent = turing ? 'Six interacting scales, separate histories, independent colors.' : 'Local chemistry changes across evolving regions. Experimental reconstruction.';
   $('scale-details').textContent = turing ? `Activator → inhibitor radii (${n}²)\n${scaleConfig(params, n).map((s, i) => `${i + 1}: ${s.r} → ${s.inhibitor} px · Δ ${s.amount.toFixed(4)}`).join('\n')}`
     : `Rule multipliers\n${coefficients(params).map(v => v.toFixed(4)).join(' · ')}\nFeed and kill are modified by local history.`;
   $('scale-details').style.whiteSpace = 'pre-line';
@@ -338,28 +349,33 @@ function download(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 15000);
 }
 function filename(ext) { return `cellularity-${params.mode}-${params.seed}-${engine.iteration}.${ext}`; }
-async function saveState() {
-  const { state, iteration } = await engine.snapshot();
-  const record = { format: 'cellularity-lab-state', version: 2, n, iteration, params, backend: engine.name,
-    encoding: 'float32-base64', state: encodeState(state) };
-  download(new Blob([JSON.stringify(record)], { type: 'application/json' }), filename('json')); status('Full simulation state saved.');
-}
-async function exportPNG() {
-  const { state } = await engine.snapshot(); const pixels = renderPixels(state, n, params);
-  const canvas = document.createElement('canvas'); canvas.width = n; canvas.height = n;
-  canvas.getContext('2d').putImageData(new ImageData(pixels, n, n), 0, 0);
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-  if (!blob) throw Error('Could not encode the image.'); download(blob, filename('png')); status(`Exported ${n} × ${n} PNG.`);
+async function startExport(kind) {
+  if(!ready||queued)return;
+  // Invoke the file picker within the click's transient activation, before queueing work.
+  const p={...params},size=n,ext=kind==='png'?'png':'cell';
+  let sink;queued++;setBusy(true);resetTiming();
+  try{sink=await createSink(filename(ext),kind==='png'?'image/png':'application/octet-stream',size*size*(kind==='png'?4.02:CHANNELS*4)+65536,download);}
+  catch(error){if(error.name!=='AbortError')reportError(error);return;}
+  finally{queued--;setBusy(queued>0);}
+  exportController=new AbortController();$('export-progress').hidden=false;$('cancel-export').hidden=false;
+  $('export-progress').value=0;
+  try{await enqueue('Exporting…',async()=>{
+    const options={signal:exportController.signal,onProgress:value=>{$('export-progress').value=value;}};
+    try{await (kind==='png'?writePNG:writeCheckpoint)(engine,size,p,sink,options);status(`${size} × ${size} ${ext==='png'?'PNG':'state'} saved`);}
+    catch(error){await sink.abort?.().catch(()=>{});if(error.name==='AbortError'){status('Export canceled');return;}throw error;}
+  });}catch{/* enqueue reports errors */}
+  finally{exportController=null;$('export-progress').hidden=true;$('cancel-export').hidden=true;resetTiming();}
 }
 async function loadState(file) {
-  if (!file || file.size > 64 * 1024 * 1024) throw Error('Choose a state file smaller than 64 MB.');
-  const record = decodeCheckpoint(JSON.parse(await file.text()), engine.maxSize), { state } = record;
-  params = record.params; n = record.n; running = false; $('mode').value = params.mode; $('resolution').value = n; $('preset').value = '';
-  await engine.init(n, params, state, record.iteration); buildPads(); needsRender = true; clearError();
-  resetTiming(); status(record.migrated?'Old state imported · missing layer histories approximated · paused':'State restored · paused');
+  if(!file)return;
+  const record=await openCheckpoint(file,engine.maxSize);
+  await engine.init(record.n,record.params,record.state,record.iteration);
+  params=record.params;n=record.n;requestedSize=n;running=false;$('mode').value=params.mode;$('preset').value='';
+  buildPads();needsRender=true;clearError();resetTiming();status(record.migrated?'Old state imported · histories approximated':'State restored · paused');
 }
 async function tick(now) {
   requestAnimationFrame(tick);
+  drawGUI();
   playback.advance(now, ready && !queued && !document.hidden && running);
   if (!ready || queued || document.hidden) return;
   if (frameActive) return;
@@ -369,7 +385,7 @@ async function tick(now) {
     status(`${engine.name} · ${running ? 'running' : 'paused'}`);
     lastReport = now; reportedSteps = engine.iteration;
   }
-  const batchLimit = Math.max(1, Math.min(32, Math.floor(20 / stepCost)));
+  const batchLimit = n>1024?1:Math.max(1, Math.min(32, Math.floor(20 / stepCost)));
   const steps = running ? playback.take(batchLimit) : 0;
   if (!steps && !needsRender) return;
   frameActive = true; needsRender = false;
@@ -411,18 +427,13 @@ $('step').onclick = () => advanceSteps(100);
 $('step-one').onclick = () => advanceSteps(1);
 $('preset').onchange = () => {
   const preset = PRESETS[$('preset').value]; if (!preset) return;
-  const apply = async () => { params = validateParams(preset); $('mode').value = params.mode; buildPads(); if (ready) await reset(); };
+  const apply = async () => { const next=validateParams(preset);if(ready)await engine.init(n,next);params=next;$('mode').value=params.mode;selectedLayer=1;buildPads();resetTiming();needsRender=true; };
   if (ready) enqueue('Starting preset…', apply).catch(() => {}); else apply();
 };
 $('mode').onchange = () => {
   const mode = $('mode').value;
-  const apply = async () => { params = { ...params, mode }; $('preset').value = ''; buildPads(); if (ready) await reset(); };
+  const apply = async () => { const next={...params,mode};if(ready)await engine.init(n,next);params=next;$('preset').value='';buildPads();resetTiming();needsRender=true; };
   if (ready) enqueue('Starting new model…', apply).catch(() => {}); else apply();
-};
-$('resolution').onchange = () => {
-  const resolution = Number($('resolution').value);
-  if (ready) enqueue('Changing resolution…', async () => { n = resolution; await reset(); }).catch(() => {});
-  else n = resolution;
 };
 $('speed').oninput = () => setSpeed(sliderToSpeed(Number($('speed').value)));
 $('speed-number').oninput = () => {
@@ -438,9 +449,10 @@ $('view').onchange = () => setParameter('view', $('view').value);
 $('palette').onchange = () => setParameter('palette', $('palette').value);
 $('color-style').onchange=()=>setParameter('colorStyle',$('color-style').value);
 $('kernel').onchange=()=>setParameter('kernel',$('kernel').value);
-$('png').onclick = () => enqueue('Exporting the image…', exportPNG).catch(() => {});
-$('save').onclick = () => enqueue('Saving the complete simulation…', saveState).catch(() => {});
-$('load').onclick = () => { if (ready) $('load-file').click(); };
+$('png').onclick = () => startExport('png');
+$('save').onclick = () => startExport('state');
+$('cancel-export').onclick=()=>exportController?.abort();
+$('load').onclick = () => { if (ready&&!queued) $('load-file').click(); };
 $('load-file').onchange = () => {
   const file = $('load-file').files[0]; $('load-file').value = ''; if (file) enqueue('Restoring state…', () => loadState(file)).catch(() => {});
 };
@@ -448,12 +460,21 @@ $('cpu-fallback').onclick = () => enqueue('Starting CPU fallback…', () => boot
 $('notes-open').onclick = () => $('notes').showModal(); $('notes-close').onclick = () => $('notes').close();
 document.addEventListener('visibilitychange', resetTiming);
 addEventListener('keydown', event => {
-  if (!ready || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || $('notes').open) return;
+  if (!ready || queued || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || $('notes').open) return;
   if (event.target instanceof Element && event.target.closest('input, select, textarea, button, [contenteditable]')) return;
   if (event.code === 'Space') { event.preventDefault(); if (!event.repeat) togglePlayback(); }
   else if (event.key === '.') { event.preventDefault(); if (!event.repeat) advanceSteps(1); }
   else if (event.key === '[' || event.key === ']') { event.preventDefault(); setSpeed(playback.rate * (event.key === '[' ? 0.5 : 2)); }
 });
 addEventListener('beforeunload', () => engine?.destroy());
+new ResizeObserver(()=>{needsRender=true;}).observe($('stage'));
+addEventListener('resize',()=>{needsRender=true;});
 requestAnimationFrame(tick); registerAgentTools();
 await boot().catch(reportError);
+$('panel-toggle').onclick = () => {
+  const minimized = $('controls').classList.toggle('minimized');
+  $('panel-body').hidden = minimized;
+  $('panel-toggle').textContent = minimized ? '+' : '−';
+  $('panel-toggle').setAttribute('aria-expanded', String(!minimized));
+  $('panel-toggle').setAttribute('aria-label', minimized ? 'Expand controls' : 'Minimize controls');
+};

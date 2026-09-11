@@ -1,6 +1,7 @@
 // The shared, deterministic model also powers the no-WebGPU worker fallback.
-export const SCALES = 6;
-export const CHANNELS = 8;
+export const SCALES = 12;
+export const CHANNELS = 16;
+export const REGION_CHANNEL = 13;
 export const LAYER_FIELDS = {
   Radius: ['Radius multiplier', 0.25, 4, 0.01], Range: ['Inhibitor multiplier', 0.6, 2, 0.01],
   Gain: ['Reaction strength', 0, 3, 0.01], Preference: ['Selection preference', 0.2, 4, 0.01],
@@ -27,11 +28,11 @@ const layerDefaults = {};
 for (let i = 1; i <= SCALES; i++) {
   for (const [suffix, spec] of Object.entries(LAYER_FIELDS)) {
     SPEC[`layer${i}${suffix}`] = [`Layer ${i} · ${spec[0]}`, ...spec.slice(1)];
-    layerDefaults[`layer${i}${suffix}`] = suffix === 'Region' ? [-0.8, 0.55, -0.3, 0.8, -0.55, 0.35][i-1] : 1;
+    layerDefaults[`layer${i}${suffix}`] = suffix === 'Region' ? [-0.8, 0.55, -0.3, 0.8, -0.55, 0.35][(i-1)%6] : 1;
   }
   layerDefaults[`layer${i}Color`] = null;
 }
-export const DEFAULTS = Object.freeze({ mode: 'turing', seed: 20020, ruleSeed: 1047, colorSeed: 731,
+export const DEFAULTS = Object.freeze({ mode: 'turing', layerCount: 6, seed: 20020, ruleSeed: 1047, colorSeed: 731,
   scale: 2.1, spacing: 1.85, ratio: 1.9, rate: 0.7, bias: 0,
   growth: 0.0005, feed: 0.0367, kill: 0.0649, diffusion: 0.2, coupling: 0.012, memory: 0.012,
   hue: 0.12, bands: 0.8, contrast: 1.12, relief: 0.2, colorMix: 1, palette: 'mineral', view: 'color',
@@ -63,6 +64,8 @@ export function validateParams(input) {
       if (!Number.isFinite(value) || value < SPEC[key][1] || value > SPEC[key][2]) throw Error(`Invalid ${key}.`);
     } else if (['seed', 'ruleSeed', 'colorSeed'].includes(key)) {
       if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) throw Error(`Invalid ${key}.`);
+    } else if (key === 'layerCount') {
+      if (!Number.isInteger(value) || value < 1 || value > SCALES) throw Error('Invalid layer count.');
     } else if (key === 'mode') {
       if (!['turing', 'lattice'].includes(value)) throw Error('Unknown model.');
     } else if (key === 'palette') {
@@ -73,7 +76,7 @@ export function validateParams(input) {
       if (!['legacy', 'layers', 'spectral'].includes(value)) throw Error('Unknown color mapping.');
     } else if (key === 'kernel') {
       if (!['box','smooth'].includes(value)) throw Error('Unknown averaging kernel.');
-    } else if (/^layer[1-6]Color$/.test(key)) {
+    } else if (/^layer([1-9]|1[0-2])Color$/.test(key)) {
       if (value !== null && (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value))) throw Error('Invalid layer color.');
     } else throw Error(`Unknown parameter: ${key}`);
     p[key] = value;
@@ -81,29 +84,28 @@ export function validateParams(input) {
   return p;
 }
 export function scaleConfig(p, n) {
-  return Array.from({ length: SCALES }, (_, s) => {
-    const key = `layer${s+1}`;
+  return Array.from({ length: p.layerCount }, (_, s) => {
+    const key = `layer${s+1}`, exponent = s < 6 ? s : (s - 6 + 0.5) * 5 / 6;
     // Layers are independent and may cross in scale; do not reorder their identities/colors.
-    const r = Math.max(1, Math.min(Math.floor(n * 0.30), Math.round(p.scale * n / 512 * p.spacing ** s * p[`${key}Radius`])));
+    const r = Math.max(1, Math.min(Math.floor(n * 0.30), Math.round(p.scale * n / 512 * p.spacing ** exponent * p[`${key}Radius`])));
     const inhibitor = Math.max(r + 1, Math.min(Math.floor(n * 0.47), Math.round(r * Math.max(1.1, p.ratio * p[`${key}Range`]))));
     const variation = 0.8 + 0.4 * random(p.ruleSeed + s * 701);
-    return { r, inhibitor, amount: 0.018 * 1.36 ** s * p.rate * variation * p[`${key}Gain`],
-      weight: (s + 1) ** (-p.bias) / p[`${key}Preference`], gate: p[`${key}Region`], color: s / (SCALES - 1) };
+    return { r, inhibitor, amount: 0.018 * 1.36 ** exponent * p.rate * variation * p[`${key}Gain`],
+      weight: (s + 1) ** (-p.bias) / p[`${key}Preference`], gate: p[`${key}Region`], color: s / Math.max(1, p.layerCount - 1) };
   });
 }
 export function coefficients(p) {
   return [0, 1, 2, 3].map(i => 0.8 + 0.4 * random(p.ruleSeed + i * 307));
 }
-export function initialField(n, p) {
-  const data = new Float32Array(n * n * CHANNELS);
+export function initialField(n, p, startRow = 0, rowCount = n) {
+  const data = new Float32Array(n * rowCount * CHANNELS);
   const spots = Array.from({ length: 54 }, (_, i) => [random(p.seed + 103 * i) * n,
     random(p.seed + 107 * i + 7001) * n, n * (0.009 + 0.018 * random(p.seed + 211 * i))]);
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const i = (y * n + x) * CHANNELS, noise = random((y * n + x) ^ p.seed);
+  for (let y = startRow; y < startRow + rowCount; y++) for (let x = 0; x < n; x++) {
+    const i = ((y - startRow) * n + x) * CHANNELS, noise = random((y * n + x) ^ p.seed);
     if (p.mode === 'turing') {
       data[i] = noise * 2 - 1;
-      for (let s = 0; s < 6; s++) data[i + 1 + s] = 1/6;
-      data[i + 7] = 0;
+      for (let s = 0; s < p.layerCount; s++) data[i + 1 + s] = 1/p.layerCount;
     } else {
       const inside = spots.some(([sx, sy, r]) => {
         const dx = Math.min(Math.abs(x - sx), n - Math.abs(x - sx));
@@ -157,7 +159,7 @@ export function inflate(src, dst, n, growth) {
 }
 export class CPUModel {
   constructor(n, p, state) {
-    if (![128, 256, 512, 1024].includes(n)) throw Error('Unsupported resolution.');
+    if (!Number.isInteger(n) || n < 16 || n > 32768) throw Error('Unsupported resolution.');
     this.n = n; this.field = state ? new Float32Array(state) : initialField(n, p);
     this.next = new Float32Array(n * n * CHANNELS); this.grown = new Float32Array(n * n * CHANNELS);
     this.scalar = new Float32Array(n * n); this.scratch = new Float32Array(n * n);
@@ -174,7 +176,7 @@ export class CPUModel {
       if (p.mode === 'turing') {
         const enabled = scales.some(s => s.amount > 0);
         for (let i = 0; i < n * n; i++) this.scalar[i] = src[i * CHANNELS];
-        for (let s = 0; s < SCALES; s++) {
+        for (let s = 0; s < p.layerCount; s++) {
           boxBlur(this.scalar, n, scales[s].r, this.activators[s], this.scratch);
           boxBlur(this.scalar, n, scales[s].inhibitor, this.inhibitors[s], this.scratch);
           if(p.kernel==='smooth')for(let pass=0;pass<2;pass++){
@@ -187,16 +189,16 @@ export class CPUModel {
           const j = i * CHANNELS;
           if (!enabled) { for (let ch=0; ch<CHANNELS; ch++) dst[j+ch]=src[j+ch]; continue; }
           let best = Infinity, winner = 0, delta = 0;
-          const region = clamp(this.activators[5][i] * 5, -1, 1);
-          for (let s = 0; s < SCALES; s++) {
+          const region = clamp(this.activators[p.layerCount-1][i] * 5, -1, 1);
+          for (let s = 0; s < p.layerCount; s++) {
             if (scales[s].amount === 0) continue;
             const d = this.activators[s][i] - this.inhibitors[s][i];
             const score = Math.abs(d) * scales[s].weight * Math.exp(-p.regionality * scales[s].gate * region);
             if (score < best) { best = score; winner = s; delta = d; }
           }
           dst[j] = src[j] + (delta > 0 ? 1 : -1) * scales[winner].amount;
-          for(let s=0;s<6;s++) dst[j+1+s] = src[j+1+s]*(1-p.colorMemory) + (winner === s ? p.colorMemory : 0);
-          dst[j+7] = src[j+7]*0.98 + this.activators[5][i]*0.02;
+          for(let s=0;s<SCALES;s++) dst[j+1+s] = s < p.layerCount ? src[j+1+s]*(1-p.colorMemory) + (winner === s ? p.colorMemory : 0) : 0;
+          dst[j+REGION_CHANNEL] = src[j+REGION_CHANNEL]*0.98 + this.activators[p.layerCount-1][i]*0.02;
           lo = Math.min(lo, dst[j]); hi = Math.max(hi, dst[j]);
         }
         const span = Math.max(hi - lo, 1e-6);
@@ -257,7 +259,7 @@ function fromHSV(h,s,v) {
 }
 export function layerRamps(p) {
   const anchors=ANCHORS[p.palette],shift=hash(p.colorSeed)%6;
-  return Array.from({length:6},(_,s)=>{
+  return Array.from({length:p.layerCount},(_,s)=>{
     const manual=p[`layer${s+1}Color`],base=manual?.slice(1)||anchors[(s+shift)%6];
     let mid=[0,2,4].map(i=>parseInt(base.slice(i,i+2),16)/255);
     if(!manual){
@@ -271,29 +273,29 @@ export function layerRamps(p) {
 }
 export function colorPhases(p) { return [0,1,2].map(i=>random(p.colorSeed+1907*i+7723)); }
 export function influenceWeights(field, i, p) {
-  if(p.mode==='turing') return Array.from({length:6},(_,s)=>field[i+1+s]);
+  if(p.mode==='turing') return Array.from({length:p.layerCount},(_,s)=>field[i+1+s]);
   const a=clamp(.75*field[i+4]+1.3*(field[i+6]-.2),-1,1);
   const b=clamp(.75*field[i+5]+2*(field[i+7]-.15),-1,1);
-  return Array.from({length:6},(_,s)=>{
-    const angle=s*Math.PI/3,dx=a-Math.cos(angle)*.7,dy=b-Math.sin(angle)*.7;
+  return Array.from({length:p.layerCount},(_,s)=>{
+    const angle=s*Math.PI*2/p.layerCount,dx=a-Math.cos(angle)*.7,dy=b-Math.sin(angle)*.7;
     return Math.exp(-2*(dx*dx+dy*dy));
   });
 }
-export function renderPixels(field, n, p) {
-  const pixels = new Uint8ClampedArray(n*n*4), stops=paletteStops(p),ramps=layerRamps(p),phases=colorPhases(p);
+export function renderPixels(field, n, p, {rowStart = 0, rowCount = n, rows = n} = {}) {
+  const pixels = new Uint8ClampedArray(n*rowCount*4), stops=paletteStops(p),ramps=layerRamps(p),phases=colorPhases(p);
   const height = i => p.mode==='turing'?field[i]*.5+.5:clamp(field[i+1]*2.5);
-  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
-    const i=(y*n+x)*CHANNELS,output=(y*n+x)*4,h=height(i);
+  for(let y=rowStart;y<rowStart+rowCount;y++)for(let x=0;x<n;x++){
+    const i=(y*n+x)*CHANNELS,output=((y-rowStart)*n+x)*4,h=height(i);
     let rgb;
     if(p.view==='field') rgb=[h,h,h];
     else if(p.view==='raw') rgb=p.mode==='lattice'?[field[i],field[i+1]*2,field[i+2]*3]:[field[i+1]+field[i+4],field[i+2]+field[i+5],field[i+3]+field[i+6]];
     else {
       const weights=influenceWeights(field,i,p);
       let total=0;
-      for(let s=0;s<6;s++){weights[s]=Math.pow(Math.max(weights[s],0.00001),p.separation);total+=weights[s];}
-      for(let s=0;s<6;s++)weights[s]=total>1e-30?weights[s]/total:1/6;
-      const mean=weights.reduce((sum,w,s)=>sum+w*s/5,0);
-      const region=p.mode==='turing'?clamp(field[i+7]*4,-1,1):field[i+4];
+      for(let s=0;s<p.layerCount;s++){weights[s]=Math.pow(Math.max(weights[s],0.00001),p.separation);total+=weights[s];}
+      for(let s=0;s<p.layerCount;s++)weights[s]=total>1e-30?weights[s]/total:1/p.layerCount;
+      const mean=weights.reduce((sum,w,s)=>sum+w*s/Math.max(1,p.layerCount-1),0);
+      const region=p.mode==='turing'?clamp(field[i+REGION_CHANNEL]*4,-1,1):field[i+4];
       const region2=p.mode==='turing'?mean*2-1:field[i+5];
       const tone=h*p.contrast+.5*(1-p.contrast);
       const legacyPhase=fract(tone*p.bands + p.colorMix*(p.mode==='turing'?mean:field[i+2]*3)+p.hue);
@@ -312,7 +314,7 @@ export function renderPixels(field, n, p) {
         rgb=rgb.map((v,c)=>mix(legacy[c],v,p.colorMix));
       }else{
         rgb=[0,0,0];
-        for(let s=0;s<6;s++){
+        for(let s=0;s<p.layerCount;s++){
           const level=.5+.5*Math.sin(Math.PI*2*(tone*p.bands+p.hue+ramps[s].phase+region*p.colorDrift*.17));
           const a=smooth(0,.55,level),b=smooth(.55,1,level);
           for(let c=0;c<3;c++)rgb[c]+=weights[s]*mix(mix(ramps[s].dark[c],ramps[s].mid[c],a),ramps[s].light[c],b);
@@ -323,11 +325,31 @@ export function renderPixels(field, n, p) {
         const luma=rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
         rgb=rgb.map(v=>mix(luma,v,p.saturation));
         const dx=height((y*n+(x+1)%n)*CHANNELS)-height((y*n+(x+n-1)%n)*CHANNELS);
-        const dy=height((((y+1)%n)*n+x)*CHANNELS)-height((((y+n-1)%n)*n+x)*CHANNELS);
+        const dy=height((((y+1)%rows)*n+x)*CHANNELS)-height((((y+rows-1)%rows)*n+x)*CHANNELS);
         const light=clamp(1+p.relief*(dx-dy)*2.5,.35,1.6);rgb=rgb.map(v=>v*light);
       }
     }
     for(let c=0;c<3;c++)pixels[output+c]=clamp(rgb[c])*255;pixels[output+3]=255;
   }
   return pixels;
+}
+
+// Reindex retained influence histories when a layer is inserted or removed.
+export function remapLayers(field, n, p, mapping) {
+  if(p.mode!=='turing')return field;
+  const weights=new Float32Array(SCALES);
+  for(let i=0;i<n*n;i++){
+    const base=i*CHANNELS;let total=0;
+    for(let s=0;s<SCALES;s++){weights[s]=s<p.layerCount&&mapping[s]>=0?field[base+1+mapping[s]]:0;total+=weights[s];}
+    for(let s=0;s<SCALES;s++)field[base+1+s]=s<p.layerCount?(total>1e-30?weights[s]/total:1/p.layerCount):0;
+  }
+  return field;
+}
+export function fieldRows(field,n,row,count) {
+  const result=new Float32Array(count*n*CHANNELS);
+  for(let offset=0;offset<count;offset++){
+    const source=((row+offset)%n+n)%n;
+    result.set(field.subarray(source*n*CHANNELS,(source+1)*n*CHANNELS),offset*n*CHANNELS);
+  }
+  return result;
 }

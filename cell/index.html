@@ -9,56 +9,54 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 </head>
 <body>
-<header class="masthead">
-  <div class="wordmark"><span class="mark" aria-hidden="true">◉</span> CELLULARITY <span class="slash">/</span> <span class="submark">PATTERN LABORATORY</span></div>
-  <div class="header-actions"><span id="backend" class="badge">Initializing</span><button id="notes-open" class="quiet">Research notes ↗</button></div>
-</header>
 <main class="workspace">
-  <section class="studio" aria-label="Pattern preview">
-    <div class="toolbar">
-      <div class="button-group"><button id="play" class="primary" title="Play / pause · Space" disabled>Pause</button><button id="step-one" title="Pause and advance one step · ." disabled>+1</button><button id="step" title="Pause and advance 100 steps" disabled>+100</button><button id="restart" disabled>Restart seed</button></div>
-      <label class="view-label"><span class="sr-only">Display</span><select id="view"><option value="color">Color</option><option value="field">Scalar field</option><option value="regions">Scale / memory</option><option value="raw">Raw channels</option></select></label>
-    </div>
-    <section class="playback-panel" aria-label="Playback speed">
-      <div class="speed-heading"><label for="speed">Evolution speed</label><div class="speed-exact"><input id="speed-number" type="number" min="1" max="2000" step="1" value="120" aria-label="Target simulation steps per second"><span>steps / sec</span></div></div>
-      <input id="speed" type="range" min="0" max="1000" step="1" value="630" aria-label="Evolution speed" aria-describedby="speed-help">
-      <div class="speed-footer"><div class="speed-presets" aria-label="Speed presets"><button data-speed="20" title="20 steps per second">Slow</button><button data-speed="120" title="120 steps per second">Normal</button><button data-speed="600" title="600 steps per second">Fast</button><button data-speed="2000" title="Target 2000 steps per second">Very fast</button></div><span id="actual-speed">Measuring…</span></div>
-      <p id="speed-help">Controls how quickly the pattern evolves. The measured rate may be lower at higher resolutions.</p>
-    </section>
-    <div id="stage" class="stage">
-      <div id="image-wrap" class="image-wrap"><canvas id="art" width="512" height="512" aria-label="Evolving simulated pattern"></canvas></div>
-      <div id="loading" class="stage-message">Preparing the simulation…</div>
-      <div class="canvas-tag" id="canvas-tag">LIVE SIMULATION</div>
-    </div>
-    <div class="statusline"><span><span class="live-dot" id="live-dot"></span><span id="status" role="status">Starting…</span></span><span id="metrics">0 steps</span></div>
-    <div id="error" class="error" role="alert" hidden><span id="error-text"></span><button id="cpu-fallback">Use CPU fallback</button></div>
-    <div class="studio-bottom">
-      <div class="model-caption"><strong id="model-caption">Independent Turing scales</strong><span id="model-detail">Six interacting scales with separate histories and colors.</span></div>
-      <div class="button-group"><button id="png" disabled>Export PNG</button><button id="save" disabled>Save state</button><button id="load">Load state</button><input id="load-file" type="file" accept=".json,application/json" hidden></div>
-    </div>
-    <p class="hint" id="explore-hint"><kbd>Space</kbd> play / pause · <kbd>[</kbd> <kbd>]</kbd> slower / faster · <kbd>.</kbd> one step<br>Hold Shift as you start dragging a pad for fine adjustments. Click X or Y to lock that axis.</p>
+  <section id="stage" class="stage" aria-label="Pattern preview">
+    <div id="image-wrap" class="image-wrap"><canvas id="art" width="512" height="512" aria-label="Evolving simulated pattern"></canvas></div>
+    <div id="loading" class="stage-message">Preparing…</div>
   </section>
-  <aside class="controls" aria-label="Experiment controls">
-    <div class="control-intro"><span class="eyebrow">EXPERIMENT</span><span class="local-tag">LOCAL · NO UPLOADS</span></div>
-    <label class="stacked">Starting point<select id="preset"></select></label>
-    <div class="two-col"><label class="stacked">Model<select id="mode"><option value="turing">Independent Turing scales</option><option value="lattice">Regional reactions</option></select></label><label class="stacked">Resolution<select id="resolution"><option>128</option><option>256</option><option selected>512</option><option>1024</option></select></label></div>
-    <div class="two-col"><label class="stacked">Color mapping<select id="color-style"><option value="layers">Independent layers</option><option value="spectral">Multichannel spectrum</option><option value="legacy">Original single palette</option></select></label><label class="stacked">Averaging kernel<select id="kernel"><option value="smooth">Smooth / Gaussian-like</option><option value="box">Square box</option></select></label></div>
-    <section id="layers-panel" class="layers-panel" aria-label="Independent layer controls">
-      <div class="section-label"><span id="layers-title">SIX INDEPENDENT SCALES</span><span>select a layer</span></div>
-      <div id="layer-tabs" class="layer-tabs"></div>
-      <div class="layer-edit-heading"><strong id="layer-name">Layer 1</strong><button id="layer-to-pad">Edit on XY pad ↓</button></div>
-      <div id="layer-parameters" class="layer-parameters"></div>
-      <div class="layer-color-row"><label for="layer-color">Layer color</label><input id="layer-color" type="color"><button id="layer-auto-color" title="Use the color seed for this layer">Use seed</button></div>
-      <div id="layer-radius-note" class="microcopy"></div>
-    </section>
-    <div class="section-label"><span>PARAMETER SPACE</span><span>choose any two axes</span></div>
-    <div id="pads"></div>
-    <details class="tuning"><summary>All parameters &amp; scale details</summary><div id="all-params"></div><div id="scale-details" class="scale-details"></div></details>
-    <div class="section-label"><span>SEEDS</span><span>independent controls</span></div>
-    <div id="seeds"></div>
-    <p class="microcopy">Pattern resets the initial field. Rule changes the coefficients. Color changes only the palette.</p>
-    <label class="stacked">Palette<select id="palette"><option value="mineral">Cobalt &amp; gold</option><option value="ember">Ember</option><option value="lagoon">Lagoon</option></select></label>
-    <div class="panel-foot">Inspired by Jonathan McCabe.<br>Experimental models; the original recipe is unpublished.</div>
+  <aside id="controls" class="controls" aria-label="Experiment controls">
+    <header class="panel-header"><strong>Cellularity</strong><button id="panel-toggle" aria-label="Minimize controls" aria-expanded="true" aria-controls="panel-body">−</button></header>
+    <div id="panel-body" class="panel-body">
+      <div class="transport"><button id="play" class="primary" title="Play / pause · Space" disabled>Pause</button><button id="step-one" title="One step · ." disabled>+1</button><button id="step" title="100 steps" disabled>+100</button><button id="restart" title="Restart current seed" disabled>Restart</button></div>
+      <div class="speed-heading"><label for="speed">Speed</label><div class="speed-exact"><input id="speed-number" type="number" min="1" max="2000" step="1" value="120" aria-label="Steps per second"><span>steps/s</span></div></div>
+      <input id="speed" type="range" min="0" max="1000" step="1" value="630" aria-label="Evolution speed">
+      <div class="speed-footer"><div class="speed-presets"><button data-speed="20">20</button><button data-speed="120">120</button><button data-speed="600">600</button><button data-speed="2000">2000</button></div><span id="actual-speed">…</span></div>
+      <label class="stacked">Preset<select id="preset"></select></label>
+      <details open><summary>Layers</summary>
+        <section id="layers-panel" aria-label="Layer controls">
+          <div class="section-label"><span id="layers-title">6 layers</span><div class="button-group"><button id="layer-add" title="Add a layer">+</button><button id="layer-remove" title="Remove selected layer">−</button></div></div>
+          <div id="layer-tabs" class="layer-tabs"></div>
+          <div class="layer-edit-heading"><strong id="layer-name">Layer 1</strong><button id="layer-to-pad">XY pad</button></div>
+          <div id="layer-parameters"></div>
+          <div class="layer-color-row"><label for="layer-color">Color</label><input id="layer-color" type="color"><button id="layer-auto-color">Use seed</button></div>
+          <div id="layer-radius-note" class="microcopy"></div>
+        </section>
+      </details>
+      <details id="random-section" open><summary>Randomize</summary><div id="random-controls"></div></details>
+      <details id="pads-section"><summary>XY pads</summary><div id="pads"></div></details>
+      <details><summary>Simulation</summary>
+        <label class="stacked">Model<select id="mode"><option value="turing">Turing scales</option><option value="lattice">Regional reactions</option></select></label>
+        <label class="stacked">Averaging<select id="kernel"><option value="smooth">Smooth</option><option value="box">Square</option></select></label>
+        <div id="all-params"></div><div id="scale-details" class="scale-details"></div>
+      </details>
+      <details><summary>Color &amp; view</summary>
+        <label class="stacked">View<select id="view"><option value="color">Color</option><option value="field">Scalar field</option><option value="regions">Layer history</option><option value="raw">Raw channels</option></select></label>
+        <label class="stacked">Mapping<select id="color-style"><option value="layers">Independent layers</option><option value="spectral">Multichannel spectrum</option><option value="legacy">Original palette</option></select></label>
+        <label class="stacked">Palette<select id="palette"><option value="mineral">Cobalt &amp; gold</option><option value="ember">Ember</option><option value="lagoon">Lagoon</option></select></label>
+        <div id="paint-params"></div>
+      </details>
+      <details><summary>Seeds</summary><div id="seeds"></div></details>
+      <details id="resolution-section"><summary>Resolution &amp; files</summary>
+        <div id="resolution-controls"></div>
+        <div class="file-actions"><button id="png" disabled>PNG</button><button id="save" disabled>Save state</button><button id="load">Load state</button></div>
+        <progress id="export-progress" max="1" value="0" hidden aria-label="Export progress"></progress><button id="cancel-export" hidden>Cancel export</button>
+        <input id="load-file" type="file" accept=".cell,.json,application/json,application/octet-stream" hidden>
+      </details>
+      <div class="panel-status"><span id="backend">Starting…</span><span id="metrics">0 steps</span></div>
+      <div id="status" class="microcopy" role="status">Starting…</div>
+      <div id="error" class="error" role="alert" hidden><span id="error-text"></span><button id="cpu-fallback">Use CPU</button></div>
+      <button id="notes-open" class="quiet">Notes &amp; shortcuts</button>
+    </div>
   </aside>
 </main>
 <dialog id="notes">
