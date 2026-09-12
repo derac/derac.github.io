@@ -25,7 +25,7 @@ const format = (key, v) => v.toFixed(SPEC[key][3] < .0001 ? 5 : SPEC[key][3] < .
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0];
 function status(text) { $('status').textContent = text; }
 function reportError(error) {
-  running = false; $('error').hidden = false; $('error-text').textContent = error.message || String(error);
+  running = false; if(engine?.n)syncValues(); $('error').hidden = false; $('error-text').textContent = error.message || String(error);
   $('cpu-fallback').hidden = engine?.name === 'CPU worker'; updateTransport();
 }
 function clearError() { $('error').hidden = true; }
@@ -106,7 +106,7 @@ class CPUEngine {
   get limitOptions(){return {budgetMiB:this.budgetMiB,currentSize:this.n||0,backend:this.name,viewPixels:this.canvas.width*this.canvas.height};}
   get maxSize(){return resolutionLimit(this.limitOptions);}
   async init(n, params, state, iteration = 0) {
-    checkResolution(n,this.limitOptions);
+    checkResolution(n,{...this.limitOptions,currentSize:n===this.n?0:this.n||0});
     let copy;
     if(typeof state==='function'){
       const values=new Float32Array(n*n*CHANNELS),rows=Math.max(1,Math.floor(4*MiB/(n*CHANNELS*4)));
@@ -140,7 +140,7 @@ async function boot(forceCPU = false) {
     try { engine = await GPUEngine.create(canvas, reportError); }
     catch (e) { fallbackReason = e.message; engine = new CPUEngine(replaceCanvas()); }
   } else engine = new CPUEngine(canvas);
-  if (n > engine.maxSize) n = 128;
+  if (n > engine.maxSize || engine.name==='CPU worker') n = 128;
   engine.budgetMiB=memoryBudget;requestedSize=n;
   await engine.init(n, params);
   $('backend').textContent = engine.name; $('loading').hidden = true;
@@ -174,6 +174,7 @@ function syncValues() {
   }
   for (const [key, input] of parameterInputs) if (document.activeElement !== input) input.value = format(key, params[key]);
   for (const key of ['seed', 'ruleSeed', 'colorSeed']) if ($(`${key}-input`)) $(`${key}-input`).value = params[key];
+  $('mode').value=params.mode;
   $('palette').value = params.palette; $('view').value = params.view;
   $('color-style').value=params.colorStyle;$('kernel').value=params.kernel;$('kernel').disabled=params.mode!=='turing';
   updateModelInfo();syncLayers();
@@ -368,7 +369,7 @@ async function startExport(kind) {
 }
 async function loadState(file) {
   if(!file)return;
-  const record=await openCheckpoint(file,engine.maxSize);
+  const record=await openCheckpoint(file,Math.max(n,engine.maxSize));
   await engine.init(record.n,record.params,record.state,record.iteration);
   params=record.params;n=record.n;requestedSize=n;running=false;$('mode').value=params.mode;$('preset').value='';
   buildPads();needsRender=true;clearError();resetTiming();status(record.migrated?'Old state imported · histories approximated':'State restored · paused');
@@ -398,6 +399,70 @@ async function tick(now) {
     $('metrics').textContent = `${engine.iteration.toLocaleString()} steps · ${n}²`;
   })().catch(reportError).finally(() => { frameActive = false; });
 }
+function setBusy(busy) {
+  for(const node of $('panel-body').querySelectorAll('button,input,select')){
+    if(['cancel-export','notes-open'].includes(node.id))continue;
+    if(busy){if(node.dataset.wasDisabled===undefined)node.dataset.wasDisabled=String(node.disabled);node.disabled=true;}
+    else if(node.dataset.wasDisabled!==undefined){node.disabled=node.dataset.wasDisabled==='true';delete node.dataset.wasDisabled;}
+  }
+  if(!busy)syncLayers();
+}
+async function applyLayerChange(change, selection=selectedLayer) {
+  const {params:next,mapping}=change;
+  if(next.layerCount!==params.layerCount||mapping.some((value,index)=>value!==index))await engine.changeLayers(next,mapping);
+  params=next;selectedLayer=Math.min(selection,params.layerCount);$('preset').value='';buildPads();needsRender=true;clearError();
+}
+function drawGUI() {
+  const disabled=!ready||queued>0;
+  for(const [gui,keys] of [[parameterGUI,modeKeys()],[paintGUI,paintControls]]){
+    gui.begin();
+    for(const key of keys){const [label,min,max,step]=SPEC[key];const value=gui.number(key,label,params[key],{min,max,step,disabled});if(value!==params[key])setParameter(key,value);}
+    gui.end();
+  }
+  layerGUI.begin();
+  if(params.mode==='turing')for(const [suffix,[label,min,max,step]] of Object.entries(LAYER_FIELDS)){
+    const key=`layer${selectedLayer}${suffix}`,value=layerGUI.number(key,label,params[key],{min,max,step,disabled});
+    if(value!==params[key])setParameter(key,value);
+  }
+  layerGUI.end();
+  randomGUI.begin();
+  randomSettings.amount=randomGUI.number('amount','Amount',randomSettings.amount,{min:0,max:1,step:.01,disabled});
+  for(const [key,label] of [['structure','Structure'],['colors','Color'],['layers','Layers']])randomSettings[key]=randomGUI.toggle(key,label,randomSettings[key],{disabled});
+  if(randomSettings.layers){
+    randomSettings.layerChance=randomGUI.number('layerChance','Add/remove chance',randomSettings.layerChance,{min:0,max:1,step:.05,disabled});
+    randomSettings.minLayers=randomGUI.number('minLayers','Minimum layers',randomSettings.minLayers,{min:1,max:randomSettings.maxLayers,disabled});
+    randomSettings.maxLayers=randomGUI.number('maxLayers','Maximum layers',randomSettings.maxLayers,{min:randomSettings.minLayers,max:SCALES,disabled});
+  }
+  randomSettings.newPattern=randomGUI.toggle('newPattern','Restart with new noise',randomSettings.newPattern,{disabled});
+  randomSettings.seed=randomGUI.number('seed','Random seed',randomSettings.seed,{min:0,max:0xffffffff,disabled});
+  if(randomGUI.button('randomize','Randomize',{disabled})){
+    const settings={...randomSettings};
+    enqueue('Randomizing…',async()=>{
+      const change=randomizeParams(params,settings);
+      if(settings.newPattern){await engine.init(n,change.params);params=change.params;selectedLayer=Math.min(selectedLayer,params.layerCount);buildPads();}
+      else await applyLayerChange(change);
+      randomSettings.seed=change.nextSeed;$('preset').value='';needsRender=true;resetTiming();status('Settings randomized');
+    }).catch(()=>{});
+  }
+  randomGUI.end();
+  resolutionGUI.begin();
+  memoryBudget=resolutionGUI.number('budget','Memory budget · MiB',memoryBudget,{min:128,step:64,disabled});
+  if(engine)engine.budgetMiB=memoryBudget;
+  requestedSize=resolutionGUI.number('size','Resolution · px',requestedSize,{min:16,step:1,disabled});
+  const maximum=engine?.maxSize||0;
+  const current=workingBytes(n,engine?.name),peak=current+workingBytes(requestedSize,engine?.name)+reserveBytes(engine?.canvas.width*engine?.canvas.height||undefined);
+  resolutionGUI.text('estimate',`${formatBytes(workingBytes(requestedSize,engine?.name))} field + buffers · ${formatBytes(peak)} estimated resize peak`);
+  resolutionGUI.text('limit',engine?`Resize limit: ${maximum.toLocaleString()} px · current ${n.toLocaleString()} px`:'Checking device limits…');
+  if(resolutionGUI.button('maximum','Use maximum',{disabled:disabled||maximum<16}))requestedSize=maximum;
+  if(resolutionGUI.button('apply','Apply resolution',{disabled:disabled||!Number.isInteger(requestedSize)||requestedSize<16||requestedSize>maximum||requestedSize===n})){
+    const nextSize=requestedSize;
+    enqueue('Changing resolution…',async()=>{await engine.init(nextSize,params);n=nextSize;requestedSize=n;resetTiming();syncValues();needsRender=true;clearError();status(`${n} × ${n} · restarted`);}).catch(()=>{});
+  }
+  resolutionGUI.text('memory-note','Resizing restarts. Free GPU memory is unavailable; leave room for other apps.');
+  resolutionGUI.end();
+  $('layer-add').disabled=disabled||params.layerCount>=SCALES;
+  $('layer-remove').disabled=disabled||params.layerCount<=1;
+}
 function registerAgentTools() {
   const context = document.modelContext; if (!context?.registerTool) return;
   const lifecycle = new AbortController(); addEventListener('pagehide', () => lifecycle.abort(), { once: true });
@@ -422,6 +487,8 @@ $('preset').add(new Option('Custom experiment', ''));
 for (const [key, preset] of Object.entries(PRESETS)) $('preset').add(new Option(preset.name, key));
 $('preset').value = 'mineral'; initializeLayerUI();buildSeeds(); buildPads();
 $('play').onclick = togglePlayback;
+$('layer-add').onclick=()=>{if(ready&&!queued)enqueue('Adding layer…',()=>applyLayerChange(changeLayers(params,selectedLayer,'add'),params.layerCount+1)).catch(()=>{});};
+$('layer-remove').onclick=()=>{if(ready&&!queued)enqueue('Removing layer…',()=>applyLayerChange(changeLayers(params,selectedLayer,'remove'))).catch(()=>{});};
 $('restart').onclick = () => enqueue('Restarting the seed…', reset).catch(() => {});
 $('step').onclick = () => advanceSteps(100);
 $('step-one').onclick = () => advanceSteps(1);

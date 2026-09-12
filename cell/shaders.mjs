@@ -5,7 +5,10 @@ fn size() -> u32 { return u32(cfg.v[0].x); }
 fn layers() -> u32 { return u32(cfg.v[0].w); }
 fn linear(id: vec3u) -> u32 { return id.x + id.y * 65535u * 256u; }
 fn pixel(x: i32, y: i32) -> u32 {
-  let n = i32(size()); return u32(((y % n + n) % n) * n + (x % n + n) % n);
+  let n=i32(size());var px=x;var py=y;
+  if(px<0){px+=n;}else if(px>=n){px-=n;}
+  if(py<0){py+=n;}else if(py>=n){py-=n;}
+  return u32(py*n+px);
 }
 `;
 export const growth = config + `
@@ -37,8 +40,10 @@ fn sampleAt(k: i32, line:u32, s:u32) -> ${type} {
   let n=size();return ${first?'src[(line * n + u32(k))*4u].x':`src[${address}]`};
 }
 fn prefix(x:i32,line:u32,s:u32) -> ${type} {
-  let n=i32(size());let r=(x%n+n)%n;let blockSize=(size()+255u)/256u;
-  var result=f32((x-r)/n)*sums[255];
+  let n=i32(size());var r=x;var periods=0.0;
+  if(x<0){r=x+n;periods=-1.0;}else if(x>=n){r=x-n;periods=1.0;}
+  let blockSize=(size()+255u)/256u;
+  var result=periods*sums[255];
   let block=u32(r)/blockSize;
   if(block>0u){result+=sums[block-1u];}
   for(var k=block*blockSize;k<u32(r);k++){result+=sampleAt(i32(k),line,s);}

@@ -30,7 +30,7 @@ export function randomizeParams(input, settings = RANDOM_DEFAULTS) {
   }
   const keys = [...(o.structure ? (p.mode==='turing'?structure:chemistry) : []), ...(o.colors?colors:[])];
   if(o.layers && p.mode==='turing') for(let i=1;i<=p.layerCount;i++) for(const suffix of Object.keys(LAYER_FIELDS)) keys.push(`layer${i}${suffix}`);
-  for(const key of keys){
+  for(const key of o.amount>0?keys:[]){
     const [,lo,hi,step]=SPEC[key];
     // Local movement: no single click can traverse more than amount of the allowed range.
     const span=key==='growth'?Math.min(hi-lo,Math.max(p[key]*4,.0002)):hi-lo;

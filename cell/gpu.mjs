@@ -55,16 +55,22 @@ export class GPUEngine {
   get limitOptions() { return {budgetMiB:this.budgetMiB,currentSize:this.n||0,backend:this.name,limits:this.limits,viewPixels:this.canvas.width*this.canvas.height}; }
   get maxSize() { return resolutionLimit(this.limitOptions); }
   async init(n, p, state, iteration = 0) {
-    checkResolution(n,this.limitOptions);
+    checkResolution(n,{...this.limitOptions,currentSize:n===this.n?0:this.n||0});
     await this.device.queue.onSubmittedWorkDone();
     // Build beside the old field; commit only after scoped allocation/validation succeeds.
     const candidate=Object.create(this);candidate.buffers=[];
     this.device.pushErrorScope('out-of-memory');this.device.pushErrorScope('validation');
     let failure;
-    try { await candidate.allocate(n,p,state,iteration); } catch(error) { failure=error; }
+    try {
+      if(n===this.n){
+        candidate.current=1-this.current;candidate.iteration=iteration;
+        await candidate.writeInitial(this.fields[candidate.current],n,p,state);
+      }else await candidate.allocate(n,p,state,iteration);
+    } catch(error) { failure=error; }
     const validation=await this.device.popErrorScope(), memory=await this.device.popErrorScope();
     if(failure||validation||memory){candidate.buffers.forEach(b=>b.destroy());throw failure||Error((validation||memory).message);}
-    const previous=this.buffers;Object.assign(this,candidate);previous?.forEach(b=>b.destroy());
+    if(n===this.n){delete candidate.buffers;Object.assign(this,candidate);}
+    else {const previous=this.buffers;Object.assign(this,candidate);previous?.forEach(b=>b.destroy());}
     this.resize();this.render(p);
   }
   async allocate(n, p, state, iteration) {
@@ -80,13 +86,7 @@ export class GPUEngine {
     this.blurred = buffer(n * n * SCALES * 8, 'Scale averages');
     this.partial = buffer(Math.ceil(n * n / 256) * 8, 'Partial extrema');
     this.bounds = buffer(8, 'Global extrema');
-    const rows=Math.max(1,Math.floor(4*1024*1024/(n*CHANNELS*4)));
-    for(let row=0;row<n;row+=rows){
-      const count=Math.min(rows,n-row);
-      const chunk=typeof state==='function'?await state(row,count):state?state.subarray(row*n*CHANNELS,(row+count)*n*CHANNELS):initialField(n,p,row,count);
-      this.device.queue.writeBuffer(this.fields[0],row*n*CHANNELS*4,chunk);
-      await this.device.queue.onSubmittedWorkDone();
-    }
+    await this.writeInitial(this.fields[0],n,p,state);
     this.groups = {};
     for (let i = 0; i < 2; i++) {
       const input = this.fields[i], output = this.fields[1 - i];
@@ -105,6 +105,15 @@ export class GPUEngine {
     this.groups.vertical = this.group(this.pipelines.vertical, [this.horizontal, this.blurred]);
     this.groups.horizontalRepeat = this.group(this.pipelines.horizontalRepeat, [this.blurred, this.horizontal]);
     this.groups.reduceFinal = this.group(this.pipelines.reduceFinal, [this.partial, this.bounds]);
+  }
+  async writeInitial(buffer,n,p,state){
+    const rows=Math.max(1,Math.floor(4*1024*1024/(n*CHANNELS*4)));
+    for(let row=0;row<n;row+=rows){
+      const count=Math.min(rows,n-row);
+      const chunk=typeof state==='function'?await state(row,count):state?state.subarray(row*n*CHANNELS,(row+count)*n*CHANNELS):initialField(n,p,row,count);
+      this.device.queue.writeBuffer(buffer,row*n*CHANNELS*4,chunk);
+      await this.device.queue.onSubmittedWorkDone();
+    }
   }
   async step(p, count) {
     const n = this.n, grow = p.growth > 0;

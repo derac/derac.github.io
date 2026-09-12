@@ -199,6 +199,7 @@ export class CPUModel {
           dst[j] = src[j] + (delta > 0 ? 1 : -1) * scales[winner].amount;
           for(let s=0;s<SCALES;s++) dst[j+1+s] = s < p.layerCount ? src[j+1+s]*(1-p.colorMemory) + (winner === s ? p.colorMemory : 0) : 0;
           dst[j+REGION_CHANNEL] = src[j+REGION_CHANNEL]*0.98 + this.activators[p.layerCount-1][i]*0.02;
+          dst[j+14]=src[j+14];dst[j+15]=src[j+15];
           lo = Math.min(lo, dst[j]); hi = Math.max(hi, dst[j]);
         }
         const span = Math.max(hi - lo, 1e-6);
@@ -222,6 +223,7 @@ export class CPUModel {
           dst[i+5] = clamp(q[5] + 0.015*lap[5] + 0.0003*q[5]*(1-q[5]*q[5]) + 0.001*p.regionVariation*(q[2]-q[3]), -1, 1);
           dst[i+6] = q[6]*(1-p.colorMemory) + q[1]*p.colorMemory;
           dst[i+7] = q[7]*(1-p.colorMemory) + q[2]*p.colorMemory;
+          dst.fill(0,i+8,i+CHANNELS);
         }
       }
       this.next = this.field; this.field = dst; this.iteration++;

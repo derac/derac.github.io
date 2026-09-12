@@ -3,21 +3,22 @@
 // accessibility and native input behavior; no widget owns the experiment state.
 export class ImmediateGUI {
   constructor(root) { this.root=root;this.nodes=new Map();this.events=new Map(); }
-  begin() { this.seen=new Set(); }
+  begin() { this.seen=new Set();this.cursor=this.root.firstChild; }
   widget(id, make) {
     this.seen.add(id);
     if(!this.nodes.has(id)){const node=make();this.nodes.set(id,node);this.root.append(node);}
-    return this.nodes.get(id);
+    const node=this.nodes.get(id);if(node!==this.cursor)this.root.insertBefore(node,this.cursor);this.cursor=node.nextSibling;return node;
   }
   number(id,label,value,{min,max,step=1,disabled=false}={}) {
     const row=this.widget(id,()=>{
       const row=document.createElement('label');row.className='gui-row';
       const title=document.createElement('span');title.textContent=label;
       const input=document.createElement('input');input.type='number';input.setAttribute('aria-label',label);
-      input.addEventListener('change',()=>{if(input.checkValidity()&&Number.isFinite(input.valueAsNumber))this.events.set(id,input.valueAsNumber);else input.value=value;});
+      input.addEventListener('input',()=>{if(input.checkValidity()&&Number.isFinite(input.valueAsNumber))this.events.set(id,input.valueAsNumber);});
+      input.addEventListener('change',()=>{if(input.checkValidity()&&Number.isFinite(input.valueAsNumber))this.events.set(id,input.valueAsNumber);else input.value=input.lastValue;});
       row.append(title,input);return row;
     });
-    const input=row.lastChild;input.min=min??'';input.max=max??'';input.step=step;input.disabled=disabled;
+    const input=row.lastChild;input.lastValue=value;input.min=min??'';input.max=max??'';input.step=step;input.disabled=disabled;
     if(document.activeElement!==input)input.value=value;
     const next=this.events.has(id)?this.events.get(id):value;this.events.delete(id);return disabled?value:next;
   }
