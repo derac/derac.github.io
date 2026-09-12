@@ -22,7 +22,16 @@
       <input id="speed" type="range" min="0" max="1000" step="1" value="630" aria-label="Evolution speed">
       <div class="speed-footer"><div class="speed-presets"><button data-speed="20">20</button><button data-speed="120">120</button><button data-speed="600">600</button><button data-speed="2000">2000</button></div><span id="actual-speed">…</span></div>
       <label class="stacked">Preset<select id="preset"></select></label>
-      <details open><summary>Layers</summary>
+      <section class="exploration-actions" aria-label="Explore">
+        <div id="random-action" class="random-action"></div>
+        <details id="random-section" class="compact-details"><summary>Randomization settings</summary><div id="random-controls"></div></details>
+      </section>
+      <section id="resolution-section" class="resolution-panel" aria-label="Resolution">
+        <div id="resolution-controls" class="resolution-controls"></div>
+        <details class="compact-details"><summary>Memory details</summary><div id="memory-details"></div></details>
+      </section>
+      <details id="pads-section" open><summary>XY pads</summary><div id="pads"></div></details>
+      <details id="layers-section"><summary>Layers</summary>
         <section id="layers-panel" aria-label="Layer controls">
           <div class="section-label"><span id="layers-title">6 layers</span><div class="button-group"><button id="layer-add" title="Add a layer">+</button><button id="layer-remove" title="Remove selected layer">−</button></div></div>
           <div id="layer-tabs" class="layer-tabs"></div>
@@ -32,8 +41,6 @@
           <div id="layer-radius-note" class="microcopy"></div>
         </section>
       </details>
-      <details id="random-section"><summary>Randomize</summary><div id="random-controls"></div></details>
-      <details id="pads-section"><summary>XY pads</summary><div id="pads"></div></details>
       <details><summary>Simulation</summary>
         <label class="stacked">Model<select id="mode"><option value="turing">Turing scales</option><option value="lattice">Regional reactions</option></select></label>
         <label class="stacked">Averaging<select id="kernel"><option value="smooth">Smooth</option><option value="box">Square</option></select></label>
@@ -46,8 +53,7 @@
         <div id="paint-params"></div>
       </details>
       <details><summary>Seeds</summary><div id="seeds"></div></details>
-      <details id="resolution-section"><summary>Resolution &amp; files</summary>
-        <div id="resolution-controls"></div>
+      <details id="files-section"><summary>Files</summary>
         <div class="file-actions"><button id="png" disabled>PNG</button><button id="save" disabled>Save state</button><button id="load">Load state</button></div>
         <progress id="export-progress" max="1" value="0" hidden aria-label="Export progress"></progress><button id="cancel-export" hidden>Cancel export</button>
         <input id="load-file" type="file" accept=".cell,.json,application/json,application/octet-stream" hidden>
@@ -78,7 +84,7 @@
   <p>Use + and − in Layers to add a scale or remove the selected one, up to twelve. Remaining histories and colors are kept. Regional reactions use these as color families.</p>
   <p>Randomize perturbs the current settings. Choose an amount, affected controls, a seed, and the chance of adding or removing one layer. The seed advances after each click. Restart with new noise is optional.</p>
   <p>The canvas follows the window without restarting. Its square field fills the window with a centered crop; PNG export includes the entire square.</p>
-  <p>Resolution &amp; files accepts any integer size within the selected memory budget and device limits. Applying a new size restarts. GPU memory usage is roughly 384 bytes per pixel, plus the display and temporary resources. Resizing retains the old field until the new allocation succeeds. Browsers cannot report reliable free GPU memory, so a very large budget can still cause device loss or a tab crash.</p>
+  <p>Resolution accepts any integer size within the selected memory budget and device limits. Applying a new size restarts. GPU memory usage is roughly 384 bytes per pixel, plus the display and temporary resources. Resizing retains the old field until the new allocation succeeds. Browsers cannot report reliable free GPU memory, so a very large budget can still cause device loss or a tab crash.</p>
   <p>PNG and .cell exports process rows in batches. Browsers with a Save File picker write directly to disk; other browsers limit the download buffer to 128 MiB. Large simulations still keep their coupled fields in memory. Use Cancel export to stop a file before it is committed.</p>
   <h2>What remains unknown</h2>
   <p>The exact polynomial map, history mechanism, coefficients, color mapping, seed, growth schedule, and iteration count for d_0020. Neither mode claims a pixel-for-pixel reconstruction. Optional relief shading is a display effect added here.</p>

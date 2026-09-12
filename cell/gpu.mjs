@@ -1,4 +1,6 @@
 import * as shaders from './shaders.mjs';
+import { bindingEntries } from './gpu-layout.mjs';
+import { packFieldRows, unpackFieldRows, fieldRowPitch } from './gpu-transfer.mjs';
 import { initialField, scaleConfig, coefficients, paletteStops, layerRamps, colorPhases, CHANNELS, SCALES } from './model.mjs';
 import { checkResolution, resolutionLimit } from './limits.mjs';
 export function packConfig(n, p, width = n, height = n) {
@@ -22,7 +24,7 @@ export class GPUEngine {
     if (!navigator.gpu) throw Error('WebGPU is unavailable in this browser.');
     const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
     if (!adapter) throw Error('No WebGPU adapter was available.');
-    const device = await adapter.requestDevice({ requiredLimits: { maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize, maxBufferSize: adapter.limits.maxBufferSize } });
+    const device = await adapter.requestDevice({});
     const engine = new GPUEngine(); engine.device = device; engine.canvas = canvas;
     engine.name = 'WebGPU'; engine.budgetMiB = 512; engine.limits = device.limits;
     device.addEventListener('uncapturederror', e => onError(e.error.message));
@@ -35,12 +37,14 @@ export class GPUEngine {
         const info = await module.getCompilationInfo();
         const errors = info.messages.filter(m => m.type === 'error');
         if (errors.length) throw Error(`${name}: ${errors.map(e => e.message).join('; ')}`);
+        const bindings = device.createBindGroupLayout({ entries: bindingEntries(name) });
+        const layout = device.createPipelineLayout({ bindGroupLayouts: [bindings] });
         if (name === 'display') {
           engine.format = navigator.gpu.getPreferredCanvasFormat();
-          engine.renderPipeline = await device.createRenderPipelineAsync({ label: 'Display', layout: 'auto',
+          engine.renderPipeline = await device.createRenderPipelineAsync({ label: 'Display', layout,
             vertex: { module, entryPoint: 'vertex' }, fragment: { module, entryPoint: 'fragment', targets: [{ format: engine.format }] },
             primitive: { topology: 'triangle-list' } });
-        } else engine.pipelines[name] = await device.createComputePipelineAsync({ label: name, layout: 'auto', compute: { module, entryPoint: 'main' } });
+        } else engine.pipelines[name] = await device.createComputePipelineAsync({ label: name, layout, compute: { module, entryPoint: 'main' } });
       }
       engine.context = canvas.getContext('webgpu');
       if (!engine.context) throw Error('Could not create the WebGPU canvas.');
@@ -50,7 +54,7 @@ export class GPUEngine {
   }
   group(pipeline, buffers) {
     return this.device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [this.uniform, ...buffers]
-      .map((buffer, binding) => ({ binding, resource: { buffer } })) });
+      .map((buffer, binding) => ({ binding, resource: buffer.view ?? { buffer } })) });
   }
   get limitOptions() { return {budgetMiB:this.budgetMiB,currentSize:this.n||0,backend:this.name,limits:this.limits,viewPixels:this.canvas.width*this.canvas.height}; }
   get maxSize() { return resolutionLimit(this.limitOptions); }
@@ -79,11 +83,16 @@ export class GPUEngine {
       const b = this.device.createBuffer({ label, size, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
       this.buffers.push(b); return b;
     };
-    const bytes = n * n * CHANNELS * 4;
-    this.fields = [buffer(bytes, 'Field A'), buffer(bytes, 'Field B')];
-    this.grown = buffer(bytes, 'Inflated field');
-    this.horizontal = buffer(n * n * SCALES * 8, 'Horizontal averages');
-    this.blurred = buffer(n * n * SCALES * 8, 'Scale averages');
+    const texture = (label, format, layers) => {
+      const texture = this.device.createTexture({ label, size: [n,n,layers], format,
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST });
+      const resource = { texture, view: texture.createView({dimension:'2d-array'}), destroy: () => texture.destroy() };
+      this.buffers.push(resource);return resource;
+    };
+    this.fields = [texture('Field A','rgba32float',4),texture('Field B','rgba32float',4)];
+    this.grown = texture('Inflated field','rgba32float',4);
+    this.horizontal = texture('Horizontal averages','rg32float',SCALES);
+    this.blurred = texture('Scale averages','rg32float',SCALES);
     this.partial = buffer(Math.ceil(n * n / 256) * 8, 'Partial extrema');
     this.bounds = buffer(8, 'Global extrema');
     await this.writeInitial(this.fields[0],n,p,state);
@@ -99,19 +108,20 @@ export class GPUEngine {
         this.groups[`lattice${key}`] = this.group(this.pipelines.lattice, [src, output]);
       }
       this.groups[`reduce${i}`] = this.group(this.pipelines.reduce, [output, this.partial]);
-      this.groups[`normalize${i}`] = this.group(this.pipelines.normalize, [output, this.bounds]);
+      this.groups[`normalize${i}`] = this.group(this.pipelines.normalize, [output, this.bounds, input]);
       this.groups[`display${i}`] = this.group(this.renderPipeline, [input]);
     }
     this.groups.vertical = this.group(this.pipelines.vertical, [this.horizontal, this.blurred]);
     this.groups.horizontalRepeat = this.group(this.pipelines.horizontalRepeat, [this.blurred, this.horizontal]);
     this.groups.reduceFinal = this.group(this.pipelines.reduceFinal, [this.partial, this.bounds]);
   }
-  async writeInitial(buffer,n,p,state){
+  async writeInitial(resource,n,p,state){
     const rows=Math.max(1,Math.floor(4*1024*1024/(n*CHANNELS*4)));
     for(let row=0;row<n;row+=rows){
       const count=Math.min(rows,n-row);
       const chunk=typeof state==='function'?await state(row,count):state?state.subarray(row*n*CHANNELS,(row+count)*n*CHANNELS):initialField(n,p,row,count);
-      this.device.queue.writeBuffer(buffer,row*n*CHANNELS*4,chunk);
+      this.device.queue.writeTexture({texture:resource.texture,origin:[0,row,0]},packFieldRows(chunk,n,count),
+        {bytesPerRow:fieldRowPitch(n),rowsPerImage:count},[n,count,4]);
       await this.device.queue.onSubmittedWorkDone();
     }
   }
@@ -134,7 +144,9 @@ export class GPUEngine {
         run('reduceFinal', 'reduceFinal', 1);
         run('normalize', `normalize${i}`, Math.ceil(n * n / 256));
       } else run('lattice', `lattice${key}`, Math.ceil(n / 8), Math.ceil(n / 8));
-      this.current = 1 - this.current; this.iteration++;
+      // Turing normalization copies the raw output back into the old input.
+      if(p.mode !== 'turing')this.current = 1 - this.current;
+      this.iteration++;
     }
     pass.end(); this.device.queue.submit([encoder.finish()]);
     await this.device.queue.onSubmittedWorkDone(); this.render(p);
@@ -163,18 +175,27 @@ export class GPUEngine {
     this.device.queue.submit([encoder.finish()]);
   }
   async readRows(row,count) {
-    const size=count*this.n*CHANNELS*4;
-    const read=this.device.createBuffer({size,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ});
-    try {
-      const encoder=this.device.createCommandEncoder();
-      // Periodic halo rows for the PNG relief filter, including top/bottom seams.
-      for(let offset=0;offset<count;){
-        const source=((row+offset)%this.n+this.n)%this.n,rows=Math.min(count-offset,this.n-source);
-        encoder.copyBufferToBuffer(this.fields[this.current],source*this.n*CHANNELS*4,read,offset*this.n*CHANNELS*4,rows*this.n*CHANNELS*4);offset+=rows;
-      }
-      this.device.queue.submit([encoder.finish()]);await read.mapAsync(GPUMapMode.READ);
-      return new Float32Array(read.getMappedRange().slice(0));
-    }finally{read.destroy();}
+    const n=this.n,result=new Float32Array(count*n*CHANNELS);
+    // Bound staging independently of grid size, including full checkpoint reads.
+    const bandRows=Math.max(1,Math.floor(4*1024*1024/(fieldRowPitch(n)*4)));
+    for(let first=0;first<count;first+=bandRows){
+      const rows=Math.min(bandRows,count-first),pitch=fieldRowPitch(n);
+      const read=this.device.createBuffer({size:pitch*rows*4,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ});
+      try {
+        const encoder=this.device.createCommandEncoder();
+        // Periodic halo rows for the PNG relief filter, including top/bottom seams.
+        for(let offset=0;offset<rows;){
+          const source=((row+first+offset)%n+n)%n,length=Math.min(rows-offset,n-source);
+          for(let layer=0;layer<4;layer++)encoder.copyTextureToBuffer(
+            {texture:this.fields[this.current].texture,origin:[0,source,layer]},
+            {buffer:read,offset:(layer*rows+offset)*pitch,bytesPerRow:pitch,rowsPerImage:rows},[n,length,1]);
+          offset+=length;
+        }
+        this.device.queue.submit([encoder.finish()]);await read.mapAsync(GPUMapMode.READ);
+        unpackFieldRows(new Float32Array(read.getMappedRange()),n,rows,result,first*n*CHANNELS);
+      }finally{read.destroy();}
+    }
+    return result;
   }
   async snapshot() {return {state:await this.readRows(0,this.n),iteration:this.iteration};}
   destroy() {

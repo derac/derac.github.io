@@ -3,7 +3,7 @@ import { GPUEngine } from './gpu.mjs';
 import { openCheckpoint } from './state.mjs';
 import { ImmediateGUI } from './immediate-gui.mjs';
 import { RANDOM_DEFAULTS, randomizeParams, changeLayers } from './randomize.mjs';
-import { checkResolution, resolutionLimit, workingBytes, reserveBytes, formatBytes, MiB } from './limits.mjs';
+import { checkResolution, resolutionLimit, workingBytes, reserveBytes, formatBytes, MiB, resolutionLimits, memoryBudgetRange, budgetToSlider, sliderToBudget, budgetSliderSteps, budgetNeededMiB, extendBudgetSlider } from './limits.mjs';
 import { createSink, writePNG, writeCheckpoint } from './export.mjs';
 import { PlaybackClock, MIN_SPEED, MAX_SPEED, sliderToSpeed, speedToSlider } from './playback.mjs';
 
@@ -14,8 +14,9 @@ let jobs = Promise.resolve(), ready = false, lastReport = performance.now(), rep
 let padBindings = [], parameterInputs = new Map(), stepCost = 1;
 const playback = new PlaybackClock();
 let selectedLayer=1, layerInputs=new Map();
-let randomSettings={...RANDOM_DEFAULTS},requestedSize=512,memoryBudget=512,exportController;
+let randomSettings={...RANDOM_DEFAULTS},requestedSize=512,memoryBudget=512,memorySliderMax=128,exportController;
 const randomGUI=new ImmediateGUI($('random-controls')),resolutionGUI=new ImmediateGUI($('resolution-controls'));
+const randomActionGUI=new ImmediateGUI($('random-action')),memoryGUI=new ImmediateGUI($('memory-details'));
 const layerGUI=new ImmediateGUI($('layer-parameters')),parameterGUI=new ImmediateGUI($('all-params')),paintGUI=new ImmediateGUI($('paint-params'));
 const paintControls = ['hue', 'bands', 'contrast', 'relief', 'colorMix', 'separation', 'colorDrift', 'saturation'];
 const modeKeys = () => params.mode === 'turing' ? ['scale', 'spacing', 'ratio', 'rate', 'bias', 'growth', 'regionality', 'colorMemory']
@@ -435,7 +436,9 @@ function drawGUI() {
   }
   randomSettings.newPattern=randomGUI.toggle('newPattern','Restart with new noise',randomSettings.newPattern,{disabled});
   randomSettings.seed=randomGUI.number('seed','Random seed',randomSettings.seed,{min:0,max:0xffffffff,disabled});
-  if(randomGUI.button('randomize','Randomize',{disabled})){
+  randomGUI.end();
+  randomActionGUI.begin();
+  if(randomActionGUI.button('randomize','Randomize',{disabled})){
     const settings={...randomSettings};
     enqueue('Randomizing…',async()=>{
       const change=randomizeParams(params,settings);
@@ -444,22 +447,36 @@ function drawGUI() {
       randomSettings.seed=change.nextSeed;$('preset').value='';needsRender=true;resetTiming();status('Settings randomized');
     }).catch(()=>{});
   }
-  randomGUI.end();
+  randomActionGUI.end();
   resolutionGUI.begin();
-  memoryBudget=resolutionGUI.number('budget','Memory budget · MiB',memoryBudget,{min:128,step:64,disabled});
-  if(engine)engine.budgetMiB=memoryBudget;
   requestedSize=resolutionGUI.number('size','Resolution · px',requestedSize,{min:16,step:1,disabled});
-  const maximum=engine?.maxSize||0;
-  const current=workingBytes(n,engine?.name),peak=current+workingBytes(requestedSize,engine?.name)+reserveBytes(engine?.canvas.width*engine?.canvas.height||undefined);
-  resolutionGUI.text('estimate',`${formatBytes(workingBytes(requestedSize,engine?.name))} field + buffers · ${formatBytes(peak)} estimated resize peak`);
-  resolutionGUI.text('limit',engine?`Resize limit: ${maximum.toLocaleString()} px · current ${n.toLocaleString()} px`:'Checking device limits…');
-  if(resolutionGUI.button('maximum','Use maximum',{disabled:disabled||maximum<16}))requestedSize=maximum;
+  const options=engine?.limitOptions||{budgetMiB:memoryBudget,currentSize:n};
+  const range=memoryBudgetRange(options,navigator.deviceMemory);
+  memoryBudget=resolutionGUI.number('budget','Memory · MiB',memoryBudget,{min:128,step:1,disabled});
+  const sliderMax=memorySliderMax=extendBudgetSlider(memorySliderMax,range.max,memoryBudget),position=budgetToSlider(memoryBudget,sliderMax);
+  const nextPosition=resolutionGUI.range('budget-slider','Memory budget',position,{max:budgetSliderSteps(sliderMax),disabled:disabled||sliderMax<=128,valueText:`${memoryBudget.toLocaleString()} MiB`});
+  if(nextPosition!==position)memoryBudget=sliderToBudget(nextPosition,sliderMax);
+  if(engine)engine.budgetMiB=memoryBudget;
+  const liveOptions={...options,budgetMiB:memoryBudget};
+  const {maximum,device,bottleneck}=resolutionLimits(liveOptions);
+  if(resolutionGUI.button('maximum','Max',{disabled:disabled||maximum<16}))requestedSize=maximum;
   if(resolutionGUI.button('apply','Apply resolution',{disabled:disabled||!Number.isInteger(requestedSize)||requestedSize<16||requestedSize>maximum||requestedSize===n})){
     const nextSize=requestedSize;
     enqueue('Changing resolution…',async()=>{await engine.init(nextSize,params);n=nextSize;requestedSize=n;resetTiming();syncValues();needsRender=true;clearError();status(`${n} × ${n} · restarted`);}).catch(()=>{});
   }
-  resolutionGUI.text('memory-note','Resizing restarts. Free GPU memory is unavailable; leave room for other apps.');
+  const label=bottleneck==='budget'?'budget limit':engine?.name==='WebGPU'?'GPU texture limit':'CPU address limit';
+  resolutionGUI.text('limit',engine?`Up to ${maximum.toLocaleString()} px · ${label}`:'Checking device limits…');
+  if(engine&&requestedSize>maximum){
+    resolutionGUI.text('request-help',requestedSize<=device?`Needs about ${budgetNeededMiB(requestedSize,liveOptions).toLocaleString()} MiB to resize.`:`GPU texture ceiling: ${device.toLocaleString()} px.`);
+  }
   resolutionGUI.end();
+  memoryGUI.begin();
+  const peak=workingBytes(n,engine?.name)+workingBytes(requestedSize,engine?.name)+reserveBytes(liveOptions.viewPixels);
+  memoryGUI.text('estimate',`${formatBytes(workingBytes(requestedSize,engine?.name))} field + workspace · ${formatBytes(peak)} resize peak`);
+  memoryGUI.text('ceiling',engine?.name==='WebGPU'?`GPU texture ceiling: ${device.toLocaleString()} px. More budget cannot exceed it.`:'CPU grids use system memory; large grids can be slow.');
+  memoryGUI.text('range',range.source==='gpu'?`Budget for the GPU texture ceiling: ${formatBytes(range.max*MiB)}. This is not available VRAM.`:range.source==='ram'?'Slider guidance uses half the browser’s approximate system RAM.':'System RAM is unavailable. The slider offers 4 GiB; exact budgets can go higher.');
+  memoryGUI.text('reserve','Resizing restarts and keeps the old field until the new one is ready. Free GPU memory is not exposed; leave room for other apps.');
+  memoryGUI.end();
   $('layer-add').disabled=disabled||params.layerCount>=SCALES;
   $('layer-remove').disabled=disabled||params.layerCount<=1;
 }

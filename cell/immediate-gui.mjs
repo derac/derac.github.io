@@ -22,6 +22,19 @@ export class ImmediateGUI {
     if(document.activeElement!==input)input.value=value;
     const next=this.events.has(id)?this.events.get(id):value;this.events.delete(id);return disabled?value:next;
   }
+  range(id,label,value,{min=0,max=1000,step=1,disabled=false,valueText=String(value)}={}) {
+    const row=this.widget(id,()=>{
+      const row=document.createElement('label');row.className='gui-range';
+      const title=document.createElement('span');title.textContent=label;
+      const input=document.createElement('input');input.type='range';input.setAttribute('aria-label',label);
+      input.oninput=()=>this.events.set(id,input.valueAsNumber);row.append(title,input);return row;
+    });
+    const input=row.lastChild;input.min=min;input.max=max;input.step=step;input.disabled=disabled;
+    // Consume the input event before synchronizing the DOM. Writing the previous
+    // frame's value first makes the native thumb jump backward during a drag.
+    const next=disabled?value:this.events.has(id)?this.events.get(id):value;this.events.delete(id);
+    input.value=next;input.setAttribute('aria-valuetext',valueText);return next;
+  }
   toggle(id,label,value,{disabled=false}={}) {
     const row=this.widget(id,()=>{const row=document.createElement('label');row.className='gui-row';const title=document.createElement('span');title.textContent=label;
       const input=document.createElement('input');input.type='checkbox';input.onchange=()=>this.events.set(id,input.checked);row.append(title,input);return row;});
