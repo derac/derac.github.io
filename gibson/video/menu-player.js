@@ -1,4 +1,5 @@
-import {createKeyClicks} from './key-clicks.js';
+import {createSound} from './sound.js';
+import {installAudioStart} from './audio-start.js';
 
 // Load before swapping; generation tokens keep rapid hover/back navigation stable.
 export function createImageMenu({states,transitions={},loadImage,present,showState=()=>{},reducedMotion=()=>false,setTimer=setTimeout,clearTimer=clearTimeout}){
@@ -39,7 +40,7 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
 
 export function startMenu(data){
  let foreground=document.querySelector('#menu-text');
- const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links'),sound=document.querySelector('.sound-toggle');
+ const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links');
  const blobs=new Map();
  async function loadImage(file){
   if(!blobs.has(file))blobs.set(file,fetch(`./video/${file}`).then(response=>{if(!response.ok)throw Error('Image unavailable');return response.blob();}).catch(error=>{blobs.delete(file);throw error;}));
@@ -52,23 +53,9 @@ export function startMenu(data){
   image.id='menu-text';image.alt='';image.setAttribute('aria-hidden','true');
   foreground.replaceWith(image);foreground=image;
  }
- const audio=new Audio('./audio/gibson-techno.ogg');audio.loop=true;audio.volume=.7;
- let keyContext,keyOutput,keyClicks;
- function cue(kind,{activate=false}={}){
-  if(!enabled)return;
-  try{
-   if(!keyContext){
-    if(!activate)return;
-    keyContext=new AudioContext();keyOutput=keyContext.createGain();keyOutput.gain.value=.7;keyOutput.connect(keyContext.destination);
-    keyClicks=createKeyClicks(keyContext,keyOutput);
-   }
-   if(activate&&keyContext.state!=='running')keyContext.resume().then(()=>{if(enabled)keyClicks.play(kind);}).catch(()=>{});
-   else if(keyContext.state==='running')Promise.resolve(keyClicks.play(kind)).catch(()=>{});
-  }catch{/* Optional key feedback must not interrupt ordinary HTML navigation. */}
- }
-
- const motion=matchMedia('(prefers-reduced-motion:reduce)');let enabled=true;
- try{enabled=localStorage.getItem('gibson.audio.enabled')!=='false';}catch{}
+ const audio=createSound();
+ const cue=kind=>audio.cue(kind);
+ const motion=matchMedia('(prefers-reduced-motion:reduce)');
  const keyFromHash=()=>Object.keys(data.states).find(key=>data.states[key].hash===location.hash)||'menu';
  const player=createImageMenu({states:data.states,transitions:data.transitions,loadImage,present,reducedMotion:()=>motion.matches,
   showState(key,state){
@@ -84,14 +71,12 @@ export function startMenu(data){
  document.body.dataset.imageReady='true';
  const syncBackground=()=>{background.src=`./video/${motion.matches?data.backgroundStill:data.background}`;};
  syncBackground();
- function syncSound(){sound.querySelector('.sound-label').textContent=enabled?'SOUND ON':'SOUND OFF';sound.dataset.muted=String(!enabled);sound.setAttribute('aria-pressed',String(!enabled));sound.setAttribute('aria-label',enabled?'Mute sound':'Unmute sound');}
- sound.addEventListener('click',()=>{enabled=!enabled;try{localStorage.setItem('gibson.audio.enabled',String(enabled));}catch{}if(enabled)audio.play().catch(()=>{});else audio.pause();if(keyOutput)keyOutput.gain.setTargetAtTime(enabled?.7:0,keyContext.currentTime,.01);syncSound();});
  nav.addEventListener('click',event=>{
   const link=event.target.closest('a');if(!link||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   const next=Object.keys(data.states).find(key=>data.states[key].hash===link.hash);if(!next)return;
   event.preventDefault();history.pushState(null,'',link.hash);
   // Native history and captured in-scene project navigation stay in sync.
-  const keyboard=event.detail===0;player.navigate(next);if(keyboard)nav.querySelector('a')?.focus({preventScroll:true});if(enabled)audio.play().catch(()=>{});
+  const keyboard=event.detail===0;player.navigate(next);if(keyboard)nav.querySelector('a')?.focus({preventScroll:true});
  });
  const controls='a,button';
  document.addEventListener('pointerover',event=>{
@@ -101,11 +86,11 @@ export function startMenu(data){
  nav.addEventListener('pointerout',event=>{if(!event.relatedTarget?.closest?.('.hit'))player.hover(null);});
  nav.addEventListener('pointerleave',()=>player.hover(nav.contains(document.activeElement)?document.activeElement.dataset.key:null));
  nav.addEventListener('focusout',event=>{if(!nav.contains(event.relatedTarget))player.hover(null);});
- document.addEventListener('click',event=>{if(event.target.closest(controls))cue('click',{activate:true});});
- window.addEventListener('pagehide',event=>{audio.pause();if(event.persisted)keyContext?.suspend();else{keyClicks?.dispose();keyContext?.close();}});
- window.addEventListener('pageshow',event=>{if(event.persisted&&enabled)keyContext?.resume().catch(()=>{});});
+ document.addEventListener('click',event=>{if(event.target.closest(controls))cue('click');});
+ const stopAudioStart=installAudioStart(()=>{if(!audio.running)return audio.enable(true);});
+ window.addEventListener('pagehide',event=>{if(event.persisted)audio.suspend(true);else{stopAudioStart();audio.dispose();}});
  window.addEventListener('hashchange',()=>player.navigate(keyFromHash()));
- document.addEventListener('visibilitychange',()=>{if(document.hidden){player.settle();audio.pause();keyContext?.suspend();}else{if(enabled)keyContext?.resume().catch(()=>{});}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){player.settle();audio.suspend(true);}});
  motion.addEventListener('change',()=>{syncBackground();player.settle();});
  // A standalone fallback still makes the normal browser context request once.
  // An embedded fallback leaves that request to its original parent document.
@@ -116,5 +101,5 @@ export function startMenu(data){
   };
   request();window.addEventListener('focus',request);
  }
- syncSound();player.navigate(keyFromHash(),{animate:false});
+ player.navigate(keyFromHash(),{animate:false});
 }
