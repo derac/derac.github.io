@@ -4,42 +4,54 @@ import {installAudioStart} from './audio-start.js';
 // Load before swapping; generation tokens keep rapid hover/back navigation stable.
 export function createImageMenu({states,transitions={},loadImage,present,showState=()=>{},reducedMotion=()=>false,setTimer=setTimeout,clearTimer=clearTimeout}){
  let current='menu',hovered=null,generation=0,timer=null,navigating=false;
- async function display(still,clip=null){
+ async function display(layers){
   const token=++generation;clearTimer(timer);
-  const useClip=clip&&!reducedMotion();
+  const animated=Object.values(layers).some(item=>item.clip)&&!reducedMotion();
   try{
-   const image=await loadImage(useClip?clip.image:still);
+   const loaded=await Promise.all(Object.entries(layers).map(async([layer,item])=>{
+    const file=animated&&item.clip?item.clip.image:item.still;
+    return [layer,file?await loadImage(file):null];
+   }));
    if(token!==generation)return;
-   present(image);
-   if(useClip)timer=setTimer(()=>{if(token===generation){navigating=false;display(still);}},clip.duration);
-   else navigating=false;
+   for(const [layer,image] of loaded)present(image,layer);
+   if(animated){
+    const duration=Math.max(...Object.values(layers).map(item=>item.clip?.duration??0));
+    timer=setTimer(()=>{if(token===generation){navigating=false;display(Object.fromEntries(Object.entries(layers).map(([layer,item])=>[layer,{still:item.still}])));}},duration);
+   }else navigating=false;
   }catch{
    if(token!==generation)return;
    navigating=false;
-   if(useClip)display(still);
+   if(animated)display(Object.fromEntries(Object.entries(layers).map(([layer,item])=>[layer,{still:item.still}])));
   }
  }
+ function pageLayers(clip=null){
+  const state=states[current],layers={content:{still:state.still,clip}};
+  if('control' in state)layers.control={still:state.control,clip:clip?.control};
+  return layers;
+ }
+
  return {
   get state(){return current;},
   navigate(next,{animate=true}={}){
    if(!states[next])next='menu';
    const before=current;current=next;hovered=null;
    const clip=animate?transitions[`${before}:${next}`]:null;
-   navigating=Boolean(clip&&!reducedMotion());showState(next,states[next]);display(states[next].still,clip);
+   navigating=Boolean(clip&&!reducedMotion());showState(next,states[next]);display(pageLayers(clip));
   },
   hover(key){
    if(navigating)return;
    if(!states[current].hovers[key])key=null;
    if(key===hovered)return;
    const previous=states[current].hovers[hovered],next=states[current].hovers[key];hovered=key;
-   display(next?.still??states[current].still,next?.enter??previous?.leave);
+   const layer=next?.layer??previous?.layer??'content';
+   display({[layer]:{still:next?.still??(layer==='control'?states[current].control:states[current].still),clip:next?.enter??previous?.leave}});
   },
-  settle(){navigating=false;hovered=null;display(states[current].still);},
+  settle(){navigating=false;hovered=null;display(pageLayers());},
  };
 }
 
 export function startMenu(data){
- let foreground=document.querySelector('#menu-text');
+ const foreground={content:document.querySelector('#menu-text'),control:document.querySelector('#menu-control')};
  const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links');
  const blobs=new Map();
  async function loadImage(file){
@@ -48,10 +60,11 @@ export function startMenu(data){
   try{await image.decode();}finally{URL.revokeObjectURL(url);}
   return image;
  }
- function present(image){
+ function present(image,layer){
   // A fresh object URL gives every one-shot WebP its own animation timeline.
-  image.id='menu-text';image.alt='';image.setAttribute('aria-hidden','true');
-  foreground.replaceWith(image);foreground=image;
+  if(!image){foreground[layer].hidden=true;return;}
+  image.id=layer==='control'?'menu-control':'menu-text';image.alt='';image.setAttribute('aria-hidden','true');
+  foreground[layer].replaceWith(image);foreground[layer]=image;
  }
  const audio=createSound();
  const cue=kind=>audio.cue(kind);

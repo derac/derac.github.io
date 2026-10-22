@@ -39,6 +39,7 @@ export function createSound(onFailure=()=>{},{loadBuffer=loadScore,createClicks=
   },
   cue(kind){
    if(!enabled||!context||disposed)return;
+   if(kind==='hover'&&context.state!=='running')return;
    try{
     if(!keys){effectGain=context.createGain();effectGain.connect(context.destination);keys=createClicks(context,effectGain);}
     effectGain.gain.setTargetAtTime(.7,context.currentTime,.01);Promise.resolve(keys.play(kind)).catch(()=>{});

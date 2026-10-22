@@ -83,7 +83,7 @@
       "href": "#test5"
     }
   ],
-  "format": "layered-webp-v1",
+  "format": "layered-webp-v2",
   "background": "world.webp",
   "backgroundStill": "world-still.webp",
   "states": {
@@ -153,6 +153,7 @@
         }
       ],
       "still": "idle-menu.webp",
+      "control": null,
       "hovers": {
         "test1": {
           "still": "hover-menu-0.webp",
@@ -229,15 +230,17 @@
         }
       ],
       "still": "idle-project-0.webp",
+      "control": "return-idle.webp",
       "hovers": {
         "return": {
-          "still": "hover-project-0.webp",
+          "layer": "control",
+          "still": "return-hover.webp",
           "enter": {
-            "image": "return-in-0.webp",
+            "image": "return-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "return-out-0.webp",
+            "image": "return-out.webp",
             "duration": 80
           }
         }
@@ -261,15 +264,17 @@
         }
       ],
       "still": "idle-project-1.webp",
+      "control": "return-idle.webp",
       "hovers": {
         "return": {
-          "still": "hover-project-1.webp",
+          "layer": "control",
+          "still": "return-hover.webp",
           "enter": {
-            "image": "return-in-1.webp",
+            "image": "return-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "return-out-1.webp",
+            "image": "return-out.webp",
             "duration": 80
           }
         }
@@ -293,15 +298,17 @@
         }
       ],
       "still": "idle-project-2.webp",
+      "control": "return-idle.webp",
       "hovers": {
         "return": {
-          "still": "hover-project-2.webp",
+          "layer": "control",
+          "still": "return-hover.webp",
           "enter": {
-            "image": "return-in-2.webp",
+            "image": "return-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "return-out-2.webp",
+            "image": "return-out.webp",
             "duration": 80
           }
         }
@@ -325,15 +332,17 @@
         }
       ],
       "still": "idle-project-3.webp",
+      "control": "return-idle.webp",
       "hovers": {
         "return": {
-          "still": "hover-project-3.webp",
+          "layer": "control",
+          "still": "return-hover.webp",
           "enter": {
-            "image": "return-in-3.webp",
+            "image": "return-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "return-out-3.webp",
+            "image": "return-out.webp",
             "duration": 80
           }
         }
@@ -357,15 +366,17 @@
         }
       ],
       "still": "idle-project-4.webp",
+      "control": "return-idle.webp",
       "hovers": {
         "return": {
-          "still": "hover-project-4.webp",
+          "layer": "control",
+          "still": "return-hover.webp",
           "enter": {
-            "image": "return-in-4.webp",
+            "image": "return-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "return-out-4.webp",
+            "image": "return-out.webp",
             "duration": 80
           }
         }
@@ -375,43 +386,84 @@
   "transitions": {
     "menu:project-0": {
       "image": "open-0.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-open.webp",
+        "duration": 176
+      }
     },
     "project-0:menu": {
       "image": "close-0.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-close.webp",
+        "duration": 176
+      }
     },
     "menu:project-1": {
       "image": "open-1.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-open.webp",
+        "duration": 176
+      }
     },
     "project-1:menu": {
       "image": "close-1.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-close.webp",
+        "duration": 176
+      }
     },
     "menu:project-2": {
       "image": "open-2.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-open.webp",
+        "duration": 176
+      }
     },
     "project-2:menu": {
       "image": "close-2.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-close.webp",
+        "duration": 176
+      }
     },
     "menu:project-3": {
       "image": "open-3.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-open.webp",
+        "duration": 176
+      }
     },
     "project-3:menu": {
       "image": "close-3.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-close.webp",
+        "duration": 176
+      }
     },
     "menu:project-4": {
       "image": "open-4.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-open.webp",
+        "duration": 176
+      }
     },
     "project-4:menu": {
       "image": "close-4.webp",
-      "duration": 176
+      "duration": 176,
+      "control": {
+        "image": "return-close.webp",
+        "duration": 176
+      }
     }
-  }
+  },
+  "backdrop": "ink-backdrop.webp"
 }
