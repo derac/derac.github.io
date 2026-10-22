@@ -4,16 +4,25 @@ import {installAudioStart} from './audio-start.js';
 // Load before swapping; generation tokens keep rapid hover/back navigation stable.
 export function createImageMenu({states,transitions={},loadImage,present,showState=()=>{},reducedMotion=()=>false,setTimer=setTimeout,clearTimer=clearTimeout}){
  let current='menu',hovered=null,generation=0,timer=null,navigating=false;
+ const hoverLayers=new Set(),shownFiles=new Map();
  async function display(layers){
   const token=++generation;clearTimer(timer);
   const animated=Object.values(layers).some(item=>item.clip)&&!reducedMotion();
   try{
-   const loaded=await Promise.all(Object.entries(layers).map(async([layer,item])=>{
+   const resources=await Promise.all(Object.entries(layers).map(async([layer,item])=>{
     const file=animated&&item.clip?item.clip.image:item.still;
-    return [layer,file?await loadImage(file):null];
+    if(shownFiles.has(layer)&&shownFiles.get(layer)===file&&!(animated&&item.clip))return null;
+    return [layer,file?await loadImage(file):null,file];
    }));
    if(token!==generation)return;
-   for(const [layer,image] of loaded)present(image,layer);
+   // Fetch every layer before creating its animation timeline. A small row
+   // must not finish offscreen while a slower content clip downloads.
+   const loaded=await Promise.all(resources.map(async result=>{
+    if(result&&typeof result[1]==='function')result[1]=await result[1]();
+    return result;
+   }));
+   if(token!==generation)return;
+   for(const result of loaded){if(!result)continue;const [layer,image,file]=result;present(image,layer);shownFiles.set(layer,file);}
    if(animated){
     const duration=Math.max(...Object.values(layers).map(item=>item.clip?.duration??0));
     timer=setTimer(()=>{if(token===generation){navigating=false;display(Object.fromEntries(Object.entries(layers).map(([layer,item])=>[layer,{still:item.still}])));}},duration);
@@ -25,7 +34,9 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
   }
  }
  function pageLayers(clip=null){
-  const state=states[current],layers={content:{still:state.still,clip}};
+  const state=states[current];
+  if(state.layers)return Object.fromEntries(Object.entries(state.layers).map(([layer,still])=>[layer,{still,clip:clip?.layers?.[layer]}]));
+  const layers={content:{still:state.still,clip}};
   if('control' in state)layers.control={still:state.control,clip:clip?.control};
   return layers;
  }
@@ -34,7 +45,7 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
   get state(){return current;},
   navigate(next,{animate=true}={}){
    if(!states[next])next='menu';
-   const before=current;current=next;hovered=null;
+   const before=current;current=next;hovered=null;hoverLayers.clear();
    const clip=animate?transitions[`${before}:${next}`]:null;
    navigating=Boolean(clip&&!reducedMotion());showState(next,states[next]);display(pageLayers(clip));
   },
@@ -44,26 +55,36 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
    if(key===hovered)return;
    const previous=states[current].hovers[hovered],next=states[current].hovers[key];hovered=key;
    const layer=next?.layer??previous?.layer??'content';
-   display({[layer]:{still:next?.still??(layer==='control'?states[current].control:states[current].still),clip:next?.enter??previous?.leave}});
+   const base=id=>states[current].layers?.[id]??(id==='control'?states[current].control:states[current].still);
+   hoverLayers.add(layer);if(previous?.layer)hoverLayers.add(previous.layer);
+   const layers=Object.fromEntries([...hoverLayers].map(id=>[id,{still:base(id)}]));
+   if(previous&&previous.layer!==next?.layer)layers[previous.layer??'content']={still:base(previous.layer??'content'),clip:previous.leave};
+   layers[layer]={still:next?.still??base(layer),clip:next?.enter??previous?.leave};
+   display(layers);
   },
   settle(){navigating=false;hovered=null;display(pageLayers());},
  };
 }
 
 export function startMenu(data){
- const foreground={content:document.querySelector('#menu-text'),control:document.querySelector('#menu-control')};
+ const foreground=Object.fromEntries([...document.querySelectorAll('[data-layer]')].map(image=>[image.dataset.layer,image]));
  const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links');
  const blobs=new Map();
  async function loadImage(file){
   if(!blobs.has(file))blobs.set(file,fetch(`./video/${file}`).then(response=>{if(!response.ok)throw Error('Image unavailable');return response.blob();}).catch(error=>{blobs.delete(file);throw error;}));
-  const url=URL.createObjectURL(await blobs.get(file)),image=new Image();image.src=url;
-  try{await image.decode();}finally{URL.revokeObjectURL(url);}
-  return image;
+  const blob=await blobs.get(file);
+  return async()=>{
+   const url=URL.createObjectURL(blob),image=new Image();image.src=url;
+   try{await image.decode();}finally{URL.revokeObjectURL(url);}
+   image.dataset.asset=file;return image;
+  };
  }
  function present(image,layer){
   // A fresh object URL gives every one-shot WebP its own animation timeline.
   if(!image){foreground[layer].hidden=true;return;}
-  image.id=layer==='control'?'menu-control':'menu-text';image.alt='';image.setAttribute('aria-hidden','true');
+  image.dataset.layer=layer;image.className='lettering';image.alt='';image.setAttribute('aria-hidden','true');
+  const rect=data.assets?.[image.dataset.asset];
+  if(rect)image.style.cssText=`left:${rect.x/640*100}%;top:${rect.y/480*100}%;width:${rect.width/640*100}%;height:${rect.height/480*100}%`;
   foreground[layer].replaceWith(image);foreground[layer]=image;
  }
  const audio=createSound();

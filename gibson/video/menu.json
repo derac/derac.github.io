@@ -83,7 +83,7 @@
       "href": "#test5"
     }
   ],
-  "format": "layered-webp-v2",
+  "format": "layered-webp-v3",
   "background": "world.webp",
   "backgroundStill": "world-still.webp",
   "states": {
@@ -152,61 +152,74 @@
           "pixelHeight": 43.23129251700692
         }
       ],
-      "still": "idle-menu.webp",
-      "control": null,
+      "layers": {
+        "content": null,
+        "control": null,
+        "folders": "folders-idle.webp",
+        "row-0": "row-0-idle.webp",
+        "row-1": "row-1-idle.webp",
+        "row-2": "row-2-idle.webp",
+        "row-3": "row-3-idle.webp",
+        "row-4": "row-4-idle.webp"
+      },
       "hovers": {
         "test1": {
-          "still": "hover-menu-0.webp",
+          "layer": "row-0",
+          "still": "row-0-hover.webp",
           "enter": {
-            "image": "hover-in-0.webp",
+            "image": "row-0-hover-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "hover-out-0.webp",
+            "image": "row-0-hover-out.webp",
             "duration": 80
           }
         },
         "test2": {
-          "still": "hover-menu-1.webp",
+          "layer": "row-1",
+          "still": "row-1-hover.webp",
           "enter": {
-            "image": "hover-in-1.webp",
+            "image": "row-1-hover-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "hover-out-1.webp",
+            "image": "row-1-hover-out.webp",
             "duration": 80
           }
         },
         "test3": {
-          "still": "hover-menu-2.webp",
+          "layer": "row-2",
+          "still": "row-2-hover.webp",
           "enter": {
-            "image": "hover-in-2.webp",
+            "image": "row-2-hover-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "hover-out-2.webp",
+            "image": "row-2-hover-out.webp",
             "duration": 80
           }
         },
         "test4": {
-          "still": "hover-menu-3.webp",
+          "layer": "row-3",
+          "still": "row-3-hover.webp",
           "enter": {
-            "image": "hover-in-3.webp",
+            "image": "row-3-hover-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "hover-out-3.webp",
+            "image": "row-3-hover-out.webp",
             "duration": 80
           }
         },
         "test5": {
-          "still": "hover-menu-4.webp",
+          "layer": "row-4",
+          "still": "row-4-hover.webp",
           "enter": {
-            "image": "hover-in-4.webp",
+            "image": "row-4-hover-in.webp",
             "duration": 80
           },
           "leave": {
-            "image": "hover-out-4.webp",
+            "image": "row-4-hover-out.webp",
             "duration": 80
           }
         }
@@ -229,8 +242,16 @@
           "pixelHeight": 37.65306122448976
         }
       ],
-      "still": "idle-project-0.webp",
-      "control": "return-idle.webp",
+      "layers": {
+        "content": "idle-project-0.webp",
+        "control": "return-idle.webp",
+        "folders": null,
+        "row-0": null,
+        "row-1": null,
+        "row-2": null,
+        "row-3": null,
+        "row-4": null
+      },
       "hovers": {
         "return": {
           "layer": "control",
@@ -263,8 +284,16 @@
           "pixelHeight": 37.65306122448976
         }
       ],
-      "still": "idle-project-1.webp",
-      "control": "return-idle.webp",
+      "layers": {
+        "content": "idle-project-1.webp",
+        "control": "return-idle.webp",
+        "folders": null,
+        "row-0": null,
+        "row-1": null,
+        "row-2": null,
+        "row-3": null,
+        "row-4": null
+      },
       "hovers": {
         "return": {
           "layer": "control",
@@ -297,8 +326,16 @@
           "pixelHeight": 37.65306122448976
         }
       ],
-      "still": "idle-project-2.webp",
-      "control": "return-idle.webp",
+      "layers": {
+        "content": "idle-project-2.webp",
+        "control": "return-idle.webp",
+        "folders": null,
+        "row-0": null,
+        "row-1": null,
+        "row-2": null,
+        "row-3": null,
+        "row-4": null
+      },
       "hovers": {
         "return": {
           "layer": "control",
@@ -331,8 +368,16 @@
           "pixelHeight": 37.65306122448976
         }
       ],
-      "still": "idle-project-3.webp",
-      "control": "return-idle.webp",
+      "layers": {
+        "content": "idle-project-3.webp",
+        "control": "return-idle.webp",
+        "folders": null,
+        "row-0": null,
+        "row-1": null,
+        "row-2": null,
+        "row-3": null,
+        "row-4": null
+      },
       "hovers": {
         "return": {
           "layer": "control",
@@ -365,8 +410,16 @@
           "pixelHeight": 37.65306122448976
         }
       ],
-      "still": "idle-project-4.webp",
-      "control": "return-idle.webp",
+      "layers": {
+        "content": "idle-project-4.webp",
+        "control": "return-idle.webp",
+        "folders": null,
+        "row-0": null,
+        "row-1": null,
+        "row-2": null,
+        "row-3": null,
+        "row-4": null
+      },
       "hovers": {
         "return": {
           "layer": "control",
@@ -385,85 +438,709 @@
   },
   "transitions": {
     "menu:project-0": {
-      "image": "open-0.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-open.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-hide.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-hide.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-hide.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-hide.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-hide.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-hide.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "open-0.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-open.webp",
+          "duration": 176
+        }
       }
     },
     "project-0:menu": {
-      "image": "close-0.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-close.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-show.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-show.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-show.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-show.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-show.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-show.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "close-0.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-close.webp",
+          "duration": 176
+        }
       }
     },
     "menu:project-1": {
-      "image": "open-1.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-open.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-hide.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-hide.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-hide.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-hide.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-hide.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-hide.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "open-1.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-open.webp",
+          "duration": 176
+        }
       }
     },
     "project-1:menu": {
-      "image": "close-1.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-close.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-show.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-show.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-show.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-show.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-show.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-show.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "close-1.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-close.webp",
+          "duration": 176
+        }
       }
     },
     "menu:project-2": {
-      "image": "open-2.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-open.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-hide.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-hide.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-hide.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-hide.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-hide.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-hide.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "open-2.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-open.webp",
+          "duration": 176
+        }
       }
     },
     "project-2:menu": {
-      "image": "close-2.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-close.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-show.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-show.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-show.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-show.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-show.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-show.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "close-2.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-close.webp",
+          "duration": 176
+        }
       }
     },
     "menu:project-3": {
-      "image": "open-3.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-open.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-hide.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-hide.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-hide.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-hide.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-hide.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-hide.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "open-3.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-open.webp",
+          "duration": 176
+        }
       }
     },
     "project-3:menu": {
-      "image": "close-3.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-close.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-show.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-show.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-show.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-show.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-show.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-show.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "close-3.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-close.webp",
+          "duration": 176
+        }
       }
     },
     "menu:project-4": {
-      "image": "open-4.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-open.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-hide.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-hide.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-hide.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-hide.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-hide.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-hide.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "open-4.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-open.webp",
+          "duration": 176
+        }
       }
     },
     "project-4:menu": {
-      "image": "close-4.webp",
-      "duration": 176,
-      "control": {
-        "image": "return-close.webp",
-        "duration": 176
+      "layers": {
+        "folders": {
+          "image": "folders-show.webp",
+          "duration": 176
+        },
+        "row-0": {
+          "image": "row-0-show.webp",
+          "duration": 176
+        },
+        "row-1": {
+          "image": "row-1-show.webp",
+          "duration": 176
+        },
+        "row-2": {
+          "image": "row-2-show.webp",
+          "duration": 176
+        },
+        "row-3": {
+          "image": "row-3-show.webp",
+          "duration": 176
+        },
+        "row-4": {
+          "image": "row-4-show.webp",
+          "duration": 176
+        },
+        "content": {
+          "image": "close-4.webp",
+          "duration": 176
+        },
+        "control": {
+          "image": "return-close.webp",
+          "duration": 176
+        }
       }
     }
   },
-  "backdrop": "ink-backdrop.webp"
+  "backdrop": "ink-backdrop.webp",
+  "assets": {
+    "world.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "world-still.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "ink-backdrop.webp": {
+      "x": 3,
+      "y": 1,
+      "width": 637,
+      "height": 475
+    },
+    "folders-idle.webp": {
+      "x": 7,
+      "y": 1,
+      "width": 631,
+      "height": 470
+    },
+    "folders-show.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "folders-hide.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-0-idle.webp": {
+      "x": 1,
+      "y": 4,
+      "width": 638,
+      "height": 476
+    },
+    "row-0-show.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-0-hide.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-0-hover.webp": {
+      "x": 5,
+      "y": 6,
+      "width": 633,
+      "height": 474
+    },
+    "row-0-hover-in.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-0-hover-out.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-1-idle.webp": {
+      "x": 0,
+      "y": 2,
+      "width": 635,
+      "height": 477
+    },
+    "row-1-show.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-1-hide.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-1-hover.webp": {
+      "x": 3,
+      "y": 6,
+      "width": 637,
+      "height": 471
+    },
+    "row-1-hover-in.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-1-hover-out.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-2-idle.webp": {
+      "x": 17,
+      "y": 2,
+      "width": 622,
+      "height": 476
+    },
+    "row-2-show.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-2-hide.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "row-2-hover.webp": {
+      "x": 2,
+      "y": 4,
+      "width": 635,
+      "height": 475
+    },
+    "row-2-hover-in.webp": {
+      "x": 2,
+      "y": 0,
+      "width": 637,
+      "height": 480
+    },
+    "row-2-hover-out.webp": {
+      "x": 2,
+      "y": 0,
+      "width": 638,
+      "height": 480
+    },
+    "row-3-idle.webp": {
+      "x": 0,
+      "y": 1,
+      "width": 638,
+      "height": 473
+    },
+    "row-3-show.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-3-hide.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-3-hover.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 638,
+      "height": 480
+    },
+    "row-3-hover-in.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-3-hover-out.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-4-idle.webp": {
+      "x": 8,
+      "y": 0,
+      "width": 632,
+      "height": 479
+    },
+    "row-4-show.webp": {
+      "x": 2,
+      "y": 0,
+      "width": 638,
+      "height": 480
+    },
+    "row-4-hide.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "row-4-hover.webp": {
+      "x": 3,
+      "y": 4,
+      "width": 635,
+      "height": 475
+    },
+    "row-4-hover-in.webp": {
+      "x": 3,
+      "y": 0,
+      "width": 637,
+      "height": 480
+    },
+    "row-4-hover-out.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "idle-project-0.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 639,
+      "height": 479
+    },
+    "open-0.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "close-0.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "idle-project-1.webp": {
+      "x": 8,
+      "y": 0,
+      "width": 631,
+      "height": 477
+    },
+    "open-1.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "close-1.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "idle-project-2.webp": {
+      "x": 2,
+      "y": 3,
+      "width": 632,
+      "height": 477
+    },
+    "open-2.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "close-2.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "idle-project-3.webp": {
+      "x": 2,
+      "y": 0,
+      "width": 636,
+      "height": 480
+    },
+    "open-3.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "close-3.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "idle-project-4.webp": {
+      "x": 4,
+      "y": 3,
+      "width": 632,
+      "height": 477
+    },
+    "open-4.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "close-4.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "return-idle.webp": {
+      "x": 4,
+      "y": 1,
+      "width": 635,
+      "height": 478
+    },
+    "return-hover.webp": {
+      "x": 1,
+      "y": 0,
+      "width": 630,
+      "height": 480
+    },
+    "return-in.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "return-out.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 480
+    },
+    "return-open.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    },
+    "return-close.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 640,
+      "height": 480
+    }
+  }
 }
