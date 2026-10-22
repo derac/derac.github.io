@@ -1,8 +1,8 @@
 {
   "regions": [
     {
-      "key": "test1",
-      "href": "#test1",
+      "key": "kwin-clicktile",
+      "href": "https://github.com/derac/kwin-clicktile",
       "x": 0.5908203125,
       "y": 0.09833333333333333,
       "width": 0.37109375,
@@ -13,8 +13,8 @@
       "pixelHeight": 43.231292517006736
     },
     {
-      "key": "test2",
-      "href": "#test2",
+      "key": "snapdragin",
+      "href": "https://github.com/derac/Snapdragin",
       "x": 0.5908203125,
       "y": 0.2608333333333333,
       "width": 0.37109375,
@@ -25,8 +25,8 @@
       "pixelHeight": 43.23129251700678
     },
     {
-      "key": "test3",
-      "href": "#test3",
+      "key": "cell",
+      "href": "https://derac.org/cell/",
       "x": 0.5908203125,
       "y": 0.42333333333333334,
       "width": 0.37109375,
@@ -37,8 +37,8 @@
       "pixelHeight": 43.23129251700678
     },
     {
-      "key": "test4",
-      "href": "#test4",
+      "key": "loom",
+      "href": "https://derac.org/loom/",
       "x": 0.5908203125,
       "y": 0.5858333333333333,
       "width": 0.37109375,
@@ -47,1101 +47,194 @@
       "top": 268.72789115646253,
       "pixelWidth": 212.05357142857144,
       "pixelHeight": 43.23129251700681
-    },
-    {
-      "key": "test5",
-      "href": "#test5",
-      "x": 0.5908203125,
-      "y": 0.7483333333333333,
-      "width": 0.37109375,
-      "height": 0.12916666666666668,
-      "left": 371.89732142857144,
-      "top": 323.1156462585034,
-      "pixelWidth": 212.05357142857144,
-      "pixelHeight": 43.23129251700692
     }
   ],
   "projects": [
     {
-      "name": "test1",
-      "href": "#test1"
+      "name": "kwin-clicktile",
+      "title": "kwin-clicktile",
+      "href": "https://github.com/derac/kwin-clicktile",
+      "description": "Mouse-based tiling window manager for KDE"
     },
     {
-      "name": "test2",
-      "href": "#test2"
+      "name": "snapdragin",
+      "title": "Snapdragin",
+      "href": "https://github.com/derac/Snapdragin",
+      "description": "Mouse-based tiling window manager for Windows"
     },
     {
-      "name": "test3",
-      "href": "#test3"
+      "name": "cell",
+      "title": "Cell",
+      "href": "https://derac.org/cell/",
+      "description": "Realtime Turing diffusion visualizer"
     },
     {
-      "name": "test4",
-      "href": "#test4"
-    },
-    {
-      "name": "test5",
-      "href": "#test5"
+      "name": "loom",
+      "title": "Loom",
+      "href": "https://derac.org/loom/",
+      "description": "Graph-based shader visualizer"
     }
   ],
-  "format": "layered-webp-v3",
-  "background": "world-a7d1b947de857332.webp",
-  "backgroundStill": "world-still-3b9bfe256ad89c71.webp",
-  "states": {
-    "menu": {
-      "label": "GARBAGE",
-      "hash": "#garbage",
-      "regions": [
-        {
-          "key": "test1",
-          "href": "#test1",
-          "x": 0.5908203125,
-          "y": 0.09833333333333333,
-          "width": 0.37109375,
-          "height": 0.12916666666666668,
-          "left": 371.89732142857144,
-          "top": 105.56462585034014,
-          "pixelWidth": 212.05357142857144,
-          "pixelHeight": 43.231292517006736
-        },
-        {
-          "key": "test2",
-          "href": "#test2",
-          "x": 0.5908203125,
-          "y": 0.2608333333333333,
-          "width": 0.37109375,
-          "height": 0.12916666666666668,
-          "left": 371.89732142857144,
-          "top": 159.9523809523809,
-          "pixelWidth": 212.05357142857144,
-          "pixelHeight": 43.23129251700678
-        },
-        {
-          "key": "test3",
-          "href": "#test3",
-          "x": 0.5908203125,
-          "y": 0.42333333333333334,
-          "width": 0.37109375,
-          "height": 0.12916666666666668,
-          "left": 371.89732142857144,
-          "top": 214.34013605442172,
-          "pixelWidth": 212.05357142857144,
-          "pixelHeight": 43.23129251700678
-        },
-        {
-          "key": "test4",
-          "href": "#test4",
-          "x": 0.5908203125,
-          "y": 0.5858333333333333,
-          "width": 0.37109375,
-          "height": 0.12916666666666668,
-          "left": 371.89732142857144,
-          "top": 268.72789115646253,
-          "pixelWidth": 212.05357142857144,
-          "pixelHeight": 43.23129251700681
-        },
-        {
-          "key": "test5",
-          "href": "#test5",
-          "x": 0.5908203125,
-          "y": 0.7483333333333333,
-          "width": 0.37109375,
-          "height": 0.12916666666666668,
-          "left": 371.89732142857144,
-          "top": 323.1156462585034,
-          "pixelWidth": 212.05357142857144,
-          "pixelHeight": 43.23129251700692
-        }
-      ],
-      "layers": {
-        "content": null,
-        "control": null,
-        "folders": "folders-idle-d113a706b60ee4e8.webp",
-        "row-0": "row-0-idle-7b52e0248a4e15fc.webp",
-        "row-1": "row-1-idle-0c922b46eb47e30e.webp",
-        "row-2": "row-2-idle-93e5cb3a0430bc15.webp",
-        "row-3": "row-3-idle-e3ba5193be7a41be.webp",
-        "row-4": "row-4-idle-12931b63fc52ce9f.webp"
+  "format": "direct-webp-v1",
+  "background": "world-ea31b37b97594b48.webp",
+  "backgroundStill": "world-still-a4229e53bd7f6ac6.webp",
+  "entries": [
+    {
+      "name": "kwin-clicktile",
+      "title": "kwin-clicktile",
+      "href": "https://github.com/derac/kwin-clicktile",
+      "description": "Mouse-based tiling window manager for KDE",
+      "region": {
+        "key": "kwin-clicktile",
+        "href": "https://github.com/derac/kwin-clicktile",
+        "x": 0.5908203125,
+        "y": 0.09833333333333333,
+        "width": 0.37109375,
+        "height": 0.12916666666666668,
+        "left": 371.89732142857144,
+        "top": 105.56462585034014,
+        "pixelWidth": 212.05357142857144,
+        "pixelHeight": 43.231292517006736
       },
-      "hovers": {
-        "test1": {
-          "layer": "row-0",
-          "still": "row-0-hover-7a1dc65b97f5fc4a.webp",
-          "enter": {
-            "image": "row-0-hover-in-539148c2c5b4733c.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "row-0-hover-out-4f6ed9567dcdd378.webp",
-            "duration": 80
-          }
-        },
-        "test2": {
-          "layer": "row-1",
-          "still": "row-1-hover-97528d2e49a05e75.webp",
-          "enter": {
-            "image": "row-1-hover-in-f0a7a21f70aa0f57.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "row-1-hover-out-caf829c563388eb2.webp",
-            "duration": 80
-          }
-        },
-        "test3": {
-          "layer": "row-2",
-          "still": "row-2-hover-1408f1816dd2a2b4.webp",
-          "enter": {
-            "image": "row-2-hover-in-060b2336bce3e34c.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "row-2-hover-out-c6a8e04323703d4e.webp",
-            "duration": 80
-          }
-        },
-        "test4": {
-          "layer": "row-3",
-          "still": "row-3-hover-fb28627d829cae3a.webp",
-          "enter": {
-            "image": "row-3-hover-in-65d64ab89563c5d5.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "row-3-hover-out-c2e2cfe7f67678ef.webp",
-            "duration": 80
-          }
-        },
-        "test5": {
-          "layer": "row-4",
-          "still": "row-4-hover-9afc65b7b1f9d8ce.webp",
-          "enter": {
-            "image": "row-4-hover-in-49eae940027b27a8.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "row-4-hover-out-47f2952bf11f2dd5.webp",
-            "duration": 80
-          }
-        }
-      }
+      "idle": "row-0-idle-9527cfc2df0397ab.webp",
+      "hover": "row-0-hover-ea3b46885ff956b7.webp"
     },
-    "project-0": {
-      "label": "test1",
-      "hash": "#test1",
-      "regions": [
-        {
-          "key": "return",
-          "href": "#garbage",
-          "x": 0.048828125,
-          "y": 0.59,
-          "width": 0.8056640625,
-          "height": 0.1125,
-          "left": 62.18749999999993,
-          "top": 270.12244897959187,
-          "pixelWidth": 460.3794642857144,
-          "pixelHeight": 37.65306122448976
-        }
-      ],
-      "layers": {
-        "content": "idle-project-0-68c63a5b8870d8fd.webp",
-        "control": "return-idle-519c63482cb7fbb6.webp",
-        "folders": null,
-        "row-0": null,
-        "row-1": null,
-        "row-2": null,
-        "row-3": null,
-        "row-4": null
+    {
+      "name": "snapdragin",
+      "title": "Snapdragin",
+      "href": "https://github.com/derac/Snapdragin",
+      "description": "Mouse-based tiling window manager for Windows",
+      "region": {
+        "key": "snapdragin",
+        "href": "https://github.com/derac/Snapdragin",
+        "x": 0.5908203125,
+        "y": 0.2608333333333333,
+        "width": 0.37109375,
+        "height": 0.12916666666666668,
+        "left": 371.89732142857144,
+        "top": 159.9523809523809,
+        "pixelWidth": 212.05357142857144,
+        "pixelHeight": 43.23129251700678
       },
-      "hovers": {
-        "return": {
-          "layer": "control",
-          "still": "return-hover-90e1ef8640fec3b6.webp",
-          "enter": {
-            "image": "return-in-323bca746f655511.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "return-out-b2acf981c8f03adb.webp",
-            "duration": 80
-          }
-        }
-      }
+      "idle": "row-1-idle-36dd11100a751a3c.webp",
+      "hover": "row-1-hover-106de4e25bb9aab5.webp"
     },
-    "project-1": {
-      "label": "test2",
-      "hash": "#test2",
-      "regions": [
-        {
-          "key": "return",
-          "href": "#garbage",
-          "x": 0.048828125,
-          "y": 0.59,
-          "width": 0.8056640625,
-          "height": 0.1125,
-          "left": 62.18749999999993,
-          "top": 270.12244897959187,
-          "pixelWidth": 460.3794642857144,
-          "pixelHeight": 37.65306122448976
-        }
-      ],
-      "layers": {
-        "content": "idle-project-1-3d0401e640b4eee9.webp",
-        "control": "return-idle-519c63482cb7fbb6.webp",
-        "folders": null,
-        "row-0": null,
-        "row-1": null,
-        "row-2": null,
-        "row-3": null,
-        "row-4": null
+    {
+      "name": "cell",
+      "title": "Cell",
+      "href": "https://derac.org/cell/",
+      "description": "Realtime Turing diffusion visualizer",
+      "region": {
+        "key": "cell",
+        "href": "https://derac.org/cell/",
+        "x": 0.5908203125,
+        "y": 0.42333333333333334,
+        "width": 0.37109375,
+        "height": 0.12916666666666668,
+        "left": 371.89732142857144,
+        "top": 214.34013605442172,
+        "pixelWidth": 212.05357142857144,
+        "pixelHeight": 43.23129251700678
       },
-      "hovers": {
-        "return": {
-          "layer": "control",
-          "still": "return-hover-90e1ef8640fec3b6.webp",
-          "enter": {
-            "image": "return-in-323bca746f655511.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "return-out-b2acf981c8f03adb.webp",
-            "duration": 80
-          }
-        }
-      }
+      "idle": "row-2-idle-d1b2192467d9d790.webp",
+      "hover": "row-2-hover-66c264cef9e6fb46.webp"
     },
-    "project-2": {
-      "label": "test3",
-      "hash": "#test3",
-      "regions": [
-        {
-          "key": "return",
-          "href": "#garbage",
-          "x": 0.048828125,
-          "y": 0.59,
-          "width": 0.8056640625,
-          "height": 0.1125,
-          "left": 62.18749999999993,
-          "top": 270.12244897959187,
-          "pixelWidth": 460.3794642857144,
-          "pixelHeight": 37.65306122448976
-        }
-      ],
-      "layers": {
-        "content": "idle-project-2-27b0c34d4bde5122.webp",
-        "control": "return-idle-519c63482cb7fbb6.webp",
-        "folders": null,
-        "row-0": null,
-        "row-1": null,
-        "row-2": null,
-        "row-3": null,
-        "row-4": null
+    {
+      "name": "loom",
+      "title": "Loom",
+      "href": "https://derac.org/loom/",
+      "description": "Graph-based shader visualizer",
+      "region": {
+        "key": "loom",
+        "href": "https://derac.org/loom/",
+        "x": 0.5908203125,
+        "y": 0.5858333333333333,
+        "width": 0.37109375,
+        "height": 0.12916666666666668,
+        "left": 371.89732142857144,
+        "top": 268.72789115646253,
+        "pixelWidth": 212.05357142857144,
+        "pixelHeight": 43.23129251700681
       },
-      "hovers": {
-        "return": {
-          "layer": "control",
-          "still": "return-hover-90e1ef8640fec3b6.webp",
-          "enter": {
-            "image": "return-in-323bca746f655511.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "return-out-b2acf981c8f03adb.webp",
-            "duration": 80
-          }
-        }
-      }
-    },
-    "project-3": {
-      "label": "test4",
-      "hash": "#test4",
-      "regions": [
-        {
-          "key": "return",
-          "href": "#garbage",
-          "x": 0.048828125,
-          "y": 0.59,
-          "width": 0.8056640625,
-          "height": 0.1125,
-          "left": 62.18749999999993,
-          "top": 270.12244897959187,
-          "pixelWidth": 460.3794642857144,
-          "pixelHeight": 37.65306122448976
-        }
-      ],
-      "layers": {
-        "content": "idle-project-3-1d67d21931ec5720.webp",
-        "control": "return-idle-519c63482cb7fbb6.webp",
-        "folders": null,
-        "row-0": null,
-        "row-1": null,
-        "row-2": null,
-        "row-3": null,
-        "row-4": null
-      },
-      "hovers": {
-        "return": {
-          "layer": "control",
-          "still": "return-hover-90e1ef8640fec3b6.webp",
-          "enter": {
-            "image": "return-in-323bca746f655511.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "return-out-b2acf981c8f03adb.webp",
-            "duration": 80
-          }
-        }
-      }
-    },
-    "project-4": {
-      "label": "test5",
-      "hash": "#test5",
-      "regions": [
-        {
-          "key": "return",
-          "href": "#garbage",
-          "x": 0.048828125,
-          "y": 0.59,
-          "width": 0.8056640625,
-          "height": 0.1125,
-          "left": 62.18749999999993,
-          "top": 270.12244897959187,
-          "pixelWidth": 460.3794642857144,
-          "pixelHeight": 37.65306122448976
-        }
-      ],
-      "layers": {
-        "content": "idle-project-4-f69d789c4c3242cb.webp",
-        "control": "return-idle-519c63482cb7fbb6.webp",
-        "folders": null,
-        "row-0": null,
-        "row-1": null,
-        "row-2": null,
-        "row-3": null,
-        "row-4": null
-      },
-      "hovers": {
-        "return": {
-          "layer": "control",
-          "still": "return-hover-90e1ef8640fec3b6.webp",
-          "enter": {
-            "image": "return-in-323bca746f655511.webp",
-            "duration": 80
-          },
-          "leave": {
-            "image": "return-out-b2acf981c8f03adb.webp",
-            "duration": 80
-          }
-        }
-      }
+      "idle": "row-3-idle-e2ccbe9b66f451e9.webp",
+      "hover": "row-3-hover-f8009003efda95f0.webp"
     }
-  },
-  "transitions": {
-    "menu:project-0": {
-      "layers": {
-        "folders": {
-          "image": "folders-hide-28cd9a2a77b19ecd.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-hide-565ddfc910de0291.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-hide-5d1ee886998a3d80.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-hide-39a89b5b6cf2ef18.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-hide-4d97eaced4811990.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-hide-b3b964afce742317.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "open-0-24623db1221a836b.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-open-51a80c9a3c258dee.webp",
-          "duration": 176
-        }
-      }
-    },
-    "project-0:menu": {
-      "layers": {
-        "folders": {
-          "image": "folders-show-24ef3b4fd1de88be.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-show-6ea904bc7c6a931a.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-show-56e4fe8e7a00339a.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-show-12316301f7cd919b.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-show-036e9fbeefc69df2.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-show-ec56e2a3369475aa.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "close-0-77250633ff170e25.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-close-ba7361c56b5e0ccf.webp",
-          "duration": 176
-        }
-      }
-    },
-    "menu:project-1": {
-      "layers": {
-        "folders": {
-          "image": "folders-hide-28cd9a2a77b19ecd.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-hide-565ddfc910de0291.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-hide-5d1ee886998a3d80.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-hide-39a89b5b6cf2ef18.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-hide-4d97eaced4811990.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-hide-b3b964afce742317.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "open-1-bebb2c6fe3f7a051.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-open-51a80c9a3c258dee.webp",
-          "duration": 176
-        }
-      }
-    },
-    "project-1:menu": {
-      "layers": {
-        "folders": {
-          "image": "folders-show-24ef3b4fd1de88be.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-show-6ea904bc7c6a931a.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-show-56e4fe8e7a00339a.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-show-12316301f7cd919b.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-show-036e9fbeefc69df2.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-show-ec56e2a3369475aa.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "close-1-fdfebe84fdfaa0b7.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-close-ba7361c56b5e0ccf.webp",
-          "duration": 176
-        }
-      }
-    },
-    "menu:project-2": {
-      "layers": {
-        "folders": {
-          "image": "folders-hide-28cd9a2a77b19ecd.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-hide-565ddfc910de0291.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-hide-5d1ee886998a3d80.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-hide-39a89b5b6cf2ef18.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-hide-4d97eaced4811990.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-hide-b3b964afce742317.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "open-2-096c2e0124b3746b.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-open-51a80c9a3c258dee.webp",
-          "duration": 176
-        }
-      }
-    },
-    "project-2:menu": {
-      "layers": {
-        "folders": {
-          "image": "folders-show-24ef3b4fd1de88be.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-show-6ea904bc7c6a931a.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-show-56e4fe8e7a00339a.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-show-12316301f7cd919b.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-show-036e9fbeefc69df2.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-show-ec56e2a3369475aa.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "close-2-7d76efb21eb82cf8.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-close-ba7361c56b5e0ccf.webp",
-          "duration": 176
-        }
-      }
-    },
-    "menu:project-3": {
-      "layers": {
-        "folders": {
-          "image": "folders-hide-28cd9a2a77b19ecd.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-hide-565ddfc910de0291.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-hide-5d1ee886998a3d80.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-hide-39a89b5b6cf2ef18.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-hide-4d97eaced4811990.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-hide-b3b964afce742317.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "open-3-6e8d503fa60b77cc.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-open-51a80c9a3c258dee.webp",
-          "duration": 176
-        }
-      }
-    },
-    "project-3:menu": {
-      "layers": {
-        "folders": {
-          "image": "folders-show-24ef3b4fd1de88be.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-show-6ea904bc7c6a931a.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-show-56e4fe8e7a00339a.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-show-12316301f7cd919b.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-show-036e9fbeefc69df2.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-show-ec56e2a3369475aa.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "close-3-735fa53cd7acc1c4.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-close-ba7361c56b5e0ccf.webp",
-          "duration": 176
-        }
-      }
-    },
-    "menu:project-4": {
-      "layers": {
-        "folders": {
-          "image": "folders-hide-28cd9a2a77b19ecd.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-hide-565ddfc910de0291.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-hide-5d1ee886998a3d80.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-hide-39a89b5b6cf2ef18.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-hide-4d97eaced4811990.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-hide-b3b964afce742317.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "open-4-0d6243b31f1d6b79.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-open-51a80c9a3c258dee.webp",
-          "duration": 176
-        }
-      }
-    },
-    "project-4:menu": {
-      "layers": {
-        "folders": {
-          "image": "folders-show-24ef3b4fd1de88be.webp",
-          "duration": 176
-        },
-        "row-0": {
-          "image": "row-0-show-6ea904bc7c6a931a.webp",
-          "duration": 176
-        },
-        "row-1": {
-          "image": "row-1-show-56e4fe8e7a00339a.webp",
-          "duration": 176
-        },
-        "row-2": {
-          "image": "row-2-show-12316301f7cd919b.webp",
-          "duration": 176
-        },
-        "row-3": {
-          "image": "row-3-show-036e9fbeefc69df2.webp",
-          "duration": 176
-        },
-        "row-4": {
-          "image": "row-4-show-ec56e2a3369475aa.webp",
-          "duration": 176
-        },
-        "content": {
-          "image": "close-4-340a49e266887408.webp",
-          "duration": 176
-        },
-        "control": {
-          "image": "return-close-ba7361c56b5e0ccf.webp",
-          "duration": 176
-        }
-      }
-    }
-  },
-  "backdrop": "ink-backdrop-795702dbb9e703f7.webp",
+  ],
+  "backdrop": "ink-backdrop-7a8182472f52b22e.webp",
+  "folders": "folders-6a192567c9f27640.webp",
   "assets": {
-    "world-a7d1b947de857332.webp": {
+    "world-ea31b37b97594b48.webp": {
       "x": 0,
       "y": 0,
       "width": 640,
       "height": 480
     },
-    "world-still-3b9bfe256ad89c71.webp": {
+    "world-still-a4229e53bd7f6ac6.webp": {
       "x": 0,
       "y": 0,
       "width": 640,
       "height": 480
     },
-    "ink-backdrop-795702dbb9e703f7.webp": {
-      "x": 2,
-      "y": 0,
+    "ink-backdrop-7a8182472f52b22e.webp": {
+      "x": 1,
+      "y": 2,
       "width": 637,
-      "height": 478
-    },
-    "folders-idle-d113a706b60ee4e8.webp": {
-      "x": 3,
-      "y": 0,
-      "width": 633,
-      "height": 480
-    },
-    "folders-show-24ef3b4fd1de88be.webp": {
-      "x": 2,
-      "y": 0,
-      "width": 638,
-      "height": 480
-    },
-    "folders-hide-28cd9a2a77b19ecd.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-0-idle-7b52e0248a4e15fc.webp": {
-      "x": 11,
-      "y": 3,
-      "width": 625,
       "height": 477
     },
-    "row-0-show-6ea904bc7c6a931a.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-0-hide-565ddfc910de0291.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-0-hover-7a1dc65b97f5fc4a.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-0-hover-in-539148c2c5b4733c.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-0-hover-out-4f6ed9567dcdd378.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-1-idle-0c922b46eb47e30e.webp": {
-      "x": 1,
-      "y": 1,
-      "width": 629,
-      "height": 478
-    },
-    "row-1-show-56e4fe8e7a00339a.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-1-hide-5d1ee886998a3d80.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-1-hover-97528d2e49a05e75.webp": {
-      "x": 3,
-      "y": 0,
-      "width": 635,
-      "height": 480
-    },
-    "row-1-hover-in-f0a7a21f70aa0f57.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-1-hover-out-caf829c563388eb2.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 638,
-      "height": 480
-    },
-    "row-2-idle-93e5cb3a0430bc15.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 634,
-      "height": 480
-    },
-    "row-2-show-12316301f7cd919b.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-2-hide-39a89b5b6cf2ef18.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-2-hover-1408f1816dd2a2b4.webp": {
+    "folders-6a192567c9f27640.webp": {
       "x": 6,
       "y": 0,
-      "width": 631,
-      "height": 479
-    },
-    "row-2-hover-in-060b2336bce3e34c.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-2-hover-out-c6a8e04323703d4e.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "row-3-idle-e3ba5193be7a41be.webp": {
-      "x": 0,
-      "y": 3,
-      "width": 640,
-      "height": 477
-    },
-    "row-3-show-036e9fbeefc69df2.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-3-hide-4d97eaced4811990.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-3-hover-fb28627d829cae3a.webp": {
-      "x": 2,
-      "y": 1,
-      "width": 637,
+      "width": 628,
       "height": 478
     },
-    "row-3-hover-in-65d64ab89563c5d5.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
+    "row-0-idle-9527cfc2df0397ab.webp": {
+      "x": 5,
+      "y": 4,
+      "width": 632,
+      "height": 473
     },
-    "row-3-hover-out-c2e2cfe7f67678ef.webp": {
-      "x": 0,
+    "row-0-hover-ea3b46885ff956b7.webp": {
+      "x": 5,
       "y": 1,
-      "width": 640,
+      "width": 634,
       "height": 479
     },
-    "row-4-idle-12931b63fc52ce9f.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 639,
-      "height": 475
-    },
-    "row-4-show-ec56e2a3369475aa.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-4-hide-b3b964afce742317.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-4-hover-9afc65b7b1f9d8ce.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 634,
-      "height": 480
-    },
-    "row-4-hover-in-49eae940027b27a8.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "row-4-hover-out-47f2952bf11f2dd5.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "idle-project-0-68c63a5b8870d8fd.webp": {
-      "x": 4,
+    "row-1-idle-36dd11100a751a3c.webp": {
+      "x": 2,
       "y": 1,
       "width": 636,
       "height": 479
     },
-    "open-0-24623db1221a836b.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "close-0-77250633ff170e25.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "idle-project-1-3d0401e640b4eee9.webp": {
-      "x": 7,
-      "y": 1,
-      "width": 626,
-      "height": 479
-    },
-    "open-1-bebb2c6fe3f7a051.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "close-1-fdfebe84fdfaa0b7.webp": {
-      "x": 1,
-      "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "idle-project-2-27b0c34d4bde5122.webp": {
-      "x": 0,
-      "y": 1,
-      "width": 638,
+    "row-1-hover-106de4e25bb9aab5.webp": {
+      "x": 4,
+      "y": 4,
+      "width": 636,
       "height": 476
     },
-    "open-2-096c2e0124b3746b.webp": {
-      "x": 0,
+    "row-2-idle-d1b2192467d9d790.webp": {
+      "x": 10,
       "y": 0,
-      "width": 639,
+      "width": 630,
       "height": 480
     },
-    "close-2-7d76efb21eb82cf8.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "idle-project-3-1d67d21931ec5720.webp": {
+    "row-2-hover-66c264cef9e6fb46.webp": {
       "x": 1,
       "y": 2,
-      "width": 638,
-      "height": 477
-    },
-    "open-3-6e8d503fa60b77cc.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "close-3-735fa53cd7acc1c4.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 479
-    },
-    "idle-project-4-f69d789c4c3242cb.webp": {
-      "x": 0,
-      "y": 2,
-      "width": 638,
-      "height": 477
-    },
-    "open-4-0d6243b31f1d6b79.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "close-4-340a49e266887408.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "return-idle-519c63482cb7fbb6.webp": {
-      "x": 0,
-      "y": 0,
       "width": 637,
-      "height": 479
+      "height": 477
     },
-    "return-hover-90e1ef8640fec3b6.webp": {
+    "row-3-idle-e2ccbe9b66f451e9.webp": {
       "x": 2,
       "y": 1,
       "width": 637,
-      "height": 474
+      "height": 479
     },
-    "return-in-323bca746f655511.webp": {
-      "x": 0,
+    "row-3-hover-f8009003efda95f0.webp": {
+      "x": 4,
       "y": 0,
-      "width": 639,
-      "height": 480
-    },
-    "return-out-b2acf981c8f03adb.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "return-open-51a80c9a3c258dee.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
-      "height": 480
-    },
-    "return-close-ba7361c56b5e0ccf.webp": {
-      "x": 0,
-      "y": 0,
-      "width": 640,
+      "width": 634,
       "height": 480
     }
   },
-  "player": "menu-player-bc4a1d3ead5204c2.js"
+  "player": "menu-player-8ddcfc5f8dbd3913.js"
 }
