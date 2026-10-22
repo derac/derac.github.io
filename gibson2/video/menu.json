@@ -1,0 +1,417 @@
+{
+  "regions": [
+    {
+      "key": "test1",
+      "href": "#test1",
+      "x": 0.5908203125,
+      "y": 0.09833333333333333,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 105.56462585034014,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.231292517006736
+    },
+    {
+      "key": "test2",
+      "href": "#test2",
+      "x": 0.5908203125,
+      "y": 0.2608333333333333,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 159.9523809523809,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.23129251700678
+    },
+    {
+      "key": "test3",
+      "href": "#test3",
+      "x": 0.5908203125,
+      "y": 0.42333333333333334,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 214.34013605442172,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.23129251700678
+    },
+    {
+      "key": "test4",
+      "href": "#test4",
+      "x": 0.5908203125,
+      "y": 0.5858333333333333,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 268.72789115646253,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.23129251700681
+    },
+    {
+      "key": "test5",
+      "href": "#test5",
+      "x": 0.5908203125,
+      "y": 0.7483333333333333,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 323.1156462585034,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.23129251700692
+    }
+  ],
+  "projects": [
+    {
+      "name": "test1",
+      "href": "#test1"
+    },
+    {
+      "name": "test2",
+      "href": "#test2"
+    },
+    {
+      "name": "test3",
+      "href": "#test3"
+    },
+    {
+      "name": "test4",
+      "href": "#test4"
+    },
+    {
+      "name": "test5",
+      "href": "#test5"
+    }
+  ],
+  "format": "layered-webp-v1",
+  "background": "world.webp",
+  "backgroundStill": "world-still.webp",
+  "states": {
+    "menu": {
+      "label": "GARBAGE",
+      "hash": "#garbage",
+      "regions": [
+        {
+          "key": "test1",
+          "href": "#test1",
+          "x": 0.5908203125,
+          "y": 0.09833333333333333,
+          "width": 0.37109375,
+          "height": 0.12916666666666668,
+          "left": 371.89732142857144,
+          "top": 105.56462585034014,
+          "pixelWidth": 212.05357142857144,
+          "pixelHeight": 43.231292517006736
+        },
+        {
+          "key": "test2",
+          "href": "#test2",
+          "x": 0.5908203125,
+          "y": 0.2608333333333333,
+          "width": 0.37109375,
+          "height": 0.12916666666666668,
+          "left": 371.89732142857144,
+          "top": 159.9523809523809,
+          "pixelWidth": 212.05357142857144,
+          "pixelHeight": 43.23129251700678
+        },
+        {
+          "key": "test3",
+          "href": "#test3",
+          "x": 0.5908203125,
+          "y": 0.42333333333333334,
+          "width": 0.37109375,
+          "height": 0.12916666666666668,
+          "left": 371.89732142857144,
+          "top": 214.34013605442172,
+          "pixelWidth": 212.05357142857144,
+          "pixelHeight": 43.23129251700678
+        },
+        {
+          "key": "test4",
+          "href": "#test4",
+          "x": 0.5908203125,
+          "y": 0.5858333333333333,
+          "width": 0.37109375,
+          "height": 0.12916666666666668,
+          "left": 371.89732142857144,
+          "top": 268.72789115646253,
+          "pixelWidth": 212.05357142857144,
+          "pixelHeight": 43.23129251700681
+        },
+        {
+          "key": "test5",
+          "href": "#test5",
+          "x": 0.5908203125,
+          "y": 0.7483333333333333,
+          "width": 0.37109375,
+          "height": 0.12916666666666668,
+          "left": 371.89732142857144,
+          "top": 323.1156462585034,
+          "pixelWidth": 212.05357142857144,
+          "pixelHeight": 43.23129251700692
+        }
+      ],
+      "still": "idle-menu.webp",
+      "hovers": {
+        "test1": {
+          "still": "hover-menu-0.webp",
+          "enter": {
+            "image": "hover-in-0.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "hover-out-0.webp",
+            "duration": 80
+          }
+        },
+        "test2": {
+          "still": "hover-menu-1.webp",
+          "enter": {
+            "image": "hover-in-1.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "hover-out-1.webp",
+            "duration": 80
+          }
+        },
+        "test3": {
+          "still": "hover-menu-2.webp",
+          "enter": {
+            "image": "hover-in-2.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "hover-out-2.webp",
+            "duration": 80
+          }
+        },
+        "test4": {
+          "still": "hover-menu-3.webp",
+          "enter": {
+            "image": "hover-in-3.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "hover-out-3.webp",
+            "duration": 80
+          }
+        },
+        "test5": {
+          "still": "hover-menu-4.webp",
+          "enter": {
+            "image": "hover-in-4.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "hover-out-4.webp",
+            "duration": 80
+          }
+        }
+      }
+    },
+    "project-0": {
+      "label": "test1",
+      "hash": "#test1",
+      "regions": [
+        {
+          "key": "return",
+          "href": "#garbage",
+          "x": 0.048828125,
+          "y": 0.59,
+          "width": 0.8056640625,
+          "height": 0.1125,
+          "left": 62.18749999999993,
+          "top": 270.12244897959187,
+          "pixelWidth": 460.3794642857144,
+          "pixelHeight": 37.65306122448976
+        }
+      ],
+      "still": "idle-project-0.webp",
+      "hovers": {
+        "return": {
+          "still": "hover-project-0.webp",
+          "enter": {
+            "image": "return-in-0.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "return-out-0.webp",
+            "duration": 80
+          }
+        }
+      }
+    },
+    "project-1": {
+      "label": "test2",
+      "hash": "#test2",
+      "regions": [
+        {
+          "key": "return",
+          "href": "#garbage",
+          "x": 0.048828125,
+          "y": 0.59,
+          "width": 0.8056640625,
+          "height": 0.1125,
+          "left": 62.18749999999993,
+          "top": 270.12244897959187,
+          "pixelWidth": 460.3794642857144,
+          "pixelHeight": 37.65306122448976
+        }
+      ],
+      "still": "idle-project-1.webp",
+      "hovers": {
+        "return": {
+          "still": "hover-project-1.webp",
+          "enter": {
+            "image": "return-in-1.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "return-out-1.webp",
+            "duration": 80
+          }
+        }
+      }
+    },
+    "project-2": {
+      "label": "test3",
+      "hash": "#test3",
+      "regions": [
+        {
+          "key": "return",
+          "href": "#garbage",
+          "x": 0.048828125,
+          "y": 0.59,
+          "width": 0.8056640625,
+          "height": 0.1125,
+          "left": 62.18749999999993,
+          "top": 270.12244897959187,
+          "pixelWidth": 460.3794642857144,
+          "pixelHeight": 37.65306122448976
+        }
+      ],
+      "still": "idle-project-2.webp",
+      "hovers": {
+        "return": {
+          "still": "hover-project-2.webp",
+          "enter": {
+            "image": "return-in-2.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "return-out-2.webp",
+            "duration": 80
+          }
+        }
+      }
+    },
+    "project-3": {
+      "label": "test4",
+      "hash": "#test4",
+      "regions": [
+        {
+          "key": "return",
+          "href": "#garbage",
+          "x": 0.048828125,
+          "y": 0.59,
+          "width": 0.8056640625,
+          "height": 0.1125,
+          "left": 62.18749999999993,
+          "top": 270.12244897959187,
+          "pixelWidth": 460.3794642857144,
+          "pixelHeight": 37.65306122448976
+        }
+      ],
+      "still": "idle-project-3.webp",
+      "hovers": {
+        "return": {
+          "still": "hover-project-3.webp",
+          "enter": {
+            "image": "return-in-3.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "return-out-3.webp",
+            "duration": 80
+          }
+        }
+      }
+    },
+    "project-4": {
+      "label": "test5",
+      "hash": "#test5",
+      "regions": [
+        {
+          "key": "return",
+          "href": "#garbage",
+          "x": 0.048828125,
+          "y": 0.59,
+          "width": 0.8056640625,
+          "height": 0.1125,
+          "left": 62.18749999999993,
+          "top": 270.12244897959187,
+          "pixelWidth": 460.3794642857144,
+          "pixelHeight": 37.65306122448976
+        }
+      ],
+      "still": "idle-project-4.webp",
+      "hovers": {
+        "return": {
+          "still": "hover-project-4.webp",
+          "enter": {
+            "image": "return-in-4.webp",
+            "duration": 80
+          },
+          "leave": {
+            "image": "return-out-4.webp",
+            "duration": 80
+          }
+        }
+      }
+    }
+  },
+  "transitions": {
+    "menu:project-0": {
+      "image": "open-0.webp",
+      "duration": 176
+    },
+    "project-0:menu": {
+      "image": "close-0.webp",
+      "duration": 176
+    },
+    "menu:project-1": {
+      "image": "open-1.webp",
+      "duration": 176
+    },
+    "project-1:menu": {
+      "image": "close-1.webp",
+      "duration": 176
+    },
+    "menu:project-2": {
+      "image": "open-2.webp",
+      "duration": 176
+    },
+    "project-2:menu": {
+      "image": "close-2.webp",
+      "duration": 176
+    },
+    "menu:project-3": {
+      "image": "open-3.webp",
+      "duration": 176
+    },
+    "project-3:menu": {
+      "image": "close-3.webp",
+      "duration": 176
+    },
+    "menu:project-4": {
+      "image": "open-4.webp",
+      "duration": 176
+    },
+    "project-4:menu": {
+      "image": "close-4.webp",
+      "duration": 176
+    }
+  }
+}
