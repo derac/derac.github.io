@@ -39,7 +39,7 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
 
 export function startMenu(data){
  let foreground=document.querySelector('#menu-text');
- const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links'),sound=document.querySelector('.sound');
+ const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links'),sound=document.querySelector('.sound-toggle');
  const blobs=new Map();
  async function loadImage(file){
   if(!blobs.has(file))blobs.set(file,fetch(`./video/${file}`).then(response=>{if(!response.ok)throw Error('Image unavailable');return response.blob();}).catch(error=>{blobs.delete(file);throw error;}));
@@ -84,7 +84,7 @@ export function startMenu(data){
  document.body.dataset.imageReady='true';
  const syncBackground=()=>{background.src=`./video/${motion.matches?data.backgroundStill:data.background}`;};
  syncBackground();
- function syncSound(){sound.textContent=enabled?'SOUND ON':'SOUND OFF';sound.setAttribute('aria-pressed',String(!enabled));sound.setAttribute('aria-label',enabled?'Mute sound':'Unmute sound');}
+ function syncSound(){sound.querySelector('.sound-label').textContent=enabled?'SOUND ON':'SOUND OFF';sound.dataset.muted=String(!enabled);sound.setAttribute('aria-pressed',String(!enabled));sound.setAttribute('aria-label',enabled?'Mute sound':'Unmute sound');}
  sound.addEventListener('click',()=>{enabled=!enabled;try{localStorage.setItem('gibson.audio.enabled',String(enabled));}catch{}if(enabled)audio.play().catch(()=>{});else audio.pause();if(keyOutput)keyOutput.gain.setTargetAtTime(enabled?.7:0,keyContext.currentTime,.01);syncSound();});
  nav.addEventListener('click',event=>{
   const link=event.target.closest('a');if(!link||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
