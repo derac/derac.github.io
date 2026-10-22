@@ -1,6 +1,17 @@
 import {createSound} from './sound.js';
 import {installAudioStart} from './audio-start.js';
 
+// Share in-flight and completed responses; never fetch again merely to replay a clip.
+export function createAssetLoader(fetchAsset=globalThis.fetch){
+ const assets=new Map();
+ return file=>{
+  if(!assets.has(file))assets.set(file,fetchAsset(`./video/${file}`,{cache:'force-cache'}).then(response=>{
+   if(!response.ok)throw Error('Image unavailable');return response.blob();
+  }).catch(error=>{assets.delete(file);throw error;}));
+  return assets.get(file);
+ };
+}
+
 // Load before swapping; generation tokens keep rapid hover/back navigation stable.
 export function createImageMenu({states,transitions={},loadImage,present,showState=()=>{},reducedMotion=()=>false,setTimer=setTimeout,clearTimer=clearTimeout}){
  let current='menu',hovered=null,generation=0,timer=null,navigating=false;
@@ -67,12 +78,12 @@ export function createImageMenu({states,transitions={},loadImage,present,showSta
 }
 
 export function startMenu(data){
+ if(document.body.dataset.imageReady==='true')return;
  const foreground=Object.fromEntries([...document.querySelectorAll('[data-layer]')].map(image=>[image.dataset.layer,image]));
  const background=document.querySelector('#tower-loop'),nav=document.querySelector('#image-links');
- const blobs=new Map();
+ const getAsset=createAssetLoader();
  async function loadImage(file){
-  if(!blobs.has(file))blobs.set(file,fetch(`./video/${file}`).then(response=>{if(!response.ok)throw Error('Image unavailable');return response.blob();}).catch(error=>{blobs.delete(file);throw error;}));
-  const blob=await blobs.get(file);
+  const blob=await getAsset(file);
   return async()=>{
    const url=URL.createObjectURL(blob),image=new Image();image.src=url;
    try{await image.decode();}finally{URL.revokeObjectURL(url);}
@@ -103,7 +114,7 @@ export function startMenu(data){
   },
  });
  document.body.dataset.imageReady='true';
- const syncBackground=()=>{background.src=`./video/${motion.matches?data.backgroundStill:data.background}`;};
+ const syncBackground=()=>{const src=`./video/${motion.matches?data.backgroundStill:data.background}`;if(background.getAttribute('src')!==src)background.src=src;};
  syncBackground();
  nav.addEventListener('click',event=>{
   const link=event.target.closest('a');if(!link||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
