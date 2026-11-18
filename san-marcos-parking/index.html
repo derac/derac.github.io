@@ -109,10 +109,21 @@ const COLORS={short:'#9261c8',two:'#3578d4',four:'#109f8c',long:'#399565',unspec
 const DOWNTOWN_START=[29.8825,-97.9395];
 const SPACE_ZOOM=15;
 const data={cityZones:[],citySpaces:[],osm:[],parkLots:[],curated:[]};const mapState={query:'',selected:null,view:'map'};const streamKeys=['cityZones','citySpaces','osm','parkLots'];const STREAM_NAMES={cityZones:'City zones',citySpaces:'City spaces',osm:'OSM',parkLots:'Park lots'};const cacheTimes={};const refreshStates={};const SNAPSHOT_AT=Date.parse('2026-09-23T19:39:31Z');let loading=false,statusClearTimer;
+const offlineStreams = new Set();
+const HOUR = 60 * 60 * 1000;
+const OSM_RETRY_KEY = 'parking:osm-retry-after';
+const OVERPASS_ENDPOINTS = ['https://overpass.private.coffee/api/interpreter', SOURCES.osm];
 const cityPark={id:'citypark',source:'city-current',kind:'conditional',title:'City Park — free only with approved local-area permit',geometry:{type:'Point',coordinates:[-97.9345,29.8859]},properties:{address:'170 Charles Austin Drive (marker is approximate park location, not a specific stall)',fee:'Local Area Participants: free only with approved, registered-plate permit. Others: first 30 minutes free, then paid. Special event/holiday rates may apply.',limit:'6 a.m.–11 p.m.; overnight parking prohibited.',restriction:'Parking is for city-owned park users; university parking use can be cited.',eligibility:'City residents, residents of ZIP 78666, or residents inside the SMCISD boundary can apply. Approval takes 3–5 business days.',lastVerified:'September 2026'},sourceUrl:SOURCES.cityPark,desc:'Official city policy · conditional free',confidence:'City policy confirmed; marker approximate'};data.curated=[cityPark];
 let map,renderLayers={},canvasRenderer,selectedTooltipLayer=null;
 let visibleSpaces=[], selectionOrigin=null, pedestrianData, tapHighlight;
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function webSourceURL(value) {
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.href;
+  } catch {}
+  return '';
+}
 function placeLabel(f){return f.source==='osm'?'OSM':f.source==='city-current'?'City policy':'City GIS';}
 function color(f){return COLORS[parkingKind(f)]||COLORS.unspecified;}
 function nameFrom(p,kind){const name=[p.LocationName,p.name,p.Name,streetBlock(p),p.StreetName].find(t=>typeof t==='string'&&t.trim());if(name)return String(name).trim().replace(/\s+/g,' ');return kind==='zone'?'City-listed parking area':'City-listed parking space';}
@@ -324,6 +335,7 @@ function select(feature, trigger) {
     .filter(Boolean).join(' · ');
   const seasonal = seasonalParking(feature);
   const edited = cityRecordDate(feature);
+  const sourceURL = webSourceURL(feature.sourceUrl);
   const destination = encodeURIComponent(`${lat},${lon}`);
   const detail = $('#detailPane');
   detail.innerHTML = `
@@ -343,7 +355,7 @@ function select(feature, trigger) {
       ${properties.address ? `<div class="kv"><div class="key">Location</div><div class="val">${esc(properties.address)}</div></div>` : ''}
       ${notes ? `<div class="kv"><div class="key">Source notes</div><div class="val">${esc(notes)}</div></div>` : ''}
       <div class="kv" id="pedestrianContext" hidden></div>
-      <div class="kv"><div class="key">Source</div><div class="val"><a href="${esc(feature.sourceUrl)}" target="_blank" rel="noopener">${esc(placeLabel(feature))} record</a>${edited ? `<br>City record edited ${esc(edited)}` : ''}</div></div>
+      <div class="kv"><div class="key">Source</div><div class="val">${sourceURL ? `<a href="${esc(sourceURL)}" target="_blank" rel="noopener">${esc(placeLabel(feature))} record</a>` : esc(placeLabel(feature))}${edited ? `<br>City record edited ${esc(edited)}` : ''}</div></div>
       <p class="footnote">Check posted signs and temporary restrictions.</p>
       <div class="detailactions">
         <a class="btn btn-primary" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${destination}">Google Maps</a>
@@ -635,12 +647,34 @@ async function fetchJSON(url,timeout=34000,signal,options={}){const controller=n
 async function gisPage(base,offset,format,where="ParkingType='FreePublic'",signal){const params=new URLSearchParams({where,outFields:'*',returnGeometry:'true',outSR:'4326',resultOffset:String(offset),resultRecordCount:'1000',f:format});return fetchJSON(`${base}/query?${params}`,36000,signal);}
 async function loadGIS(base,type,signal){let all=[],offset=0,format='geojson';for(let page=0;page<28;page++){if(signal?.aborted)throw Error('Source timed out');let result;try{result=await gisPage(base,offset,format,undefined,signal);}catch(e){if(signal?.aborted)throw e;if(format==='geojson'){format='json';result=await gisPage(base,offset,format,undefined,signal);}else throw e;}const features=geoJsonESRI(result);all.push(...features);if(features.length<1000&&!result.exceededTransferLimit)break;if(!features.length)break;offset+=features.length;}return cityFeatures(all,type);}
 async function loadParkLots(signal){let result;try{result=await gisPage(SOURCES.parkLots,0,'geojson','1=1',signal);}catch(e){if(signal?.aborted)throw e;result=await gisPage(SOURCES.parkLots,0,'json','1=1',signal);}return parkLotFeatures(geoJsonESRI(result));}
-async function loadOverpass(report=()=>{},signal){const q='[out:json][timeout:30];(nwr["amenity"="parking"](29.78,-98.05,29.98,-97.84);nwr["parking"="street_side"](29.78,-98.05,29.98,-97.84);nwr["parking"="lane"](29.78,-98.05,29.98,-97.84););out center geom;';const backends=[['https://lambert.openstreetmap.de/api/interpreter',20000],['https://overpass-api.de/api/interpreter',20000]];let last;for(let i=0;i<backends.length;i++){const [url,timeout]=backends[i];report(i?'Trying OSM backup…':'Contacting OSM…');try{const json=await fetchJSON(url+'?data='+encodeURIComponent(q),timeout,signal,{referrerPolicy:'origin'});if(!Array.isArray(json.elements)||!json.elements.length)throw Error('OSM returned no parking elements');return osmFeatures(json.elements);}catch(error){last=error;console.warn('[parking data] OSM endpoint failed:',url,error);if(signal?.aborted)throw error;}}throw last||Error('OSM endpoints unavailable');}
+async function loadOverpass(report, signal) {
+  const bounds = '(29.78,-98.05,29.98,-97.84)';
+  const query = `[out:json][timeout:12];
+    (nwr["amenity"="parking"]${bounds};nwr["parking"~"^(street_side|lane)$"]${bounds};)->.parking;
+    (node.parking;way.parking;);out geom;
+    rel.parking;out center;`;
+  const params = new URLSearchParams({ data: query });
+  let lastError;
+  for (const [index, endpoint] of OVERPASS_ENDPOINTS.entries()) {
+    if (signal?.aborted) throw Error('Source timed out');
+    report(index ? 'Trying OSM backup…' : 'Contacting OSM…');
+    try {
+      const json = await fetchJSON(`${endpoint}?${params}`, 16000, signal, { referrerPolicy: 'origin' });
+      if (json.remark || !Array.isArray(json.elements)) throw Error('Incomplete OSM response');
+      const items = osmFeatures(json.elements);
+      if (!items.length) throw Error('OSM returned no usable parking records');
+      return items;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
 function status(which,ok,msg){const el=$('#'+which);el.innerHTML=`<b class="${ok?'ok':'err'}">${ok?'✓':'!'} ${esc(msg)}</b>`;}
 function resetLayers(){closeTapOptions(true);closeSelectionTooltip();for(const layer of Object.values(renderLayers)){if(map?.hasLayer(layer))map.removeLayer(layer);}renderLayers={};refreshDraw();}
 function openDataCache(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(Error('IndexedDB unavailable'));return;}const req=indexedDB.open('san-marcos-parking-streams',1);req.onupgradeneeded=()=>req.result.createObjectStore('streams');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 async function readStream(key){const db=await openDataCache();return new Promise((resolve,reject)=>{const tx=db.transaction('streams','readonly'),req=tx.objectStore('streams').get(key);req.onsuccess=()=>{db.close();resolve(req.result);};req.onerror=()=>{db.close();reject(req.error);};});}
-async function saveStream(key,items,savedAt=Date.now()){const db=await openDataCache();return new Promise((resolve,reject)=>{const tx=db.transaction('streams','readwrite');tx.objectStore('streams').put({items,savedAt},key);tx.oncomplete=()=>{db.close();cacheTimes[key]=savedAt;resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
+async function saveStream(key,items,savedAt=Date.now()){const db=await openDataCache();return new Promise((resolve,reject)=>{const tx=db.transaction('streams','readwrite');tx.objectStore('streams').put({items,savedAt},key);tx.oncomplete=()=>{db.close();offlineStreams.add(key);resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
 function cacheAge(time, now = Date.now()) {
   if (!time) return 'not downloaded';
   const minutes = Math.floor(Math.max(0, now - time) / 60000);
@@ -655,21 +689,190 @@ function cacheAge(time, now = Date.now()) {
   if (days < 730) return relative.format(-Math.floor(days / 30), 'month');
   return relative.format(-Math.floor(days / 365), 'year');
 }
-function cacheLabel(){const saved=streamKeys.filter(key=>cacheTimes[key]).length;$('#cacheStatus').textContent=saved===streamKeys.length?'All sources saved for offline use':saved?`${saved} of ${streamKeys.length} sources saved for offline use`:'No source data saved for offline use';streamStatus();}
+function cacheLabel(){const saved=offlineStreams.size;$('#cacheStatus').textContent=saved===streamKeys.length?'All sources saved for offline use':saved?`${saved} of ${streamKeys.length} sources saved for offline use`:'No source data saved for offline use';streamStatus();}
 function withDeadline(promise,ms,label){let timer;return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' timed out')),ms);})]).finally(()=>clearTimeout(timer));}
 function setLoading(value,initial=false){loading=value;$('#refreshBtn').disabled=value;$('#refreshBtn').textContent=value?(initial?'Loading…':'Refreshing…'):'↻ Refresh data';}
 function topStatus(message,keep=false){clearTimeout(statusClearTimer);const el=$('#refreshStatus');el.textContent=message;el.hidden=!message;if(message&&!keep)statusClearTimer=setTimeout(()=>{el.hidden=true;el.textContent='';},8000);}
-function streamStatus(states=refreshStates){const el=$('#streamStatus');el.replaceChildren();for(const key of streamKeys){const row=document.createElement('div'),name=document.createElement('span'),value=document.createElement('span');name.textContent=STREAM_NAMES[key];value.textContent=`${cacheTimes[key]?'Downloaded '+cacheAge(cacheTimes[key]):'No offline copy'}${states[key]?' · '+states[key]:''}`;row.append(name,value);el.append(row);}}
-function briefError(error){const message=String(error?.message||error||'Unknown error');if(/timed out|abort/i.test(message))return 'timed out';if(/HTTP 429/.test(message))return 'rate limited (429)';if(/HTTP 5\d\d/.test(message))return 'source server error';if(/failed to fetch|networkerror|load failed/i.test(message))return 'network or browser access error';return message.slice(0,90);}
-async function fetchStream(key,report,signal){if(key==='cityZones')return loadGIS(SOURCES.cityZones,'zone',signal);if(key==='citySpaces')return loadGIS(SOURCES.citySpaces,'space',signal);if(key==='parkLots')return loadParkLots(signal);return loadOverpass(report,signal);}
-async function readSnapshot(key){const file=key==='osm'?'osm.json':key+'.geojson';const response=await fetch('./data/'+file);if(!response.ok)throw Error('Snapshot unavailable');const raw=await response.json();return key==='osm'?osmFeatures(raw.elements):key==='parkLots'?parkLotFeatures(geoJsonESRI(raw)):cityFeatures(geoJsonESRI(raw),key==='cityZones'?'zone':'space');}
-function showFetchStatus(pending,failures){const panel=$('#dataStatus'),hasData=streamKeys.some(key=>data[key].length);panel.classList.toggle('show',!hasData&&(pending||failures.length>0));panel.querySelector('strong').textContent=pending?'Loading parking data…':'Parking data is unavailable';$('#sourceNote').textContent=failures.length?'Refresh failed for '+failures.join(', ')+'. Saved data remains available.':'';}
-async function loadAll(force=false){if(loading)return;setLoading(true,!force);topStatus(force?'Starting refresh…':'Loading saved data…',true);const states=refreshStates,failures=[],saveFailures=[];for(const key of streamKeys)states[key]='Waiting';streamStatus(states);try{
-if(!force){await Promise.all(streamKeys.map(async key=>{try{const saved=await withDeadline(readStream(key),8000,'Local cache read');if(saved&&Array.isArray(saved.items)){data[key]=saved.items;cacheTimes[key]=saved.savedAt||0;states[key]='Saved on this device';}}catch(error){console.warn('[parking data] Local cache read failed:',key,error);}}));await Promise.all(streamKeys.filter(key=>!cacheTimes[key]).map(async key=>{try{const items=await withDeadline(readSnapshot(key),8000,'Bundled copy read');data[key]=items;cacheTimes[key]=SNAPSHOT_AT;states[key]='Bundled copy';try{await withDeadline(saveStream(key,items,SNAPSHOT_AT),8000,'Local cache save');}catch(error){console.warn('[parking data] Local cache save failed:',key,error);}}catch(error){console.warn('[parking data] Bundled copy unavailable:',key,error);}}));resetLayers();updateStats();cacheLabel();streamStatus(states);}
-const toFetch=[...streamKeys];if(!toFetch.length){showFetchStatus(false,[]);topStatus('',false);return;}showFetchStatus(true,[]);let completed=0;const report=(key,message)=>{states[key]=message;streamStatus(states);topStatus(`${completed}/${toFetch.length} complete · ${message}`,true);};
-await Promise.all(toFetch.map(async key=>{const controller=new AbortController(),limit=key==='osm'?48000:60000,timer=setTimeout(()=>controller.abort(),limit);report(key,`Loading ${STREAM_NAMES[key]}…`);console.info('[parking data] Refreshing',STREAM_NAMES[key]);try{const items=await fetchStream(key,message=>report(key,message),controller.signal);data[key]=items;states[key]=`Updated (${items.length.toLocaleString()})`;try{await withDeadline(saveStream(key,items),8000,'Local cache save');}catch(error){saveFailures.push(key);states[key]='Updated; offline save failed';console.error('[parking data] Could not save refreshed '+STREAM_NAMES[key]+' locally:',error);}resetLayers();updateStats();cacheLabel();console.info('[parking data] Updated',STREAM_NAMES[key],items.length);}catch(error){failures.push(`${STREAM_NAMES[key]} (${briefError(error)})`);states[key]=`Failed: ${briefError(error)}${cacheTimes[key]?' · saved copy kept':''}`;console.error('[parking data] Refresh failed for '+STREAM_NAMES[key]+' at '+(key==='osm'?'Overpass API':SOURCES[key])+'; saved data kept:',error);}finally{clearTimeout(timer);completed++;streamStatus(states);topStatus(`${completed}/${toFetch.length} complete${completed<toFetch.length?' · waiting for '+toFetch.filter(k=>/^Loading|^Contacting|^Trying/.test(states[k])).map(k=>STREAM_NAMES[k]).join(', '):''}`,true);}}));
-status('gisStatus',!failures.some(x=>x.startsWith('City')||x.startsWith('Park')),`City: ${data.cityZones.length} zones, ${data.citySpaces.length} spaces, ${data.parkLots.length} park lots`);status('osmStatus',!failures.some(x=>x.startsWith('OSM')),`OSM: ${data.osm.length} places`);showFetchStatus(false,failures);if(failures.length||saveFailures.length)topStatus(`${toFetch.length-failures.length}/${toFetch.length} updated · ${[...failures.map(x=>x.split(' (')[0]+' failed'),...saveFailures.map(k=>STREAM_NAMES[k]+' not saved')].join(', ')}`,true);else topStatus(`All ${toFetch.length} sources updated`,false);
-}catch(error){console.error('[parking data] Refresh stopped unexpectedly; saved data retained:',error);topStatus('Refresh stopped; saved data remains available',true);showFetchStatus(false,['refresh']);}finally{setLoading(false);}}
+function streamStatus() {
+  const container = $('#streamStatus');
+  container.replaceChildren();
+  for (const key of streamKeys) {
+    const row = document.createElement('div');
+    const name = document.createElement('span');
+    const value = document.createElement('span');
+    const time = cacheTimes[key];
+    const copy = time === SNAPSHOT_AT ? 'Bundled copy'
+      : time ? `Fetched ${cacheAge(time)}` : 'No copy';
+    const state = refreshStates[key];
+    name.textContent = STREAM_NAMES[key];
+    value.textContent = state ? `${copy} · ${state}` : copy;
+    row.append(name, value);
+    container.append(row);
+  }
+}
+
+function briefError(error) {
+  const message = String(error?.message || error || 'Unknown error');
+  if (/timed out|abort/i.test(message)) return 'timed out';
+  if (/HTTP 429/.test(message)) return 'rate limited';
+  if (/HTTP 5\d\d/.test(message)) return 'source server error';
+  if (/failed to fetch|networkerror|load failed/i.test(message)) return 'network or browser access error';
+  return message.slice(0, 90);
+}
+
+function fetchStream(key, report, signal) {
+  if (key === 'cityZones') return loadGIS(SOURCES.cityZones, 'zone', signal);
+  if (key === 'citySpaces') return loadGIS(SOURCES.citySpaces, 'space', signal);
+  if (key === 'parkLots') return loadParkLots(signal);
+  return loadOverpass(report, signal);
+}
+
+async function readSnapshot(key) {
+  const file = key === 'osm' ? 'osm.json' : key + '.geojson';
+  const raw = await fetchJSON('./data/' + file, 8000, undefined, { cache: 'default' });
+  if (key === 'osm') return osmFeatures(raw.elements);
+  const features = geoJsonESRI(raw);
+  return key === 'parkLots' ? parkLotFeatures(features)
+    : cityFeatures(features, key === 'cityZones' ? 'zone' : 'space');
+}
+
+function showFetchStatus(pending) {
+  const panel = $('#dataStatus');
+  const hasData = streamKeys.some(key => data[key].length);
+  panel.classList.toggle('show', !hasData);
+  panel.querySelector('strong').textContent = pending ? 'Loading parking data…' : 'Parking data is unavailable';
+}
+
+async function loadSavedStream(key) {
+  try {
+    const saved = await withDeadline(readStream(key), 8000, 'Local cache read');
+    if (Array.isArray(saved?.items) && saved.savedAt) {
+      data[key] = saved.items;
+      cacheTimes[key] = saved.savedAt;
+      offlineStreams.add(key);
+      return;
+    }
+  } catch {
+    // The bundled snapshot is usable when browser storage is unavailable.
+  }
+  try {
+    const items = await readSnapshot(key);
+    data[key] = items;
+    cacheTimes[key] = SNAPSHOT_AT;
+    await withDeadline(saveStream(key, items, SNAPSHOT_AT), 8000, 'Local cache save');
+  } catch {
+    // Live refresh can still supply data if the bundled copy could not be loaded.
+  }
+}
+
+let osmRetryAfter = 0;
+try {
+  osmRetryAfter = Number(localStorage.getItem(OSM_RETRY_KEY)) || 0;
+} catch {}
+
+function setOSMRetryAfter(time) {
+  osmRetryAfter = time;
+  try {
+    if (time) localStorage.setItem(OSM_RETRY_KEY, String(time));
+    else localStorage.removeItem(OSM_RETRY_KEY);
+  } catch {}
+}
+
+function needsRefresh(key, now) {
+  if (key === 'osm' && now < osmRetryAfter) {
+    refreshStates[key] = 'Live retry deferred';
+    return false;
+  }
+  return now - (cacheTimes[key] || 0) >= (key === 'osm' ? 24 * HOUR : HOUR);
+}
+
+async function refreshStream(key, report) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), key === 'osm' ? 35000 : 60000);
+  report(`Loading ${STREAM_NAMES[key]}…`);
+  try {
+    data[key] = await fetchStream(key, report, controller.signal);
+    cacheTimes[key] = Date.now();
+    if (key === 'osm') setOSMRetryAfter(0);
+  } catch (error) {
+    if (key === 'osm') setOSMRetryAfter(Date.now() + HOUR / 4);
+    const reason = briefError(error);
+    refreshStates[key] = cacheTimes[key] ? `Using existing copy (${reason})` : `Unavailable (${reason})`;
+    if (!cacheTimes[key]) console.warn(`[parking data] ${STREAM_NAMES[key]} unavailable: ${reason}`);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  refreshStates[key] = `Updated (${data[key].length.toLocaleString()})`;
+  resetLayers();
+  updateStats();
+  try {
+    await withDeadline(saveStream(key, data[key], cacheTimes[key]), 8000, 'Local cache save');
+  } catch {
+    refreshStates[key] = 'Updated · offline save unavailable';
+  }
+  cacheLabel();
+  return true;
+}
+
+async function loadAll(force = false) {
+  if (loading) return;
+  setLoading(true, !force);
+  topStatus(force ? 'Starting refresh…' : 'Loading saved data…', true);
+  for (const key of streamKeys) refreshStates[key] = '';
+  try {
+    if (!force) {
+      await Promise.all(streamKeys.map(loadSavedStream));
+      resetLayers();
+      updateStats();
+      cacheLabel();
+    }
+
+    if (navigator.onLine === false) {
+      topStatus('Offline · live refresh paused', true);
+      return;
+    }
+
+    const now = Date.now();
+    const sources = streamKeys.filter(key => force || needsRefresh(key, now));
+    streamStatus();
+    if (!sources.length) {
+      topStatus('', false);
+      return;
+    }
+
+    showFetchStatus(true);
+    const results = await Promise.all(sources.map(key => refreshStream(key, message => {
+      refreshStates[key] = message;
+      streamStatus();
+      topStatus(message, true);
+    }).then(updated => {
+      streamStatus();
+      return updated;
+    })));
+
+    const unavailable = sources.filter((_, index) => !results[index]);
+    const retained = unavailable.filter(key => cacheTimes[key]).map(key => STREAM_NAMES[key]);
+    const missing = unavailable.filter(key => !cacheTimes[key]).map(key => STREAM_NAMES[key]);
+    const notes = [
+      retained.length ? `Using existing data for ${retained.join(', ')}` : '',
+      missing.length ? `Unavailable: ${missing.join(', ')}` : '',
+    ].filter(Boolean);
+    $('#sourceNote').textContent = notes.join('. ');
+    const updated = sources.length - unavailable.length;
+    topStatus(`${updated} of ${sources.length} sources updated`, notes.length > 0);
+  } catch (error) {
+    console.error('[parking data] Refresh stopped unexpectedly:', error);
+    topStatus('Refresh stopped unexpectedly', true);
+  } finally {
+    showFetchStatus(false);
+    status('gisStatus', Boolean(cacheTimes.cityZones || cacheTimes.citySpaces || cacheTimes.parkLots),
+      `City: ${data.cityZones.length} zones, ${data.citySpaces.length} spaces, ${data.parkLots.length} park lots`);
+    status('osmStatus', Boolean(cacheTimes.osm), `OSM: ${data.osm.length} places`);
+    setLoading(false);
+  }
+}
 async function findAddress(){const text=$('#findAddress').value.trim();if(!text)return;$('#goAddress').disabled=true;$('#findStatus').textContent='Searching OpenStreetMap addresses…';try{const url='https://nominatim.openstreetmap.org/search?'+new URLSearchParams({q:text+', San Marcos, Texas',format:'json',limit:'4',viewbox:'-98.05,29.98,-97.84,29.78',bounded:'1'});const result=await fetchJSON(url,18000);if(!result.length)throw Error('No matching San Marcos location');const r=result[0];setParkingView('map');map.flyTo([+r.lat,+r.lon],17,{animate:!window.matchMedia('(prefers-reduced-motion: reduce)').matches});$('#findStatus').textContent=r.display_name;if(mobileQuery.matches)setMenu(false);}catch(e){$('#findStatus').textContent=e.message+'. Try the map and named city zones.';}finally{$('#goAddress').disabled=false;}}
 function exportGeo(){const features=selectedFeatures().map(f=>({type:'Feature',geometry:f.geometry,properties:{name:f.title,category:parkingKind(f),accessible:isAccessible(f),source:f.source,source_url:f.sourceUrl,notes:f.confidence,...f.properties}}));const out={type:'FeatureCollection',name:'San Marcos TX selected free public parking data',metadata:{created:new Date().toISOString(),selection:'Current source, category and text filters; not limited by map view or zoom',sources:[SOURCES.cityZones,SOURCES.citySpaces,SOURCES.cityPark,SOURCES.parkLots,SOURCES.osm],disclaimer:'Informational. Data can be incomplete/stale. Check posted signs and current city rules.'},features};const blob=new Blob([JSON.stringify(out)],{type:'application/geo+json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='san_marcos_parking_selected.geojson';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
 const mobileQuery=window.matchMedia('(max-width:800px)');
@@ -756,6 +959,12 @@ function setupUI() {
 }
 
 function init() {
+  if (!/^https?:$/.test(location.protocol)) {
+    $('#refreshBtn').disabled = true;
+    $('#dataStatus strong').textContent = 'Open this app over HTTPS or a local web server to load parking data.';
+    $('#dataStatus .rows').hidden = true;
+    return;
+  }
   setupUI();
   if (typeof L === 'undefined') {
     $('[data-parking-view="map"]').disabled = true;

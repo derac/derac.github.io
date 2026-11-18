@@ -1,5 +1,5 @@
 const PREFIX = 'san-marcos-parking:' + self.registration.scope + ':';
-const SHELL = PREFIX + 'v1';
+const SHELL = PREFIX + 'v2';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -20,7 +20,8 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(SHELL).then(cache => cache.addAll(SHELL_FILES)));
+  const requests = SHELL_FILES.map(file => new Request(new URL(file, self.registration.scope), { cache: 'reload' }));
+  event.waitUntil(caches.open(SHELL).then(cache => cache.addAll(requests)));
   self.skipWaiting();
 });
 
