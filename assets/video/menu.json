@@ -47,6 +47,18 @@
       "top": 268.72789115646253,
       "pixelWidth": 212.05357142857144,
       "pixelHeight": 43.23129251700681
+    },
+    {
+      "key": "san-marcos-parking",
+      "href": "https://derac.org/san-marcos-parking/",
+      "x": 0.5908203125,
+      "y": 0.7483333333333333,
+      "width": 0.37109375,
+      "height": 0.12916666666666668,
+      "left": 371.89732142857144,
+      "top": 323.1156462585034,
+      "pixelWidth": 212.05357142857144,
+      "pixelHeight": 43.23129251700692
     }
   ],
   "projects": [
@@ -73,11 +85,17 @@
       "title": "Loom",
       "href": "https://derac.org/loom/",
       "description": "Graph-based shader visualizer"
+    },
+    {
+      "name": "san-marcos-parking",
+      "title": "San Marcos Parking",
+      "href": "https://derac.org/san-marcos-parking/",
+      "description": "Map of public parking in San Marcos"
     }
   ],
   "format": "direct-webp-v1",
-  "background": "world-ea31b37b97594b48.webp",
-  "backgroundStill": "world-still-a4229e53bd7f6ac6.webp",
+  "background": "world-2e0e4ecb941a2939.webp",
+  "backgroundStill": "world-still-b9b23e8eb236a068.webp",
   "entries": [
     {
       "name": "kwin-clicktile",
@@ -96,8 +114,8 @@
         "pixelWidth": 212.05357142857144,
         "pixelHeight": 43.231292517006736
       },
-      "idle": "row-0-idle-9527cfc2df0397ab.webp",
-      "hover": "row-0-hover-ea3b46885ff956b7.webp"
+      "idle": "row-0-idle-4b36baf2431a5ccd.webp",
+      "hover": "row-0-hover-f9d02acc2abaa2d9.webp"
     },
     {
       "name": "snapdragin",
@@ -116,8 +134,8 @@
         "pixelWidth": 212.05357142857144,
         "pixelHeight": 43.23129251700678
       },
-      "idle": "row-1-idle-36dd11100a751a3c.webp",
-      "hover": "row-1-hover-106de4e25bb9aab5.webp"
+      "idle": "row-1-idle-65892e009af757e1.webp",
+      "hover": "row-1-hover-331e32219fb5be02.webp"
     },
     {
       "name": "cell",
@@ -136,8 +154,8 @@
         "pixelWidth": 212.05357142857144,
         "pixelHeight": 43.23129251700678
       },
-      "idle": "row-2-idle-d1b2192467d9d790.webp",
-      "hover": "row-2-hover-66c264cef9e6fb46.webp"
+      "idle": "row-2-idle-863665a65f74f484.webp",
+      "hover": "row-2-hover-8e016aa48bc27a7a.webp"
     },
     {
       "name": "loom",
@@ -156,84 +174,116 @@
         "pixelWidth": 212.05357142857144,
         "pixelHeight": 43.23129251700681
       },
-      "idle": "row-3-idle-e2ccbe9b66f451e9.webp",
-      "hover": "row-3-hover-f8009003efda95f0.webp"
+      "idle": "row-3-idle-3d48e13bb4f1efaa.webp",
+      "hover": "row-3-hover-244756c4f72a9154.webp"
+    },
+    {
+      "name": "san-marcos-parking",
+      "title": "San Marcos Parking",
+      "href": "https://derac.org/san-marcos-parking/",
+      "description": "Map of public parking in San Marcos",
+      "region": {
+        "key": "san-marcos-parking",
+        "href": "https://derac.org/san-marcos-parking/",
+        "x": 0.5908203125,
+        "y": 0.7483333333333333,
+        "width": 0.37109375,
+        "height": 0.12916666666666668,
+        "left": 371.89732142857144,
+        "top": 323.1156462585034,
+        "pixelWidth": 212.05357142857144,
+        "pixelHeight": 43.23129251700692
+      },
+      "idle": "row-4-idle-34eabe2d88ccadce.webp",
+      "hover": "row-4-hover-9e0ba30bd1bb9449.webp"
     }
   ],
-  "backdrop": "ink-backdrop-7a8182472f52b22e.webp",
-  "folders": "folders-6a192567c9f27640.webp",
+  "backdrop": "ink-backdrop-8fe63c84866f8546.webp",
+  "folders": "folders-aad328eb7b9e06ae.webp",
   "assets": {
-    "world-ea31b37b97594b48.webp": {
+    "world-2e0e4ecb941a2939.webp": {
       "x": 0,
       "y": 0,
       "width": 640,
       "height": 480
     },
-    "world-still-a4229e53bd7f6ac6.webp": {
+    "world-still-b9b23e8eb236a068.webp": {
       "x": 0,
       "y": 0,
       "width": 640,
       "height": 480
     },
-    "ink-backdrop-7a8182472f52b22e.webp": {
-      "x": 1,
-      "y": 2,
-      "width": 637,
-      "height": 477
-    },
-    "folders-6a192567c9f27640.webp": {
-      "x": 6,
+    "ink-backdrop-8fe63c84866f8546.webp": {
+      "x": 0,
       "y": 0,
-      "width": 628,
-      "height": 478
+      "width": 638,
+      "height": 480
     },
-    "row-0-idle-9527cfc2df0397ab.webp": {
-      "x": 5,
+    "folders-aad328eb7b9e06ae.webp": {
+      "x": 4,
       "y": 4,
-      "width": 632,
-      "height": 473
+      "width": 636,
+      "height": 474
     },
-    "row-0-hover-ea3b46885ff956b7.webp": {
-      "x": 5,
-      "y": 1,
-      "width": 634,
-      "height": 479
-    },
-    "row-1-idle-36dd11100a751a3c.webp": {
+    "row-0-idle-4b36baf2431a5ccd.webp": {
       "x": 2,
       "y": 1,
       "width": 636,
-      "height": 479
+      "height": 472
     },
-    "row-1-hover-106de4e25bb9aab5.webp": {
-      "x": 4,
-      "y": 4,
+    "row-0-hover-f9d02acc2abaa2d9.webp": {
+      "x": 5,
+      "y": 2,
+      "width": 629,
+      "height": 476
+    },
+    "row-1-idle-65892e009af757e1.webp": {
+      "x": 1,
+      "y": 12,
+      "width": 639,
+      "height": 464
+    },
+    "row-1-hover-331e32219fb5be02.webp": {
+      "x": 1,
+      "y": 1,
+      "width": 635,
+      "height": 477
+    },
+    "row-2-idle-863665a65f74f484.webp": {
+      "x": 5,
+      "y": 11,
+      "width": 633,
+      "height": 469
+    },
+    "row-2-hover-8e016aa48bc27a7a.webp": {
+      "x": 0,
+      "y": 0,
+      "width": 639,
+      "height": 477
+    },
+    "row-3-idle-3d48e13bb4f1efaa.webp": {
+      "x": 2,
+      "y": 3,
+      "width": 638,
+      "height": 477
+    },
+    "row-3-hover-244756c4f72a9154.webp": {
+      "x": 0,
+      "y": 2,
+      "width": 639,
+      "height": 473
+    },
+    "row-4-idle-34eabe2d88ccadce.webp": {
+      "x": 2,
+      "y": 0,
       "width": 636,
       "height": 476
     },
-    "row-2-idle-d1b2192467d9d790.webp": {
-      "x": 10,
-      "y": 0,
-      "width": 630,
-      "height": 480
-    },
-    "row-2-hover-66c264cef9e6fb46.webp": {
-      "x": 1,
-      "y": 2,
-      "width": 637,
-      "height": 477
-    },
-    "row-3-idle-e2ccbe9b66f451e9.webp": {
-      "x": 2,
+    "row-4-hover-9e0ba30bd1bb9449.webp": {
+      "x": 3,
       "y": 1,
-      "width": 637,
-      "height": 479
-    },
-    "row-3-hover-f8009003efda95f0.webp": {
-      "x": 4,
-      "y": 0,
       "width": 634,
-      "height": 480
+      "height": 479
     }
   },
   "player": "menu-player-8ddcfc5f8dbd3913.js"
